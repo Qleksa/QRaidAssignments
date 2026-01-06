@@ -1,0 +1,42 @@
+## Interface: 50503
+## Title: Q's Raid Assignments V1
+## Notes: Raid assignment management with customizable triggers and alerts
+## Version: 1.0.0
+## Author: Qleksa
+## Dependencies: AbstractFramework
+## OptionalDeps: LibDeflate, AceSerializer-3.0
+## SavedVariables: QRA_DB
+
+core/main.lua
+
+Util/Debug.lua
+Util/CounterFormula.lua
+
+locales/enUS.lua
+
+data/Bosses.lua
+data/Cooldowns.lua
+
+core/triggers.lua
+core/assignments.lua
+core/templates.lua
+
+ui/widgets.lua
+ui/notifications.lua
+ui/mainUI.lua
+
+# Assignments - Target Assignment System
+Assignments/data/classSpecs.lua
+Assignments/core/raidRoster.lua
+Assignments/core/assignTarget.lua
+Assignments/ui/assignTargetMenu.lua
+
+# DevMode - Testing and Development Tools
+DevMode/core/testMode.lua
+DevMode/core/fakeEncounter.lua
+DevMode/core/eventFirer.lua
+DevMode/core/eventHistory.lua
+DevMode/ui/testPanel.lua
+DevMode/ui/fakeBossUI.lua
+DevMode/ui/eventLogUI.lua
+DevMode/data/presets.lua
