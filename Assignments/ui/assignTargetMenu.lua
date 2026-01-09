@@ -4,7 +4,8 @@
     Supports: All, Role, Class, Spec, Player
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 local AF = _G.AbstractFramework
 
 QRA.AssignTargetMenu = {}

@@ -3,7 +3,8 @@
     Reusable UI widget definitions built on AbstractFramework
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.Widgets = {}
 
 local AF = _G.AbstractFramework

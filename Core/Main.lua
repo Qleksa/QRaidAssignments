@@ -4,16 +4,16 @@
 ]]
 
 ---@class addon: AceAddon, AceComm-3.0
-local addon = LibStub("AceAddon-3.0"):NewAddon("QRaidAssignmentsV1", "AceComm-3.0")
+local addon = LibStub("AceAddon-3.0"):NewAddon("QRaidAssignments", "AceComm-3.0")
 
 ---@type AbstractFramework
 local AF = _G.AbstractFramework
 
-local QRA = {}
-_G.QRA = QRA
+---@class QRA
+local QRA = QRA
 
-QRA.name = "QRaidAssignmentsV1"
-QRA.version = "1.0.0"
+QRA.name = "QRaidAssignments"
+QRA.version = "0.1.0"
 
 --------------------------------------------------
 -- Pre-initialize module tables
@@ -262,6 +262,10 @@ function QRA.InitializeModules()
 
     if QRA.UI and QRA.UI.Initialize then
         QRA.UI.Initialize()
+    end
+
+    if QRA.Comm and QRA.Comm.Initialize then
+        QRA.Comm.Initialize()
     end
 
     -- Initialize DevMode

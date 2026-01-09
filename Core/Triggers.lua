@@ -4,7 +4,8 @@
     Each trigger tracks occurrences and can fire assignments on specific counts
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.Triggers = {}
 
 local frame = CreateFrame("Frame", "QRA_TriggerFrame") -- Event frame for combat log and timers

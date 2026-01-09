@@ -4,13 +4,14 @@
     Includes spell usage, countdown timers, and TTS alerts
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.Assignments = {}
 
 --------------------------------------------------
 -- Constants
 --------------------------------------------------
----@enum AlertType
+---@enum AlertTypes
 QRA.Assignments.AlertTypes = {
     TTS = "TTS",           -- Text-to-speech
     SOUND = "SOUND",       -- Sound file

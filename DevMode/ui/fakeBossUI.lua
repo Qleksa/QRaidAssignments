@@ -3,7 +3,8 @@
     Simulates boss frames with HP control, spell casting, and debuff application
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.DevMode = QRA.DevMode or {}
 QRA.DevMode.UI = QRA.DevMode.UI or {}
 

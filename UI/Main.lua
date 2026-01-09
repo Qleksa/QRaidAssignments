@@ -3,7 +3,8 @@
     Primary user interface for managing triggers and assignments
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.UI = QRA.UI or {}
 
 local AF = _G.AbstractFramework
@@ -860,8 +861,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
         QRA.Debug("Saving trigger from editor for:", trigger, bossInput)
         local triggerType = typeDropdown:GetSelectedValue()
         QRA.Debug("Selected trigger type:", triggerType)
-        local instanceName, bossName, bossData = QRA.Bosses.GetBossByName(bossInput)
-        QRA.Debug("Boss data:", instanceName, bossName, bossData)
+        local bossData = QRA.Bosses.GetBossByName(bossInput)
         local counterFormulaValue = occSelector:GetValue()
         QRA.Debug("Counter formula from UI:", counterFormulaValue, type(counterFormulaValue))
         local config = {

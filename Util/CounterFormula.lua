@@ -19,7 +19,8 @@
     >3,+<7 = AND after comma (more than 3 AND less than 7)
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.CounterFormula = {}
 
 --- Parse a single term

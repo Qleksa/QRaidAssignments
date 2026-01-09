@@ -4,7 +4,8 @@
     Templates can be shared between encounters or exported/imported
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.Templates = {}
 
 --------------------------------------------------

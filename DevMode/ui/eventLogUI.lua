@@ -3,7 +3,8 @@
     Displays event history with replay functionality
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.DevMode = QRA.DevMode or {}
 QRA.DevMode.UI = QRA.DevMode.UI or {}
 

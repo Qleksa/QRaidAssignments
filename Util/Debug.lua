@@ -1,4 +1,5 @@
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 
 local function dump(o, indent)
     indent = indent or 0

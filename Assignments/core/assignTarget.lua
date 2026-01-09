@@ -4,7 +4,8 @@
     Supports: ALL, roles, classes, specs, and specific players
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.AssignTarget = {}
 
 --------------------------------------------------
