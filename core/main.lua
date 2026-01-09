@@ -3,6 +3,9 @@
     Handles addon loading, event registration, and module initialization
 ]]
 
+---@class addon: AceAddon, AceComm-3.0
+local addon = LibStub("AceAddon-3.0"):NewAddon("QRaidAssignmentsV1", "AceComm-3.0")
+
 ---@type AbstractFramework
 local AF = _G.AbstractFramework
 
@@ -131,12 +134,7 @@ end)
 --------------------------------------------------
 -- ADDON_LOADED
 --------------------------------------------------
-
-QRA.UIParent:RegisterEvent("ADDON_LOADED")
-function QRA.UIParent:ADDON_LOADED(addon)
-    if addon ~= QRA.name then return end
-    self:UnregisterEvent("ADDON_LOADED")
-
+function addon:OnInitialize()
     -- Register with AbstractFramework
     AF.RegisterAddon(QRA.name, "Q's Raid Assignments")
     AF.SetAddonAccentColor(QRA.name, "softlime")
@@ -144,14 +142,7 @@ function QRA.UIParent:ADDON_LOADED(addon)
     QRA.Print("Loaded.")
 end
 
---------------------------------------------------
--- PLAYER_LOGIN
---------------------------------------------------
-
-QRA.UIParent:RegisterEvent("PLAYER_LOGIN")
-function QRA.UIParent:PLAYER_LOGIN()
-    self:UnregisterEvent("PLAYER_LOGIN")
-
+function addon:OnEnable()
     -- Initialize saved variables
     if not QRA_DB then
         QRA_DB = {
@@ -179,56 +170,70 @@ function QRA.UIParent:PLAYER_LOGIN()
     -- self:RegisterEvent("ENCOUNTER_END")
 
     -- Register zone chnage event
-    -- self:RegisterEvent("ZONE_CHANGED")
-    self:RegisterEvent("ZONE_CHANGED_INDOORS")
+    QRA.UIParent:RegisterEvent("ZONE_CHANGED")
+    -- addon:RegisterEvent("ZONE_CHANGED_INDOORS", QRA.UIParent.ZONE_CHANGED_INDOORS)
+    -- addon:RegisterEvent("PLAYER_LOGIN", QRA.UIParent.PLAYER_LOGIN)
 
     QRA.Debug("All modules initialized")
 end
 
+-- QRA.UIParent:RegisterEvent("ADDON_LOADED")
+-- function QRA.UIParent:ADDON_LOADED(addon)
+--     if addon ~= QRA.name then return end
+--     self:UnregisterEvent("ADDON_LOADED")
+
+--     -- Register with AbstractFramework
+--     AF.RegisterAddon(QRA.name, "Q's Raid Assignments")
+--     AF.SetAddonAccentColor(QRA.name, "softlime")
+
+--     QRA.Print("Loaded.")
+-- end
+
+--------------------------------------------------
+-- PLAYER_LOGIN
+--------------------------------------------------
+
+-- QRA.UIParent:RegisterEvent("PLAYER_LOGIN")
+-- function QRA.UIParent:PLAYER_LOGIN()
+--     self:UnregisterEvent("PLAYER_LOGIN")
+
+--     -- Initialize saved variables
+--     if not QRA_DB then
+--         QRA_DB = {
+--             assignments = {},
+--             templates = {},
+--             triggers = {},
+--             notifications = {},
+--             settings = {
+--                 debug = false,
+--             }
+--         }
+--     end
+--     QRA.DB = QRA_DB
+--     QRA.Settings = QRA.DB.settings
+--     -- AFConfig.debug[QRA.name] = QRA.Settings.debug
+
+--     -- Initialize all modules
+--     QRA.InitializeModules()
+
+--     -- Register combat log event
+--     -- self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+
+--     -- Register encounter events
+--     -- self:RegisterEvent("ENCOUNTER_START")
+--     -- self:RegisterEvent("ENCOUNTER_END")
+
+--     -- Register zone chnage event
+--     -- self:RegisterEvent("ZONE_CHANGED")
+--     self:RegisterEvent("ZONE_CHANGED_INDOORS")
+
+--     QRA.Debug("All modules initialized")
+-- end
+
 --------------------------------------------------
 -- Module Initialization
 --------------------------------------------------
-
---- Migrate old targetOccurrence to counterFormula
-local function MigrateCounterFormulas()
-    local migrated = false
-    -- Migrate triggers
-    if QRA.DB.triggers then
-        for _, trigger in ipairs(QRA.DB.triggers) do
-            if trigger.targetOccurrence ~= nil and trigger.counterFormula == nil then
-                if trigger.targetOccurrence == 0 then
-                    trigger.counterFormula = "*"
-                else
-                    trigger.counterFormula = tostring(trigger.targetOccurrence)
-                end
-                trigger.targetOccurrence = nil
-                migrated = true
-            end
-        end
-    end
-    -- Migrate assignments
-    if QRA.DB.assignments then
-        for _, assignment in pairs(QRA.DB.assignments) do
-            if assignment.targetOccurrence ~= nil and assignment.counterFormula == nil then
-                if assignment.targetOccurrence == 0 then
-                    assignment.counterFormula = "*"
-                else
-                    assignment.counterFormula = tostring(assignment.targetOccurrence)
-                end
-                assignment.targetOccurrence = nil
-                migrated = true
-            end
-        end
-    end
-    if migrated then
-        QRA.Debug("Migration: Converted targetOccurrence to counterFormula")
-    end
-end
-
 function QRA.InitializeModules()
-    -- Run migrations first
-    MigrateCounterFormulas()
-
     -- Initialize in dependency order
     if QRA.Widgets and QRA.Widgets.Initialize then
         QRA.Widgets.Initialize()

@@ -1,11 +1,12 @@
 ## Interface: 50503
-## Title: Q's Raid Assignments V1
+## Title: Q's Raid Assignments
 ## Notes: Raid assignment management with customizable triggers and alerts
-## Version: 1.0.0
+## Version: 0.1.0
 ## Author: Qleksa
 ## Dependencies: AbstractFramework
-## OptionalDeps: LibDeflate, AceSerializer-3.0
 ## SavedVariables: QRA_DB
+
+embeds.xml
 
 core/main.lua
 

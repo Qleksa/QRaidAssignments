@@ -150,7 +150,6 @@ QRA.ClassSpecs.Roles = {
 --------------------------------------------------
 local abbrevToClass = {}      -- "WARR" -> "WARRIOR"
 local abbrevToSpec = {}       -- "HPAL" -> { classFile = "PALADIN", specIndex = 1 }
-local specIdToAbbrev = {}     -- Maps specID to abbreviation (for Cata+ API)
 
 -- Build lookup tables
 local function BuildLookupTables()

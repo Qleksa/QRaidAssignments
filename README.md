@@ -13,7 +13,7 @@ Create triggers based on various in-game events:
 - **Timer** - Triggers at a specific time after encounter start
 - **NPC Death** - Triggers when a specific NPC dies
 
-Each trigger tracks occurrences, allowing you to specify which occurrence should activate an assignment (e.g., "trigger on the 3rd cast").
+Each trigger has counters, allowing you to specify which occurrence should activate an assignment (e.g., "trigger on the 3rd cast").
 
 ### Assignment System
 Create assignments that link to triggers:
@@ -21,12 +21,6 @@ Create assignments that link to triggers:
 - Set a countdown timer for the alert
 - Choose alert type (TTS, sound, on-screen, or chat)
 - Configure which trigger occurrence activates the assignment
-
-### Templates
-Save your trigger/assignment configurations as templates:
-- Reuse configurations across different encounters
-- Share templates with your raid team (export/import)
-- Quick-apply templates for common scenarios
 
 ### Notification Types
 - **Text-to-Speech (TTS)** - Speak the alert message
@@ -66,13 +60,6 @@ Save your trigger/assignment configurations as templates:
    - Choose alert type
 6. Link the assignment to your trigger
 
-### Saving Templates
-
-1. Configure your triggers and assignments
-2. Go to the **Templates** tab
-3. Click **Save Current as Template**
-4. Enter a name for the template
-
 ### Settings
 
 Configure notification preferences in the **Settings** tab:
@@ -82,32 +69,9 @@ Configure notification preferences in the **Settings** tab:
 - Enable/disable chat messages
 - Test each notification type
 
-## File Structure
-
-```
-QRaidAssignments/
-├── core/
-│   ├── main.lua           # Main addon initialization
-│   ├── triggers.lua       # Trigger system
-│   ├── assignments.lua    # Assignment management
-│   └── templates.lua      # Template save/load
-├── ui/
-│   ├── mainUI.lua         # Main UI layout
-│   ├── widgets.lua        # Custom widget definitions
-│   └── notifications.lua  # Alert system
-├── locales/
-│   └── enUS.lua           # Localization strings
-├── Media/
-│   └── Sounds/            # Custom sound files
-├── QRaidAssignments.toc   # Addon metadata
-└── README.md              # This file
-```
-
 ## Dependencies
 
 - **AbstractFramework** (required) - UI framework
-- **LibDeflate** (optional) - For template import/export
-- **AceSerializer-3.0** (optional) - For template serialization
 
 ## API
 
@@ -125,13 +89,6 @@ QRA.Assignments.Create(config)      -- Create an assignment
 QRA.Assignments.Add(assignment)     -- Add an assignment
 QRA.Assignments.Remove(id)          -- Remove an assignment
 QRA.Assignments.GetAll()            -- Get all assignments
-
--- Templates
-QRA.Templates.Create(name)          -- Create a template
-QRA.Templates.Save(template)        -- Save a template
-QRA.Templates.Apply(id)             -- Apply a template
-QRA.Templates.Export(id)            -- Export to string
-QRA.Templates.Import(string)        -- Import from string
 
 -- Notifications
 QRA.Notifications.SpeakTTS(msg)     -- TTS alert
