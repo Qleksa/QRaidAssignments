@@ -1,8 +1,8 @@
 ## Interface: 50503
 ## Title: Q's Raid Assignments
-## Notes: Raid assignment management with customizable triggers and alerts
-## Version: 0.1.0
 ## Author: Qleksa
+## Version: @project-version@
+## Notes: Raid assignment management with customizable triggers and alerts
 ## Dependencies: AbstractFramework
 ## SavedVariables: QRA_DB
 
@@ -28,7 +28,7 @@ UI/Widgets.lua
 UI/Notifications.lua
 UI/Main.lua
 
-Comm/Core.lua
+Comm/Comm.lua
 
 # Assignments - Target Assignment System
 Assignments/data/classSpecs.lua

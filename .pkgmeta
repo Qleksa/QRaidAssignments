@@ -8,6 +8,9 @@ externals:
 
 enable-nolib-creation: no
 
+required-dependencies:
+  - abstract-framework
+
 ignore:
   - README.md
   - generate_changelog.sh

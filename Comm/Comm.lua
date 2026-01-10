@@ -12,7 +12,7 @@ function QRA.Comm.Export()
 end
 
 ---@param boss number encounter id
----@return string 
+---@return string
 function QRA.Comm.ExportBoss(boss)
     QRA.Debug("Comm: Exporting Boss Data")
     local bossData = type(boss) == "number" and QRA.Bosses.GetBossByEncounterId(boss) or QRA.Bosses.GetBossByName(boss)
@@ -39,13 +39,13 @@ function QRA.Comm.Import(input)
 
     local decoded = LibDeflate:DecodeForPrint(encoded)
     if not decoded then
-        QRA.Debug("Comm: Failed to decode import string")
+        QRA.Print("Comm: Failed to decode import string")
         return
     end
 
     local decompressed = LibDeflate:DecompressDeflate(decoded)
     if not decompressed then
-        QRA.Debug("Comm: Failed to decompress import string")
+        QRA.Print("Comm: Failed to decompress import string")
         return
     end
     local success, deserialized = LibSerialize:Deserialize(decompressed)
@@ -53,13 +53,20 @@ function QRA.Comm.Import(input)
         QRA.Debug("Comm: Deserialized Data:", deserialized)
         -- Handle imported data
     else
-        QRA.Debug("Comm: Failed to deserialize data")
+        QRA.Print("Comm: Failed to deserialize data")
     end
+end
+
+local function TestImportExport()
+    QRA.Debug("Comm: Testing Import/Export")
+    QRA.Comm.ExportBoss(1443)
+    QRA.Comm.Import(QRA.Comm.exportedBoss)
 end
 
 function QRA.Comm.Initialize()
     QRA.Debug("Comm: Module Initialized")
 
-    QRA.Comm.ExportBoss(1443)
-    QRA.Comm.Import(QRA.Comm.exportedBoss)
+    if QRA.Settings.debug then
+        TestImportExport()
+    end
 end
