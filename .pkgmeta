@@ -1,0 +1,16 @@
+package-as: QRaidAssignments
+
+externals:
+  Libs/LibStub: https://repos.curseforge.com/wow/libstub/trunk
+  Libs/AceComm-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceComm-3.0
+  Libs/LibDeflate: https://github.com/SafeteeWoW/LibDeflate
+  Libs/LibSerialize: https://github.com/rossnichols/LibSerialize
+
+enable-nolib-creation: no
+
+ignore:
+  - README.md
+  - generate_changelog.sh
+  - Libs/LibDeflate/docs
+  - Libs/LibDeflate/examples
+  - Libs/LibDeflate/*.md

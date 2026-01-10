@@ -6,7 +6,7 @@
 ## Dependencies: AbstractFramework
 ## SavedVariables: QRA_DB
 
-Libs/Libs.xml
+embeds.xml
 
 Init.lua
 

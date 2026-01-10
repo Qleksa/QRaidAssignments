@@ -11,7 +11,8 @@ function QRA.Comm.Export()
     -- Export all triggers and assignments
 end
 
----@param boss string|number Boss name or encounter ID
+---@param boss number encounter id
+---@return string 
 function QRA.Comm.ExportBoss(boss)
     QRA.Debug("Comm: Exporting Boss Data")
     local bossData = type(boss) == "number" and QRA.Bosses.GetBossByEncounterId(boss) or QRA.Bosses.GetBossByName(boss)
@@ -29,10 +30,24 @@ end
 
 function QRA.Comm.Import(input)
     QRA.Debug("Comm: Importing Data")
-    local _, _, version, encoded = input:find("^(!QRA!)(.+)$")
+    local _, _, encoded = input:find("^!QRA!(.+)$")
+
+    if not encoded then
+        QRA.Debug("Comm: Invalid import string")
+        return
+    end
 
     local decoded = LibDeflate:DecodeForPrint(encoded)
+    if not decoded then
+        QRA.Debug("Comm: Failed to decode import string")
+        return
+    end
+
     local decompressed = LibDeflate:DecompressDeflate(decoded)
+    if not decompressed then
+        QRA.Debug("Comm: Failed to decompress import string")
+        return
+    end
     local success, deserialized = LibSerialize:Deserialize(decompressed)
     if success then
         QRA.Debug("Comm: Deserialized Data:", deserialized)
