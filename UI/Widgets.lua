@@ -606,11 +606,14 @@ function QRA.Widgets.CreateTriggerRow(parent, trigger, onEdit, onDelete)
     AF.SetHeight(row, 28)
     AF.SetPoint(row, "LEFT")
     AF.SetPoint(row, "RIGHT")
+    row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
     -- Make row clickable to edit
     row:SetScript("OnClick", function(self, button)
         if button == "LeftButton" and onEdit then
             onEdit(trigger)
+        elseif button == "RightButton" then
+            QRA.Widgets.ShowContextMenu(row, trigger)
         end
     end)
 
@@ -739,6 +742,17 @@ function QRA.Widgets.CreateSectionHeader(parent, title, collapsible)
     end
 
     return header
+end
+
+function QRA.Widgets.ShowContextMenu(owner, trigger)
+    MenuUtil.CreateButtonContextMenu(owner, {
+        "Export",
+        function(triggerId)
+            local exportString = QRA.Comm.ExportTrigger(triggerId)
+            QRA.UI.ShowExportFrame(exportString)
+        end,
+        trigger.id,
+    })
 end
 
 --------------------------------------------------

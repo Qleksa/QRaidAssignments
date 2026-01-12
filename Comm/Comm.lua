@@ -28,6 +28,23 @@ function QRA.Comm.Export(isForAddonChannel)
     return exportString
 end
 
+-- Export trigger
+---@param triggerId string trigger id
+---@param isForAddonChannel? boolean
+---@return string
+function QRA.Comm.ExportTrigger(triggerId, isForAddonChannel)
+    QRA.Debug("Comm: Exporting Trigger Data")
+    local trigger = QRA.Triggers.Get(triggerId)
+    if not trigger then
+        QRA.Print("Comm: No trigger found with ID " .. triggerId)
+        return ""
+    end
+    trigger.assignments = QRA.Assignments.GetForTrigger(trigger.id)
+    local exportString = QRA.Serialize({trigger}, isForAddonChannel or false)
+    QRA.Debug("Comm: Export String Generated")
+    return exportString
+end
+
 -- Export serialized triggers and assignments for a specific boss
 ---@param encounterId number encounter id
 ---@param isForAddonChannel? boolean
