@@ -87,16 +87,14 @@ function QRA.Comm.Import(input, isForAddonChannel)
         QRA.Debug("Comm: Deserialized Data")
         for _, trigger in ipairs(data) do
             QRA.Triggers.UpsertTrigger(trigger)
+            local existingAssignments = QRA.Assignments.GetForTrigger(trigger.id)
+            local existingAssignmentsById = {}
+            for _, existingAssignment in ipairs(existingAssignments) do
+                existingAssignmentsById[existingAssignment.id] = true
+            end
             for _, assignment in ipairs(trigger.assignments or {}) do
-                local existingAssignments = QRA.Assignments.GetForTrigger(trigger.id)
-                local found = false
-                for _, existingAssignment in ipairs(existingAssignments) do
-                    if existingAssignment.id == assignment.id then
-                        found = true
-                        break
-                    end
-                end
-                if not found then
+
+                if not existingAssignmentsById[assignment.id] then
                     QRA.Assignments.Add(assignment)
                 else
                     QRA.Assignments.Update(assignment.id, assignment)
