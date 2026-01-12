@@ -4,7 +4,8 @@
     Designed for Mists Classic (Cata+ API)
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.ClassSpecs = {}
 
 --------------------------------------------------

@@ -4,7 +4,8 @@
     Supports: All, Role, Class, Spec, Player
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 local AF = _G.AbstractFramework
 
 QRA.AssignTargetMenu = {}
@@ -409,7 +410,7 @@ function QRA.AssignTargetMenu.ShowRosterManager(parent)
     UpdateInfo()
 
     -- Save button
-    local saveBtn = AF.CreateButton(form, "Save Current Roster", "accent", 140, 26)
+    local saveBtn = AF.CreateButton(form, "Save Current Roster", "accent", 150, 26)
     AF.SetPoint(saveBtn, "TOPLEFT", infoText, "BOTTOMLEFT", 0, -20)
     saveBtn:SetOnClick(function()
         QRA.RaidRoster.SaveCurrentRoster()
@@ -418,7 +419,7 @@ function QRA.AssignTargetMenu.ShowRosterManager(parent)
     end)
 
     -- Clear button
-    local clearBtn = AF.CreateButton(form, "Clear Saved", "red", 140, 26)
+    local clearBtn = AF.CreateButton(form, "Clear Saved", "red", 150, 26)
     AF.SetPoint(clearBtn, "LEFT", saveBtn, "RIGHT", 10, 0)
     clearBtn:SetOnClick(function()
         QRA.RaidRoster.ClearSavedRoster()
@@ -427,8 +428,10 @@ function QRA.AssignTargetMenu.ShowRosterManager(parent)
     end)
 
     -- Show dialog
-    local dialog = AF.GetDialog(parent, AF.WrapTextInColor("Roster Manager", "accent"), 320)
+    local dialog = AF.GetDialog(parent, AF.WrapTextInColor("Roster Manager", "accent"), 340)
     AF.SetPoint(dialog, "CENTER", parent, 0, 0)
     dialog:SetContent(form, 100)
     dialog:SetToCustom("Close", "", 60)
+    dialog.no:Hide()
+    AF.SetPoint(dialog.yes, "BOTTOMRIGHT", dialog, "BOTTOMRIGHT")
 end

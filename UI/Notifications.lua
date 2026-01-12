@@ -3,7 +3,8 @@
     Handles TTS, sound playback, on-screen messages, and countdown alerts
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.Notifications = {}
 
 local AF = _G.AbstractFramework
@@ -82,7 +83,7 @@ local function CreateScreenMessageFrame()
     screenMessageFrame.fadeAnim = ag
 end
 
----@param type AlertType Type of notification
+---@param type AlertType Notification type
 ---@param message string Message
 ---@param file string|nil Sound file for SOUND type
 function QRA.Notifications.Notify(type, message, file)

@@ -3,7 +3,8 @@
     Manages test mode state and persistence
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.DevMode = QRA.DevMode or {}
 
 local DevMode = QRA.DevMode

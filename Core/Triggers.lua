@@ -4,7 +4,8 @@
     Each trigger tracks occurrences and can fire assignments on specific counts
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.Triggers = {}
 
 local frame = CreateFrame("Frame", "QRA_TriggerFrame") -- Event frame for combat log and timers
@@ -20,28 +21,7 @@ end)
 frame:RegisterEvent("ENCOUNTER_START")
 frame:RegisterEvent("ENCOUNTER_END")
 function frame:COMBAT_LOG_EVENT_UNFILTERED()
-    local _, subEvent, _, sourceGUID, _, _, _, _, _, _, _, spellId, spellName = CombatLogGetCurrentEventInfo()
-    local shouldCheck = true
-
-    -- if sourceGUID ~= playerGUID then
-    --     return -- Only process events from the player
-    -- end
-    -- if subEvent == "SPELL_CAST_SUCCESS" then
-    --     QRA.Debug("Combat Log Event:", subEvent, "Spell:", spellName, "ID:", spellId)
-    --     shouldCheck = true
-    -- elseif subEvent == "SPELL_AURA_APPLIED" then
-    --     QRA.Debug("Combat Log Event:", subEvent, "Spell:", spellName, "ID:", spellId)
-    --     shouldCheck = true
-    -- elseif subEvent == "SPELL_AURA_REMOVED" then
-    --     QRA.Debug("Combat Log Event:", subEvent, "Spell:", spellName, "ID:", spellId)
-    --     shouldCheck = true
-    -- elseif subEvent == "UNIT_DIED" then
-    --     QRA.Debug("Combat Log Event:", subEvent)
-    --     shouldCheck = true
-    -- end
-
-
-    if QRA.Triggers and QRA.Triggers.ProcessCombatLogEvent and shouldCheck then
+    if QRA.Triggers and QRA.Triggers.ProcessCombatLogEvent then
         QRA.Triggers.ProcessCombatLogEvent(CombatLogGetCurrentEventInfo())
     end
 end
@@ -72,7 +52,6 @@ end
 function frame:UNIT_HEALTH(unitId)
     QRA.Triggers.OnUnitHealth(unitId)
 end
-
 
 --------------------------------------------------
 -- Constants
@@ -476,27 +455,30 @@ end
 ---@param triggerType string One of QRA.Triggers.Types
 ---@param config table Configuration specific to trigger type
 ---@param isNew boolean Whether this is a new trigger
----@return table trigger The configured trigger object
+---@return Trigger trigger The configured trigger object
 function QRA.Triggers.Create(triggerType, config, isNew)
     -- QRA.Debug("Triggers: Creating new trigger of type", triggerType, "with config:", config)
+    ---@type Trigger
     local trigger = {
         id = isNew and GenerateTriggerID() or config.id,
+        version = 1,
+        name = config.name or (GetTriggerTypeAbbreviation(triggerType) .. "_" .. time()),
         type = triggerType,
         enabled = true,
-        counterFormula = config.counterFormula,  -- Counter formula (e.g., "1,3,5", ">2,+<6", "1%3")
-        assignments = {},  -- Linked assignments
-        bossName = config.bossName,  -- Boss this trigger belongs to
-        encounterId = config.encounterId, -- Encounter ID
+        counterFormula = config.counterFormula, -- Counter formula (e.g., "1,3,5", ">2,+<6", "1%3")
+        assignments = {},                       -- Linked assignments
+        bossName = config.bossName,             -- Boss this trigger belongs to
+        encounterId = config.encounterId,       -- Encounter ID
         createdAt = time(),
     }
 
     -- Type-specific configuration
     if triggerType == QRA.Triggers.Types.SPELL_CAST_SUCCESS.event or
-       triggerType == QRA.Triggers.Types.SPELL_CAST_START.event then
+        triggerType == QRA.Triggers.Types.SPELL_CAST_START.event then
         trigger.spellId = config.spellId
         trigger.spellName = config.spellName
     elseif triggerType == QRA.Triggers.Types.SPELL_AURA_APPLIED.event or
-           triggerType == QRA.Triggers.Types.SPELL_AURA_REMOVED.event then
+        triggerType == QRA.Triggers.Types.SPELL_AURA_REMOVED.event then
         trigger.spellId = config.spellId
         trigger.spellName = config.spellName
     elseif triggerType == QRA.Triggers.Types.TIMER.event then
@@ -505,8 +487,8 @@ function QRA.Triggers.Create(triggerType, config, isNew)
         trigger.npcId = config.npcId
         trigger.npcName = config.npcName or "Unknown NPC"
     elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
-        trigger.targetGuid = config.targetGuid  -- "boss", "boss1", or numeric NPC ID
-        trigger.hpThresholds = config.hpThresholds  -- Raw comma-separated string "25,50,75"
+        trigger.targetGuid = config.targetGuid -- "boss", "boss1", or numeric NPC ID
+        trigger.hpThresholds = config.hpThresholds -- Raw comma-separated string "25,50,75"
     end
 
     return trigger
@@ -595,6 +577,21 @@ function QRA.Triggers.GetBossTriggers(bossName)
     return triggers
 end
 
+--- Get triggers for a specific encounter ID
+--- @param encounterId number encounter id
+--- @return Trigger[] triggers
+function QRA.Triggers.GetTriggersByEncounterId(encounterId)
+    local triggers = {}
+
+    for _, trigger in ipairs(QRA.DB.triggers) do
+        if trigger.encounterId == encounterId then
+            table.insert(triggers, trigger)
+        end
+    end
+
+    return triggers
+end
+
 --- Get a specific trigger by ID
 ---@param triggerId string
 ---@return table|nil
@@ -635,6 +632,26 @@ function QRA.Triggers.UpdateTrigger(trigger)
     end
 
     QRA.Debug("Triggers: Trigger not found for update", trigger.id)
+end
+
+--- Insert or update a trigger in the database
+---@param trigger Trigger trigger to upsert
+function QRA.Triggers.UpsertTrigger(trigger)
+    if not trigger or not trigger.id then
+        QRA.Print("Triggers: Invalid trigger upsert attempt")
+        return
+    end
+
+    for index, existingTrigger in ipairs(QRA.DB.triggers) do
+        if existingTrigger.id == trigger.id then
+            QRA.DB.triggers[index] = trigger
+            QRA.Debug("Triggers: Upserted (updated) trigger", trigger.id)
+            return
+        end
+    end
+
+    table.insert(QRA.DB.triggers, trigger)
+    QRA.Debug("Triggers: Upserted (saved) new trigger", trigger.id)
 end
 
 function QRA.Triggers.DeleteTrigger(triggerId)
@@ -799,8 +816,8 @@ function QRA.Triggers.OnEncounterStart(encounterId, encounterName)
 
     encounterActive = true
     encounterStartTime = GetTime()
-    currentEncounterId = encounterId  -- Store for potential re-registration
-    wipe(previousUnitHP)  -- Reset HP tracking
+    currentEncounterId = encounterId -- Store for potential re-registration
+    wipe(previousUnitHP)           -- Reset HP tracking
     RegisterEncounterTriggers(encounterId)
     ResetOccurrenceCounts()
     StartTimerTriggers()
@@ -814,8 +831,8 @@ function QRA.Triggers.OnEncounterEnd(encounterId, encounterName, success)
     frame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     frame:UnregisterEvent("UNIT_HEALTH")
     encounterActive = false
-    currentEncounterId = nil  -- Clear encounter ID
-    wipe(previousUnitHP)  -- Clear HP tracking
+    currentEncounterId = nil -- Clear encounter ID
+    wipe(previousUnitHP)   -- Clear HP tracking
     CancelTimerTriggers()
     ResetOccurrenceCounts()
 

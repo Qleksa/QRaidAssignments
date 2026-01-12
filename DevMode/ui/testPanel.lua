@@ -3,7 +3,8 @@
     Main test controls window with boss selector, encounter buttons, and trigger list
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.DevMode = QRA.DevMode or {}
 QRA.DevMode.UI = QRA.DevMode.UI or {}
 

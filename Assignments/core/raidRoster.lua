@@ -4,7 +4,8 @@
     Sorts players by raid group, then alphabetically
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.RaidRoster = {}
 
 --------------------------------------------------

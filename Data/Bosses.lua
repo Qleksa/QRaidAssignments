@@ -1,4 +1,5 @@
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 
 --[[
   QRaidAssignments - Bosses Data File
@@ -107,22 +108,22 @@ function QRA.Bosses.GetBossByEncounterId(encounterId)
     for instanceName, instanceData in pairs(QRA.Bosses.instances) do
         for _, bossData in ipairs(instanceData.bosses) do
             if bossData.encounterId == encounterId then
-                return instanceName, bossData.name, bossData
+                return bossData
             end
         end
     end
-    return nil, nil, nil
+    return nil
 end
 
 function QRA.Bosses.GetBossByName(bossName)
     for instanceName, instanceData in pairs(QRA.Bosses.instances) do
         for _, bossData in ipairs(instanceData.bosses) do
             if bossData.name == bossName then
-                return instanceName, bossData.name, bossData
+                return bossData
             end
         end
     end
-    return nil, nil, nil
+    return nil
 end
 
 function QRA.Bosses.GetBossByZoneName(zoneName)

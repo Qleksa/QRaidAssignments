@@ -3,7 +3,8 @@
     Primary user interface for managing triggers and assignments
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.UI = QRA.UI or {}
 
 local AF = _G.AbstractFramework
@@ -19,6 +20,7 @@ local LIST_ROW_HEIGHT = 28
 --------------------------------------------------
 -- State
 --------------------------------------------------
+---@class AF_HeaderedFrame
 local mainFrame = nil
 local currentTab = "triggers"  -- "triggers", "assignments", "settings"
 local selectedBoss = nil  -- Filter triggers by boss
@@ -199,7 +201,7 @@ local function CreateAssignmentsTab(parent)
     end
 
     -- Add Assignment button
-    local addBtn = AF.CreateButton(content, QRA.L["+ Add Assignment"], "accent", 150, 26)
+    local addBtn = AF.CreateButton(content, QRA.L["+ Add Assignment"], "softlime", 150, 26)
     AF.SetPoint(addBtn, "TOPLEFT", listFrame, "BOTTOMLEFT", 0, -8)
     addBtn:SetOnClick(function()
         QRA.UI.ShowAssignmentEditor()
@@ -213,7 +215,7 @@ local function CreateAssignmentsTab(parent)
     end)
 
     -- Roster Manager button
-    local rosterBtn = AF.CreateButton(content, QRA.L["Roster"] or "Roster", "static", 80, 26)
+    local rosterBtn = AF.CreateButton(content, QRA.L["Roster"], "static", 80, 26)
     AF.SetPoint(rosterBtn, "LEFT", testBtn, "RIGHT", 10, 0)
     AF.SetTooltip(rosterBtn, "TOPLEFT", 0, 2, "Roster Manager", "Save current raid roster for planning", "assignments when not in raid")
     rosterBtn:SetOnClick(function()
@@ -322,16 +324,39 @@ local function CreateTriggersTab(parent)
     end
 
     -- Add Trigger button
-    local addBtn = AF.CreateButton(content, QRA.L["+ Add Trigger"], "accent", 150, 26)
+    local addBtn = AF.CreateButton(content, QRA.L["+ Add Trigger"], "softlime", 150, 26)
     AF.SetPoint(addBtn, "TOPLEFT", listFrame, "BOTTOMLEFT", 0, -8)
     addBtn:SetEnabled(selectedBoss ~= nil)
     addBtn:SetOnClick(function()
         QRA.UI.ShowTriggerEditor(nil, selectedBoss)
     end)
 
+    -- Export button
+    local exportBtn = AF.CreateButton(content, QRA.L["Export"], "softlime", 80, 26)
+    AF.SetPoint(exportBtn, "LEFT", addBtn, "RIGHT", 10, 0)
+    exportBtn:SetOnClick(function()
+        local exportString = selectedEncounterId and QRA.Comm.ExportBoss(selectedEncounterId) or QRA.Comm.Export()
+        if exportString and exportString ~= "" then
+            QRA.UI.ShowExportFrame(exportString)
+        end
+    end)
+
+    -- Import button
+    local importBtn = AF.CreateButton(content, QRA.L["Import"], "softblue", 80, 26)
+    AF.SetPoint(importBtn, "LEFT", exportBtn, "RIGHT", 10, 0)
+    importBtn:SetOnClick(function()
+        QRA.UI.ShowImportFrame(function(input)
+            QRA.Comm.Import(input)
+        end)
+    end)
+
+    function content:SetButtonState()
+        if addBtn then addBtn:SetEnabled(selectedBoss ~= nil) end
+    end
+
     -- Test Mode button
     local testModeBtn = AF.CreateButton(content, QRA.L["Test Mode"], "purple", 100, 26)
-    AF.SetPoint(testModeBtn, "LEFT", addBtn, "RIGHT", 10, 0)
+    AF.SetPoint(testModeBtn, "TOPRIGHT", listFrame, "BOTTOMRIGHT", 0, -8)
     testModeBtn:SetOnClick(function()
         if QRA.DevMode then
             if not QRA.DevMode.IsActive() then
@@ -346,10 +371,6 @@ local function CreateTriggersTab(parent)
             end
         end
     end)
-
-    function content:SetButtonState()
-        if addBtn then addBtn:SetEnabled(selectedBoss ~= nil) end
-    end
 
     return content
 end
@@ -565,7 +586,7 @@ local function CreateMainFrame()
     -- Test Mode indicator (shown when DevMode is active)
     local testModeIndicator = AF.CreateFontString(mainFrame, QRA.L["TEST MODE"], "purple")
     testModeIndicator:SetFont(STANDARD_TEXT_FONT, 10, "OUTLINE")
-    AF.SetPoint(testModeIndicator, "TOPRIGHT", mainFrame, -10, -10)
+    AF.SetPoint(testModeIndicator, "BOTTOMRIGHT", mainFrame, -24, 4)
     testModeIndicator:Hide()
     mainFrame.testModeIndicator = testModeIndicator
 
@@ -588,7 +609,7 @@ local function CreateMainFrame()
     -- Initial update
     UpdateTestModeIndicator()
 
-    -- Create tab contents (no templates tab - accessed via button on triggers tab)
+    -- Create tab contents
     tabContents["triggers"] = CreateTriggersTab(mainFrame)
     tabContents["assignments"] = CreateAssignmentsTab(mainFrame)
     tabContents["settings"] = CreateSettingsTab(mainFrame)
@@ -747,6 +768,7 @@ end
 
 --- Show the trigger editor dialog
 ---@param trigger table|nil Existing trigger to edit, or nil for new
+---@param bossInput string|nil Boss name to associate the trigger with
 function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     QRA.Debug("Opening Trigger Editor: ", trigger, bossInput)
     local isNew = trigger == nil
@@ -860,8 +882,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
         QRA.Debug("Saving trigger from editor for:", trigger, bossInput)
         local triggerType = typeDropdown:GetSelectedValue()
         QRA.Debug("Selected trigger type:", triggerType)
-        local instanceName, bossName, bossData = QRA.Bosses.GetBossByName(bossInput)
-        QRA.Debug("Boss data:", instanceName, bossName, bossData)
+        local bossData = QRA.Bosses.GetBossByName(bossInput)
         local counterFormulaValue = occSelector:GetValue()
         QRA.Debug("Counter formula from UI:", counterFormulaValue, type(counterFormulaValue))
         local config = {
@@ -939,6 +960,107 @@ function QRA.UI.ShowTemplateNameDialog(onConfirm)
             onConfirm(name)
         end
     end)
+end
+
+---@class AF_HeaderedFrame
+local exportFrame = nil
+--- Show export dialog
+---@param exportString string The export string to show
+function QRA.UI.ShowExportFrame(exportString)
+    if exportFrame then
+        exportFrame:SetText(exportString)
+        exportFrame:Show()
+        return
+    end
+
+    exportFrame = AF.CreateHeaderedFrame(
+        QRA.UIParent,
+        "QRA_ExportFrame",
+        QRA.L["Export Data"],
+        400,
+        300
+    )
+    AF.SetPoint(exportFrame, "CENTER", mainFrame, 0, 0)
+    local editBox = AF.CreateEditBox(exportFrame, QRA.L["Export Data"], 400, 200, "multiline")
+    AF.SetPoint(editBox, "TOPLEFT")
+    editBox:SetAutoFocus(true)
+    editBox:SetText(exportString)
+
+    -- Auto close on Ctrl+C or ESC
+    local ctrlDown = false
+    editBox:SetScript("OnKeyDown", function(self, key)
+        if key == "LCTRL" or key == "RCTRL" or key == "LMETA" or key == "RMETA" then
+            ctrlDown = true
+        end
+        if key == "ESCAPE" then
+            exportFrame:Hide()
+        end
+    end)
+    editBox:SetScript("OnKeyUp", function(self, key)
+        if key == "LCTRL" or key == "RCTRL" or key == "LMETA" or key == "RMETA" then
+            AF.DelayedInvoke(0.2, function() ctrlDown = false end)
+        end
+        if ctrlDown and key == "C" then
+            AF.DelayedInvoke(0.1, function() exportFrame:Hide() end)
+        end
+    end)
+
+    function exportFrame:SetText(text)
+        editBox:SetText(text)
+    end
+
+    exportFrame:Show()
+end
+
+---@class AF_HeaderedFrame
+local importFrame = nil
+--- Show import dialog
+---@param callback function Callback with import string
+function QRA.UI.ShowImportFrame(callback)
+    if importFrame then
+        importFrame:ClearText()
+        importFrame:Show()
+        return
+    end
+
+    importFrame = AF.CreateHeaderedFrame(
+        QRA.UIParent,
+        "QRA_ImportFrame",
+        QRA.L["Import Data"],
+        400,
+        200
+    )
+    AF.SetPoint(importFrame, "CENTER", mainFrame, 0, 0)
+
+    local editBox = AF.CreateScrollEditBox(importFrame, QRA.L["Import Data"], nil, 400, 150)
+    AF.SetPoint(editBox, "TOPLEFT")
+    editBox:SetAutoFocus(true)
+
+    local importBtn = AF.CreateButton(importFrame, QRA.L["OK"], "softlime", 100, 26)
+    AF.SetPoint(importBtn, "BOTTOMRIGHT")
+    importBtn:SetOnClick(function()
+        local input = editBox:GetText()
+        if input and input ~= "" and callback then
+            editBox:SetText("")
+            callback(input)
+            importFrame:Hide()
+        end
+    end)
+
+    editBox:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            importFrame:Hide()
+        end
+        if key == "ENTER" and IsControlKeyDown() then
+            importBtn:Click()
+        end
+    end)
+
+    function importFrame:ClearText()
+        editBox:SetText("")
+    end
+
+    importFrame:Show()
 end
 
 --------------------------------------------------

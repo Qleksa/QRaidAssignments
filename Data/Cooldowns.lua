@@ -1,9 +1,10 @@
-local QRA = _G.QRA
-
 --[[
   QRaidAssignments - Cooldowns Data File
   Contains data about raid cooldowns and abilities
 ]]
+
+---@class QRA
+local QRA = QRA
 
 QRA.Cooldowns = {
     ["Warrior"] = {

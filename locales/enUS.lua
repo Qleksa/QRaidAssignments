@@ -3,7 +3,8 @@
     All localized strings for the addon
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 if not QRA then return end  -- Safety check
 
 QRA.L = QRA.L or {}

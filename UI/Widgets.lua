@@ -3,7 +3,8 @@
     Reusable UI widget definitions built on AbstractFramework
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.Widgets = {}
 
 local AF = _G.AbstractFramework
@@ -161,17 +162,8 @@ end
 ---@return Frame container
 function QRA.Widgets.CreateCounterInput(parent, label, width)
     ---@class counterEB : AF_EditBox
-    local counterEB = AF.CreateEditBox(parent, label or QRA.L["Counter"], (width and (width - 16)) or 150, 20)
-    -- QRA.Debug("Counter Input: Created edit box, setting initial text to *")
+    local counterEB = AF.CreateEditBox(parent, label or QRA.L["Counter"], width or 150, 20)
     counterEB:SetText("*")
-    -- QRA.Debug("Counter Input: Text after SetText:", counterEB:GetText())
-
-    -- Ensure label is hidden when text is present
-    if counterEB:GetText() ~= "" then
-        counterEB.label:Hide()
-    else
-        counterEB.label:Show()
-    end
 
     -- Force initial validation since SetText doesn't trigger OnTextChanged
     local initialText = counterEB:GetText()
@@ -192,11 +184,7 @@ function QRA.Widgets.CreateCounterInput(parent, label, width)
         -- counterEB:SetBackdropBorderColor(ok and {1, 0, 0, 1} or AF.GetColorRGB("red"))
     end)
 
-
-    local tipsButton = AF.CreateTipsButton(counterEB)
-    AF.SetPoint(tipsButton, "LEFT", counterEB, "RIGHT", 5, 0)
-    tipsButton:SetTips(unpack(QRA.CounterFormula.GetTips()))
-
+    AF.SetTooltip(counterEB, "TOPLEFT", 0, 2, unpack(QRA.CounterFormula.GetTips()))
 
     -- Public API
     function counterEB:GetValue()
@@ -618,11 +606,14 @@ function QRA.Widgets.CreateTriggerRow(parent, trigger, onEdit, onDelete)
     AF.SetHeight(row, 28)
     AF.SetPoint(row, "LEFT")
     AF.SetPoint(row, "RIGHT")
+    row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
     -- Make row clickable to edit
     row:SetScript("OnClick", function(self, button)
         if button == "LeftButton" and onEdit then
             onEdit(trigger)
+        elseif button == "RightButton" then
+            QRA.Widgets.ShowContextMenu(row, trigger)
         end
     end)
 
@@ -751,6 +742,17 @@ function QRA.Widgets.CreateSectionHeader(parent, title, collapsible)
     end
 
     return header
+end
+
+function QRA.Widgets.ShowContextMenu(owner, trigger)
+    MenuUtil.CreateButtonContextMenu(owner, {
+        "Export",
+        function(triggerId)
+            local exportString = QRA.Comm.ExportTrigger(triggerId)
+            QRA.UI.ShowExportFrame(exportString)
+        end,
+        trigger.id,
+    })
 end
 
 --------------------------------------------------

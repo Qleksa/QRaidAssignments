@@ -1,0 +1,112 @@
+---@class QRA
+local QRA = QRA
+
+if not QRA.AreLibsOkay() then
+    return
+end
+
+QRA.Comm = {}
+
+local function CopyTriggersAndAssignments(triggers)
+    local copiedData = {}
+    for _, trigger in ipairs(triggers) do
+        local copiedTrigger = QRA.DeepCopy(trigger)
+        copiedTrigger.assignments = QRA.Assignments.GetForTrigger(trigger.id)
+        table.insert(copiedData, copiedTrigger)
+    end
+    return copiedData
+end
+
+-- Export serialized triggers and assignments
+---@param isForAddonChannel? boolean
+---@return string
+function QRA.Comm.Export(isForAddonChannel)
+    QRA.Debug("Comm: Exporting Data")
+    local triggers = QRA.Triggers.GetAll()
+
+    if not triggers or #triggers == 0 then
+        QRA.Print("Comm: No triggers found to export")
+        return ""
+    end
+
+    local exportData = CopyTriggersAndAssignments(triggers)
+    local exportString = QRA.Serialize(exportData, isForAddonChannel or false)
+    QRA.Debug("Comm: Export String Generated")
+    return exportString
+end
+
+-- Export trigger
+---@param triggerId string trigger id
+---@param isForAddonChannel? boolean
+---@return string
+function QRA.Comm.ExportTrigger(triggerId, isForAddonChannel)
+    QRA.Debug("Comm: Exporting Trigger Data")
+
+    local trigger = QRA.Triggers.Get(triggerId)
+    if not trigger then
+        QRA.Print("Comm: No trigger found with ID " .. triggerId)
+        return ""
+    end
+
+    local exportData = QRA.DeepCopy(trigger)
+    exportData.assignments = QRA.Assignments.GetForTrigger(trigger.id)
+    local exportString = QRA.Serialize({exportData}, isForAddonChannel or false)
+    QRA.Debug("Comm: Export String Generated")
+    return exportString
+end
+
+-- Export serialized triggers and assignments for a specific boss
+---@param encounterId number encounter id
+---@param isForAddonChannel? boolean
+---@return string
+function QRA.Comm.ExportBoss(encounterId, isForAddonChannel)
+    QRA.Debug("Comm: Exporting Boss Data")
+    local triggers = QRA.Triggers.GetTriggersByEncounterId(encounterId)
+
+    if not triggers or #triggers == 0 then
+        QRA.Print("Comm: No data found for encounter ID " .. encounterId)
+        return ""
+    end
+
+    local exportData = CopyTriggersAndAssignments(triggers)
+    local exportString = QRA.Serialize(exportData, isForAddonChannel or false)
+    QRA.Debug("Comm: Export String Generated")
+    return exportString
+end
+
+-- Import serialized triggers and assignments
+
+---@param input string serialized data
+---@param isForAddonChannel? boolean
+function QRA.Comm.Import(input, isForAddonChannel)
+    QRA.Debug("Comm: Importing Data")
+    ---@type Trigger[]
+    local data = QRA.Deserialize(input, isForAddonChannel or false)
+
+    if data then
+        QRA.Debug("Comm: Deserialized Data")
+        for _, trigger in ipairs(data) do
+            QRA.Triggers.UpsertTrigger(trigger)
+            local existingAssignments = QRA.Assignments.GetForTrigger(trigger.id)
+            local existingAssignmentsById = {}
+            for _, existingAssignment in ipairs(existingAssignments) do
+                existingAssignmentsById[existingAssignment.id] = true
+            end
+            for _, assignment in ipairs(trigger.assignments or {}) do
+
+                if not existingAssignmentsById[assignment.id] then
+                    QRA.Assignments.Add(assignment)
+                else
+                    QRA.Assignments.Update(assignment.id, assignment)
+                end
+            end
+        end
+        QRA.UI.RefreshAll()
+    else
+        QRA.Print("Comm: Failed to deserialize data")
+    end
+end
+
+function QRA.Comm.Initialize()
+    QRA.Debug("Comm: Module Initialized")
+end

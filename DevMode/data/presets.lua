@@ -3,7 +3,8 @@
     Common test scenarios and configurations (placeholder for future expansion)
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.DevMode = QRA.DevMode or {}
 QRA.DevMode.Presets = {}
 

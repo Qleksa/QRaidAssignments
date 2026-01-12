@@ -3,7 +3,8 @@
     Simulates encounter start/end and manages fake boss units
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.DevMode = QRA.DevMode or {}
 QRA.DevMode.FakeEncounter = {}
 

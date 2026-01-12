@@ -3,7 +3,8 @@
     Fires simulated combat log and other events for testing triggers
 ]]
 
-local QRA = _G.QRA
+---@class QRA
+local QRA = QRA
 QRA.DevMode = QRA.DevMode or {}
 QRA.DevMode.EventFirer = {}
 
