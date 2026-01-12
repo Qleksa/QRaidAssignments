@@ -336,7 +336,7 @@ local function CreateTriggersTab(parent)
     AF.SetPoint(exportBtn, "LEFT", addBtn, "RIGHT", 10, 0)
     exportBtn:SetOnClick(function()
         local exportString = selectedEncounterId and QRA.Comm.ExportBoss(selectedEncounterId) or QRA.Comm.Export()
-        if exportString then
+        if exportString and exportString ~= "" then
             QRA.UI.ShowExportFrame(exportString)
         end
     end)
