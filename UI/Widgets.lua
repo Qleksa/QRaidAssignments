@@ -162,17 +162,8 @@ end
 ---@return Frame container
 function QRA.Widgets.CreateCounterInput(parent, label, width)
     ---@class counterEB : AF_EditBox
-    local counterEB = AF.CreateEditBox(parent, label or QRA.L["Counter"], (width and (width - 16)) or 150, 20)
-    -- QRA.Debug("Counter Input: Created edit box, setting initial text to *")
+    local counterEB = AF.CreateEditBox(parent, label or QRA.L["Counter"], width or 150, 20)
     counterEB:SetText("*")
-    -- QRA.Debug("Counter Input: Text after SetText:", counterEB:GetText())
-
-    -- Ensure label is hidden when text is present
-    if counterEB:GetText() ~= "" then
-        counterEB.label:Hide()
-    else
-        counterEB.label:Show()
-    end
 
     -- Force initial validation since SetText doesn't trigger OnTextChanged
     local initialText = counterEB:GetText()
@@ -193,11 +184,7 @@ function QRA.Widgets.CreateCounterInput(parent, label, width)
         -- counterEB:SetBackdropBorderColor(ok and {1, 0, 0, 1} or AF.GetColorRGB("red"))
     end)
 
-
-    local tipsButton = AF.CreateTipsButton(counterEB)
-    AF.SetPoint(tipsButton, "LEFT", counterEB, "RIGHT", 5, 0)
-    tipsButton:SetTips(unpack(QRA.CounterFormula.GetTips()))
-
+    AF.SetTooltip(counterEB, "TOPLEFT", 0, 2, unpack(QRA.CounterFormula.GetTips()))
 
     -- Public API
     function counterEB:GetValue()

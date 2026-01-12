@@ -3,8 +3,6 @@
     Handles addon loading, event registration, and module initialization
 ]]
 
----@class addon: AceAddon, AceComm-3.0
-local addon = LibStub("AceAddon-3.0"):NewAddon("QRaidAssignments", "AceComm-3.0")
 
 ---@type AbstractFramework
 local AF = _G.AbstractFramework
@@ -64,55 +62,6 @@ function QRA.DeepCopy(orig)
     return copy
 end
 
---- Serialize data for export (simple implementation)
----@param data any
----@return string|nil
-function QRA.Serialize(data)
-    -- Use AceSerializer if available, otherwise simple implementation
-    local AceSerializer = LibStub and LibStub("AceSerializer-3.0", true)
-    if AceSerializer then
-        return AceSerializer:Serialize(data)
-    end
-
-    -- Fallback: simple table to string (not fully featured)
-    if type(data) == "table" then
-        local parts = {}
-        for k, v in pairs(data) do
-            local key = type(k) == "string" and string.format("[%q]", k) or string.format("[%s]", tostring(k))
-            local val
-            if type(v) == "string" then
-                val = string.format("%q", v)
-            elseif type(v) == "table" then
-                val = QRA.Serialize(v)
-            else
-                val = tostring(v)
-            end
-            table.insert(parts, key .. "=" .. val)
-        end
-        return "{" .. table.concat(parts, ",") .. "}"
-    end
-    return tostring(data)
-end
-
---- Deserialize data from import
----@param str string
----@return boolean success
----@return any data
-function QRA.Deserialize(str)
-    local AceSerializer = LibStub and LibStub("AceSerializer-3.0", true)
-    if AceSerializer then
-        return AceSerializer:Deserialize(str)
-    end
-
-    -- Fallback: loadstring (less safe, but works for simple cases)
-    local func, err = loadstring("return " .. str)
-    if func then
-        local success, result = pcall(func)
-        return success, result
-    end
-    return false, err
-end
-
 --------------------------------------------------
 -- UI Parent Frame
 --------------------------------------------------
@@ -134,7 +83,11 @@ end)
 --------------------------------------------------
 -- ADDON_LOADED
 --------------------------------------------------
-function addon:OnInitialize()
+QRA.UIParent:RegisterEvent("ADDON_LOADED")
+function QRA.UIParent:ADDON_LOADED(addon)
+    if addon ~= QRA.name then return end
+    self:UnregisterEvent("ADDON_LOADED")
+
     -- Register with AbstractFramework
     AF.RegisterAddon(QRA.name, "Q's Raid Assignments")
     AF.SetAddonAccentColor(QRA.name, "softlime")
@@ -142,7 +95,14 @@ function addon:OnInitialize()
     QRA.Print("Loaded.")
 end
 
-function addon:OnEnable()
+--------------------------------------------------
+-- PLAYER_LOGIN
+--------------------------------------------------
+
+QRA.UIParent:RegisterEvent("PLAYER_LOGIN")
+function QRA.UIParent:PLAYER_LOGIN()
+    self:UnregisterEvent("PLAYER_LOGIN")
+
     -- Initialize saved variables
     if not QRA_DB then
         QRA_DB = {
@@ -161,74 +121,8 @@ function addon:OnEnable()
 
     -- Initialize all modules
     QRA.InitializeModules()
-
-    -- Register combat log event
-    -- self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-
-    -- Register encounter events
-    -- self:RegisterEvent("ENCOUNTER_START")
-    -- self:RegisterEvent("ENCOUNTER_END")
-
-    -- Register zone chnage event
-    QRA.UIParent:RegisterEvent("ZONE_CHANGED")
-    -- addon:RegisterEvent("ZONE_CHANGED_INDOORS", QRA.UIParent.ZONE_CHANGED_INDOORS)
-    -- addon:RegisterEvent("PLAYER_LOGIN", QRA.UIParent.PLAYER_LOGIN)
-
     QRA.Debug("All modules initialized")
 end
-
--- QRA.UIParent:RegisterEvent("ADDON_LOADED")
--- function QRA.UIParent:ADDON_LOADED(addon)
---     if addon ~= QRA.name then return end
---     self:UnregisterEvent("ADDON_LOADED")
-
---     -- Register with AbstractFramework
---     AF.RegisterAddon(QRA.name, "Q's Raid Assignments")
---     AF.SetAddonAccentColor(QRA.name, "softlime")
-
---     QRA.Print("Loaded.")
--- end
-
---------------------------------------------------
--- PLAYER_LOGIN
---------------------------------------------------
-
--- QRA.UIParent:RegisterEvent("PLAYER_LOGIN")
--- function QRA.UIParent:PLAYER_LOGIN()
---     self:UnregisterEvent("PLAYER_LOGIN")
-
---     -- Initialize saved variables
---     if not QRA_DB then
---         QRA_DB = {
---             assignments = {},
---             templates = {},
---             triggers = {},
---             notifications = {},
---             settings = {
---                 debug = false,
---             }
---         }
---     end
---     QRA.DB = QRA_DB
---     QRA.Settings = QRA.DB.settings
---     -- AFConfig.debug[QRA.name] = QRA.Settings.debug
-
---     -- Initialize all modules
---     QRA.InitializeModules()
-
---     -- Register combat log event
---     -- self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-
---     -- Register encounter events
---     -- self:RegisterEvent("ENCOUNTER_START")
---     -- self:RegisterEvent("ENCOUNTER_END")
-
---     -- Register zone chnage event
---     -- self:RegisterEvent("ZONE_CHANGED")
---     self:RegisterEvent("ZONE_CHANGED_INDOORS")
-
---     QRA.Debug("All modules initialized")
--- end
 
 --------------------------------------------------
 -- Module Initialization
@@ -351,9 +245,6 @@ SlashCmdList.QRAASSIGNMENTS = function(msg)
         end
     elseif msg == "debug" then
         QRA.Settings.debug = not QRA.Settings.debug
-        -- if AFConfig then
-        --     AFConfig.debug[QRA.name] = QRA.Settings.debug
-        -- end
         QRA.Print("Debug mode:", QRA.Settings.debug and "ON" or "OFF")
     else
         QRA.Print("Unknown command. Use /qra help for available commands.")

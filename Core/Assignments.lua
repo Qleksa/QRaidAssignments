@@ -11,7 +11,6 @@ QRA.Assignments = {}
 --------------------------------------------------
 -- Constants
 --------------------------------------------------
----@enum AlertTypes
 QRA.Assignments.AlertTypes = {
     TTS = "TTS",           -- Text-to-speech
     SOUND = "SOUND",       -- Sound file
@@ -51,11 +50,13 @@ end
 
 --- Create a new assignment
 ---@param config table Assignment configuration
----@return table assignment The configured assignment object
+---@return table Assignment The configured assignment object
 function QRA.Assignments.Create(config)
+    ---@type Assignment
     local assignment = {
         id = GenerateAssignmentID(),
         enabled = true,
+        version = 1,
 
         -- Trigger link
         triggerId = config.triggerId,
@@ -66,7 +67,7 @@ function QRA.Assignments.Create(config)
 
         -- What to do
         spellId = config.spellId,           -- Spell to use (optional)
-        spellName = config.spellName or (config.spellId and GetSpellInfo(config.spellId)) or nil,
+        spellName = config.spellName or (config.spellId and C_Spell.GetSpellName(config.spellId)) or nil,
         targetPlayer = config.targetPlayer,  -- Who to target with spell (optional)
         message = config.message,            -- Custom message
 
@@ -88,7 +89,7 @@ end
 --------------------------------------------------
 
 --- Add an assignment
----@param assignment table The assignment to add
+---@param assignment Assignment The assignment to add
 function QRA.Assignments.Add(assignment)
     if not assignment or not assignment.id then
         QRA.Debug("Assignments: Invalid assignment")
@@ -147,7 +148,7 @@ end
 
 --- Get assignments for a specific trigger
 ---@param triggerId string
----@return table
+---@return Assignment[]
 function QRA.Assignments.GetForTrigger(triggerId)
     local result = {}
     for id, assignment in pairs(assignments) do
@@ -158,8 +159,22 @@ function QRA.Assignments.GetForTrigger(triggerId)
     return result
 end
 
+--- Get assignments for a specific encounter
+---@param encounterId number
+---@return Assignment[]
+function QRA.Assignments.GetAssignmentsByEncounterId(encounterId)
+    local result = {}
+    for _, assignment in pairs(assignments) do
+        local trigger = QRA.Triggers.Get(assignment.triggerId)
+        if trigger and trigger.encounterId == encounterId then
+            table.insert(result, assignment)
+        end
+    end
+    return result
+end
+
 --- Get assignments as an ordered list
----@return table
+---@return Assignment[]
 function QRA.Assignments.GetAsList()
     local list = {}
     for id, assignment in pairs(assignments) do

@@ -83,7 +83,7 @@ local function CreateScreenMessageFrame()
     screenMessageFrame.fadeAnim = ag
 end
 
----@param type AlertTypes Notification type
+---@param type AlertType Notification type
 ---@param message string Message
 ---@param file string|nil Sound file for SOUND type
 function QRA.Notifications.Notify(type, message, file)
