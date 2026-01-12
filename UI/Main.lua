@@ -334,15 +334,10 @@ local function CreateTriggersTab(parent)
     -- Export button
     local exportBtn = AF.CreateButton(content, QRA.L["Export"], "softlime", 80, 26)
     AF.SetPoint(exportBtn, "LEFT", addBtn, "RIGHT", 10, 0)
-    exportBtn:SetEnabled(selectedBoss ~= nil)
     exportBtn:SetOnClick(function()
-        if selectedEncounterId then
-            local exportString = QRA.Comm.ExportBoss(selectedEncounterId)
-            if exportString then
-                QRA.UI.ShowExportFrame(exportString)
-            end
-        else
-            QRA.Print(QRA.L["Please select a boss to export triggers for."])
+        local exportString = selectedEncounterId and QRA.Comm.ExportBoss(selectedEncounterId) or QRA.Comm.Export()
+        if exportString then
+            QRA.UI.ShowExportFrame(exportString)
         end
     end)
 
@@ -357,7 +352,6 @@ local function CreateTriggersTab(parent)
 
     function content:SetButtonState()
         if addBtn then addBtn:SetEnabled(selectedBoss ~= nil) end
-        if exportBtn then exportBtn:SetEnabled(selectedBoss ~= nil) end
     end
 
     -- Test Mode button
@@ -968,11 +962,13 @@ function QRA.UI.ShowTemplateNameDialog(onConfirm)
     end)
 end
 
+---@class AF_HeaderedFrame
 local exportFrame = nil
 --- Show export dialog
 ---@param exportString string The export string to show
 function QRA.UI.ShowExportFrame(exportString)
     if exportFrame then
+        exportFrame:SetText(exportString)
         exportFrame:Show()
         return
     end
@@ -1009,14 +1005,20 @@ function QRA.UI.ShowExportFrame(exportString)
         end
     end)
 
+    function exportFrame:SetText(text)
+        editBox:SetText(text)
+    end
+
     exportFrame:Show()
 end
 
+---@class AF_HeaderedFrame
 local importFrame = nil
 --- Show import dialog
 ---@param callback function Callback with import string
 function QRA.UI.ShowImportFrame(callback)
     if importFrame then
+        importFrame:ClearText()
         importFrame:Show()
         return
     end
@@ -1044,6 +1046,7 @@ function QRA.UI.ShowImportFrame(callback)
             importFrame:Hide()
         end
     end)
+
     editBox:SetScript("OnKeyDown", function(self, key)
         if key == "ESCAPE" then
             importFrame:Hide()
@@ -1052,6 +1055,10 @@ function QRA.UI.ShowImportFrame(callback)
             importBtn:Click()
         end
     end)
+
+    function importFrame:ClearText()
+        editBox:SetText("")
+    end
 
     importFrame:Show()
 end
