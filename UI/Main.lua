@@ -201,7 +201,7 @@ local function CreateAssignmentsTab(parent)
     end
 
     -- Add Assignment button
-    local addBtn = AF.CreateButton(content, QRA.L["+ Add Assignment"], "accent", 150, 26)
+    local addBtn = AF.CreateButton(content, QRA.L["+ Add Assignment"], "softlime", 150, 26)
     AF.SetPoint(addBtn, "TOPLEFT", listFrame, "BOTTOMLEFT", 0, -8)
     addBtn:SetOnClick(function()
         QRA.UI.ShowAssignmentEditor()
@@ -215,7 +215,7 @@ local function CreateAssignmentsTab(parent)
     end)
 
     -- Roster Manager button
-    local rosterBtn = AF.CreateButton(content, QRA.L["Roster"] or "Roster", "static", 80, 26)
+    local rosterBtn = AF.CreateButton(content, QRA.L["Roster"], "static", 80, 26)
     AF.SetPoint(rosterBtn, "LEFT", testBtn, "RIGHT", 10, 0)
     AF.SetTooltip(rosterBtn, "TOPLEFT", 0, 2, "Roster Manager", "Save current raid roster for planning", "assignments when not in raid")
     rosterBtn:SetOnClick(function()
@@ -324,7 +324,7 @@ local function CreateTriggersTab(parent)
     end
 
     -- Add Trigger button
-    local addBtn = AF.CreateButton(content, QRA.L["+ Add Trigger"], "accent", 150, 26)
+    local addBtn = AF.CreateButton(content, QRA.L["+ Add Trigger"], "softlime", 150, 26)
     AF.SetPoint(addBtn, "TOPLEFT", listFrame, "BOTTOMLEFT", 0, -8)
     addBtn:SetEnabled(selectedBoss ~= nil)
     addBtn:SetOnClick(function()

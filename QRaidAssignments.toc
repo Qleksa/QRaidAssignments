@@ -8,10 +8,11 @@
 
 Init.lua
 
-Core/Main.lua
-
 Util/Debug.lua
 Util/CounterFormula.lua
+Util/Table.lua
+
+Core/Main.lua
 
 Locales/enUS.lua
 

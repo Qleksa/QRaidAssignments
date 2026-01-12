@@ -10,58 +10,6 @@ local AF = _G.AbstractFramework
 ---@class QRA
 local QRA = QRA
 
-QRA.name = "QRaidAssignments"
-QRA.version = "0.1.0"
-
---------------------------------------------------
--- Pre-initialize module tables
---------------------------------------------------
-QRA.L = {}
-QRA.UI = {}
-QRA.Triggers = {}
-QRA.Assignments = {}
-QRA.Templates = {}
-QRA.Widgets = {}
-QRA.Notifications = {}
-
---------------------------------------------------
--- APIs (from AbstractFramework)
---------------------------------------------------
-QRA.Print = AF.Print
--- QRA.Debug = AF.Debug
-
---------------------------------------------------
--- Utility Functions
---------------------------------------------------
-
---- Count table entries
----@param tbl table
----@return number
-function QRA.TableCount(tbl)
-    local count = 0
-    for _ in pairs(tbl) do
-        count = count + 1
-    end
-    return count
-end
-
---- Deep copy a table
----@param orig table
----@return table
-function QRA.DeepCopy(orig)
-    local copy
-    if type(orig) == "table" then
-        copy = {}
-        for key, value in pairs(orig) do
-            copy[QRA.DeepCopy(key)] = QRA.DeepCopy(value)
-        end
-        setmetatable(copy, QRA.DeepCopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
-end
-
 --------------------------------------------------
 -- UI Parent Frame
 --------------------------------------------------
@@ -87,10 +35,6 @@ QRA.UIParent:RegisterEvent("ADDON_LOADED")
 function QRA.UIParent:ADDON_LOADED(addon)
     if addon ~= QRA.name then return end
     self:UnregisterEvent("ADDON_LOADED")
-
-    -- Register with AbstractFramework
-    AF.RegisterAddon(QRA.name, "Q's Raid Assignments")
-    AF.SetAddonAccentColor(QRA.name, "softlime")
 
     QRA.Print("Loaded.")
 end

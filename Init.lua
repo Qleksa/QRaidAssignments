@@ -1,7 +1,33 @@
 
+---@type AbstractFramework
+local AF = _G.AbstractFramework
+
 ---@class QRA
 QRA = {}
 
+QRA.name = "QRaidAssignments"
+QRA.version = "0.1.0"
+
+--------------------------------------------------
+-- Pre-initialize module tables
+--------------------------------------------------
+QRA.L = {}
+QRA.UI = {}
+QRA.Triggers = {}
+QRA.Assignments = {}
+QRA.Templates = {}
+QRA.Widgets = {}
+QRA.Notifications = {}
+
+--------------------------------------------------
+-- APIs (from AbstractFramework)
+--------------------------------------------------
+QRA.Print = AF.Print
+
+AF.RegisterAddon(QRA.name, "Q's Raid Assignments")
+AF.SetAddonAccentColor(QRA.name, "softlime")
+
+-- Types
 ---@class LibSerialize
 ---@field SerializeEx fun(self: LibSerialize, options: table, input: any): string
 ---@field Deserialize fun(self: LibSerialize, input: string): boolean, table
