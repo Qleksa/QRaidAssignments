@@ -77,21 +77,12 @@ AF.SetAddonAccentColor(QRA.name, "softlime")
 
 local areLibsOkay = true
 do
-    local standaloneLibs = {
-        "LibStub"
-    }
     local libStubLibs = {
         "AceComm-3.0",
         "LibSerialize",
         "LibDeflate",
     }
 
-    for _, lib in ipairs(standaloneLibs) do
-        if not lib then
-            areLibsOkay = false
-            QRA.Print("Missing library:", lib)
-        end
-    end
     if LibStub then
         for _, lib in ipairs(libStubLibs) do
             if not LibStub:GetLibrary(lib, true) then
@@ -107,4 +98,10 @@ end
 
 function QRA.AreLibsOkay()
     return areLibsOkay
+end
+
+do
+    if not areLibsOkay then
+        QRA.Print("One or more required libraries are missing. Q's Raid Assignments will not function correctly.")
+    end
 end

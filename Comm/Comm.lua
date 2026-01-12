@@ -2,7 +2,6 @@
 local QRA = QRA
 
 if not QRA.AreLibsOkay() then
-    QRA.Print("Required libraries are missing. Q's Raid Assignments cannot function properly.")
     return
 end
 
