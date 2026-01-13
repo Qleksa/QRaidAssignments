@@ -122,7 +122,7 @@ function QRA.Widgets.CreateSpellInput(parent, label, width, onConfirm)
 
     -- Spell icon
     local icon = container:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(34, 34)
+    icon:SetSize(36, 36)
     AF.SetPoint(icon, "LEFT", 0, 0)
     icon:SetTexture(spellData.spellIcon)  -- Default question mark icon
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
@@ -157,22 +157,6 @@ function QRA.Widgets.CreateSpellInput(parent, label, width, onConfirm)
         UpdateSpellIcon(text)
     end)
 
-    -- Spell menu
-    -- local spellMenu = AF.CreateCascadingMenuButton(container, width - 42)
-    -- AF.SetPoint(spellMenu, "LEFT", icon, "RIGHT", 10, 8)
-    -- spellMenu:SetLabel(QRA.L["Select spell"])
-    -- spellMenu:SetItems(GetAllSpells(function (spell)
-    --     spellData.spellId = spell.id
-    --     spellData.spellName = spell.name
-    --     spellData.spellIcon = spell.icon
-
-    --     icon:SetTexture(spell.icon)
-    --     editBox:SetText(tostring(spell.id))
-
-    --     if onConfirm then
-    --         onConfirm(spell.id)
-    --     end
-    -- end))
     local spellMenu = CreateSpellMenu(container, width, function (spell)
         spellData.spellId = spell.id
         spellData.spellName = spell.name
@@ -185,7 +169,7 @@ function QRA.Widgets.CreateSpellInput(parent, label, width, onConfirm)
             onConfirm(spell.id)
         end
     end)
-    AF.SetPoint(spellMenu, "LEFT", icon, "RIGHT", 10, 8)
+    AF.SetPoint(spellMenu, "LEFT", icon, "RIGHT", 10, 11)
 
     -- Public API
     container.editBox = editBox
