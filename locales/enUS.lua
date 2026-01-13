@@ -118,6 +118,13 @@ L["HP Thresholds (%)"] = "HP Thresholds (%)"
 L["Target Unit/NPC ID"] = "Target Unit/NPC ID"
 
 --------------------------------------------------
+-- Export/Import
+--------------------------------------------------
+L["Export"] = "Export"
+L["Import"] = "Import"
+L["Send to Raid"] = "Send to Raid"
+
+--------------------------------------------------
 -- Templates
 --------------------------------------------------
 L["Saved Templates"] = "Saved Templates"

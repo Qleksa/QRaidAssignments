@@ -266,7 +266,7 @@ local function CreateTriggersTab(parent)
     AF.SetPoint(importBtn, "LEFT", exportBtn, "RIGHT", 8, 0)
     importBtn:SetOnClick(function()
         QRA.UI.ShowImportFrame(function(input)
-            QRA.Comm.Import(input)
+            QRA.Comm.Import(input, false)
         end)
     end)
 
@@ -369,9 +369,9 @@ local function CreateTriggersTab(parent)
     end)
 
     -- Send to Raid button
-    local pushBtn = AF.CreateButton(content, QRA.L["Send to Raid"], "softblue", 120, 26)
-    AF.SetPoint(pushBtn, "LEFT", addBtn, "RIGHT", 10, 0)
-    pushBtn:SetOnClick(function()
+    local sendToRaidBtn = AF.CreateButton(content, QRA.L["Send to Raid"], "softblue", 120, 26)
+    AF.SetPoint(sendToRaidBtn, "LEFT", addBtn, "RIGHT", 10, 0)
+    sendToRaidBtn:SetOnClick(function()
         local exportString = selectedEncounterId and QRA.Comm.ExportBoss(selectedEncounterId, true) or QRA.Comm.Export(true)
         if exportString and exportString ~= "" then
             QRA.Comm.SendToRaid(exportString)

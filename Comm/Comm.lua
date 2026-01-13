@@ -12,7 +12,7 @@ local COMM_PREFIX = "QRA_COMM"
 local function RegisterComm()
     QRA.RegisterComm(COMM_PREFIX, function (data, sender, channel)
         QRA.Debug("Comm: Received data from", sender, "on channel", channel)
-        QRA.Comm.Import(data, true)
+        QRA.Comm.ImportDesirialized(data, true)
     end)
 end
 
@@ -83,18 +83,13 @@ function QRA.Comm.ExportBoss(encounterId, isForAddonChannel)
     return exportString
 end
 
--- Import serialized triggers and assignments
-
----@param input string serialized data
----@param isSerializedData? boolean
----@param isForAddonChannel? boolean
-function QRA.Comm.Import(input, isSerializedData, isForAddonChannel)
+local function ImportData(input, isSerialized, isForAddonChannel)
     QRA.Debug("Comm: Importing Data")
     ---@type Trigger[]
-    local data = isSerializedData and input or QRA.Deserialize(input, isForAddonChannel or false)
+    local data = isSerialized and QRA.Deserialize(input, isForAddonChannel or false) or input
 
     if data then
-        QRA.Debug("Comm: Deserialized Data")
+        QRA.Debug("Comm: Deserialized Data", data)
         for _, trigger in ipairs(data) do
             QRA.Triggers.UpsertTrigger(trigger)
             local existingAssignments = QRA.Assignments.GetForTrigger(trigger.id)
@@ -117,6 +112,20 @@ function QRA.Comm.Import(input, isSerializedData, isForAddonChannel)
     end
 end
 
+-- Import serialized triggers and assignments
+---@param input string serialized data
+---@param isForAddonChannel? boolean defaults to false
+function QRA.Comm.Import(input, isForAddonChannel)
+    ImportData(input, true, isForAddonChannel)
+end
+
+-- Import deserialized triggers and assignments
+---@param input string deserialized data
+---@param isForAddonChannel? boolean defaults to false
+function QRA.Comm.ImportDesirialized(input, isForAddonChannel)
+    ImportData(input, false, isForAddonChannel)
+end
+
 -- Send data to raid group
 ---@param data string serialized data to send
 function QRA.Comm.SendToRaid(data)
@@ -128,7 +137,13 @@ function QRA.Comm.SendToRaid(data)
     QRA.SendCommMessage(COMM_PREFIX, data, "BULK", function (callbackArg, sentBytes, totalBytes, didSend)
         QRA.Debug("Comm: Sent", sentBytes, "of", totalBytes, "bytes")
         if didSend and sentBytes == totalBytes then
-            QRA.Debug("Comm: Data push complete")
+            QRA.Print("Comm: Data successfully sent to raid.")
+        else
+            if not didSend then
+                QRA.Print("Comm: Failed to send data to raid (transmission aborted).")
+            elseif sentBytes ~= totalBytes then
+                QRA.Print("Comm: Failed to send all data to raid (only sent " .. sentBytes .. " of " .. totalBytes .. " bytes).")
+            end
         end
     end, nil, true)
 end
