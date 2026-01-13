@@ -683,7 +683,7 @@ end
 --------------------------------------------------
 
 --- Show the assignment editor dialog
----@param assignment table|nil Existing assignment to edit, or nil for new
+---@param assignment Assignment|nil Existing assignment to edit, or nil for new
 function QRA.UI.ShowAssignmentEditor(assignment)
     local isNew = assignment == nil
     assignment = assignment or {}
@@ -710,7 +710,7 @@ function QRA.UI.ShowAssignmentEditor(assignment)
     local spellInput = QRA.Widgets.CreateSpellInput(form, QRA.L["Spell"], 200)
     AF.SetPoint(spellInput, "TOPLEFT", assignTargetMenu, "BOTTOMLEFT", 0, -35)
     if assignment.spellId then
-        spellInput:SetSpell(assignment.spellId)
+        spellInput:SetSpell(assignment.spellId, assignment.spellName)
         spellInput:SetCursorPosition(0)
     end
 
