@@ -746,12 +746,19 @@ end
 
 function QRA.Widgets.ShowContextMenu(owner, trigger)
     MenuUtil.CreateButtonContextMenu(owner, {
-        "Export",
+        QRA.L["Export"],
         function(triggerId)
             local exportString = QRA.Comm.ExportTrigger(triggerId)
             QRA.UI.ShowExportFrame(exportString)
         end,
-        trigger.id,
+        trigger.id
+    }, {
+        QRA.L["Send to Raid"],
+        function(triggerId)
+            local exportString = QRA.Comm.ExportTrigger(triggerId, true)
+            QRA.Comm.SendToRaid(exportString)
+        end,
+        trigger.id
     })
 end
 
