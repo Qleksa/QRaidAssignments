@@ -7,6 +7,15 @@ end
 
 QRA.Comm = {}
 
+local COMM_PREFIX = "QRA_COMM"
+
+local function RegisterComm()
+    QRA.RegisterComm(COMM_PREFIX, function (data, sender, channel)
+        QRA.Debug("Comm: Received data from", sender, "on channel", channel)
+        QRA.Comm.Import(data, true)
+    end)
+end
+
 local function CopyTriggersAndAssignments(triggers)
     local copiedData = {}
     for _, trigger in ipairs(triggers) do
@@ -77,11 +86,12 @@ end
 -- Import serialized triggers and assignments
 
 ---@param input string serialized data
+---@param isSerializedData? boolean
 ---@param isForAddonChannel? boolean
-function QRA.Comm.Import(input, isForAddonChannel)
+function QRA.Comm.Import(input, isSerializedData, isForAddonChannel)
     QRA.Debug("Comm: Importing Data")
     ---@type Trigger[]
-    local data = QRA.Deserialize(input, isForAddonChannel or false)
+    local data = isSerializedData and input or QRA.Deserialize(input, isForAddonChannel or false)
 
     if data then
         QRA.Debug("Comm: Deserialized Data")
@@ -107,6 +117,24 @@ function QRA.Comm.Import(input, isForAddonChannel)
     end
 end
 
+-- Send data to raid group
+---@param data string serialized data to send
+function QRA.Comm.SendToRaid(data)
+    QRA.Debug("Comm: Sending Data to Raid")
+    if not IsInRaid() then
+        QRA.Print("You must be in a raid group to send data.")
+        return
+    end
+    QRA.SendCommMessage(COMM_PREFIX, data, "BULK", function (callbackArg, sentBytes, totalBytes, didSend)
+        QRA.Debug("Comm: Sent", sentBytes, "of", totalBytes, "bytes")
+        if didSend and sentBytes == totalBytes then
+            QRA.Debug("Comm: Data push complete")
+        end
+    end, nil, true)
+end
+
 function QRA.Comm.Initialize()
+    RegisterComm()
+
     QRA.Debug("Comm: Module Initialized")
 end

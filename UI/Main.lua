@@ -234,9 +234,9 @@ local function CreateTriggersTab(parent)
     AF.SetPoint(content, "TOPLEFT", parent, 10, -TAB_HEIGHT - 15)
     AF.SetPoint(content, "BOTTOMRIGHT", parent, -10, 10)
 
-    -- Top bar with boss filter and templates button
+    -- Top bar
     local topBar = CreateFrame("Frame", nil, content)
-    AF.SetHeight(topBar, 28)
+    AF.SetHeight(topBar, 24)
     AF.SetPoint(topBar, "TOPLEFT", content, 0, 0)
     AF.SetPoint(topBar, "TOPRIGHT", content, 0, 0)
 
@@ -250,6 +250,43 @@ local function CreateTriggersTab(parent)
     end)
     AF.SetPoint(bossDropdown, "LEFT", topBar, 0, -10)
     content.bossDropdown = bossDropdown
+
+    -- Export button
+    local exportBtn = AF.CreateButton(content, QRA.L["Export"], "softlime", 80, 26)
+    AF.SetPoint(exportBtn, "LEFT", bossDropdown, "RIGHT", 10, 0)
+    exportBtn:SetOnClick(function()
+        local exportString = selectedEncounterId and QRA.Comm.ExportBoss(selectedEncounterId) or QRA.Comm.Export()
+        if exportString and exportString ~= "" then
+            QRA.UI.ShowExportFrame(exportString)
+        end
+    end)
+
+    -- Import button
+    local importBtn = AF.CreateButton(content, QRA.L["Import"], "softblue", 80, 26)
+    AF.SetPoint(importBtn, "LEFT", exportBtn, "RIGHT", 8, 0)
+    importBtn:SetOnClick(function()
+        QRA.UI.ShowImportFrame(function(input)
+            QRA.Comm.Import(input)
+        end)
+    end)
+
+    -- Test Mode button
+    local testModeBtn = AF.CreateButton(content, QRA.L["Test Mode"], "purple", 100, 26)
+    AF.SetPoint(testModeBtn, "TOPRIGHT", topBar, "RIGHT", 0, 5)
+    testModeBtn:SetOnClick(function()
+        if QRA.DevMode then
+            if not QRA.DevMode.IsActive() then
+                QRA.DevMode.Enable(selectedBoss, selectedEncounterId)
+            end
+            if QRA.DevMode.UI and QRA.DevMode.UI.ShowTestPanel then
+                -- Pass the selected boss to the test panel
+                if selectedBoss then
+                    QRA.DevMode.UI.SetSelectedBoss(selectedBoss, selectedEncounterId)
+                end
+                QRA.DevMode.UI.ShowTestPanel()
+            end
+        end
+    end)
 
     -- Templates button
     -- local templatesBtn = AF.CreateButton(topBar, QRA.L["Templates"], "static", 100, 24)
@@ -331,46 +368,19 @@ local function CreateTriggersTab(parent)
         QRA.UI.ShowTriggerEditor(nil, selectedBoss)
     end)
 
-    -- Export button
-    local exportBtn = AF.CreateButton(content, QRA.L["Export"], "softlime", 80, 26)
-    AF.SetPoint(exportBtn, "LEFT", addBtn, "RIGHT", 10, 0)
-    exportBtn:SetOnClick(function()
-        local exportString = selectedEncounterId and QRA.Comm.ExportBoss(selectedEncounterId) or QRA.Comm.Export()
+    -- Send to Raid button
+    local pushBtn = AF.CreateButton(content, QRA.L["Send to Raid"], "softblue", 120, 26)
+    AF.SetPoint(pushBtn, "LEFT", addBtn, "RIGHT", 10, 0)
+    pushBtn:SetOnClick(function()
+        local exportString = selectedEncounterId and QRA.Comm.ExportBoss(selectedEncounterId, true) or QRA.Comm.Export(true)
         if exportString and exportString ~= "" then
-            QRA.UI.ShowExportFrame(exportString)
+            QRA.Comm.SendToRaid(exportString)
         end
-    end)
-
-    -- Import button
-    local importBtn = AF.CreateButton(content, QRA.L["Import"], "softblue", 80, 26)
-    AF.SetPoint(importBtn, "LEFT", exportBtn, "RIGHT", 10, 0)
-    importBtn:SetOnClick(function()
-        QRA.UI.ShowImportFrame(function(input)
-            QRA.Comm.Import(input)
-        end)
     end)
 
     function content:SetButtonState()
         if addBtn then addBtn:SetEnabled(selectedBoss ~= nil) end
     end
-
-    -- Test Mode button
-    local testModeBtn = AF.CreateButton(content, QRA.L["Test Mode"], "purple", 100, 26)
-    AF.SetPoint(testModeBtn, "TOPRIGHT", listFrame, "BOTTOMRIGHT", 0, -8)
-    testModeBtn:SetOnClick(function()
-        if QRA.DevMode then
-            if not QRA.DevMode.IsActive() then
-                QRA.DevMode.Enable(selectedBoss, selectedEncounterId)
-            end
-            if QRA.DevMode.UI and QRA.DevMode.UI.ShowTestPanel then
-                -- Pass the selected boss to the test panel
-                if selectedBoss then
-                    QRA.DevMode.UI.SetSelectedBoss(selectedBoss, selectedEncounterId)
-                end
-                QRA.DevMode.UI.ShowTestPanel()
-            end
-        end
-    end)
 
     return content
 end
