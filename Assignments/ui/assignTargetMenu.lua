@@ -281,7 +281,7 @@ end
 --- Create an assign target cascading menu button
 ---@param parent Frame Parent frame
 ---@param width number Button width
----@param onSelect function Callback when target is selected (receives targetStr)
+---@param onSelect? function Callback when target is selected (receives targetStr)
 ---@return QRA_AssignTargetMenu menuButton
 function QRA.AssignTargetMenu.CreateMenuButton(parent, width, onSelect)
     ---@class QRA_AssignTargetMenu

@@ -65,15 +65,53 @@ end
 -- Spell Input Widget
 --------------------------------------------------
 
+local function GetAllSpells(onClick)
+    local spells = {}
+    for _, cds in ipairs(QRA.Cooldowns.GetAll()) do
+        local className = cds.class
+        spells[className] = {
+            text = className,
+            icon =  cds.icon or ("classicon-" .. className:upper():gsub(" ", "")),
+            isIconAtlas = true,
+            notClickable = true,
+            children = #cds.spells > 0 and {} or nil,
+        }
+        for _, spell in ipairs(cds.spells) do
+            table.insert(spells[className].children, {
+                text = spell.name,
+                icon = spell.icon,
+                iconBorderColor = "black",
+                onClick = onClick and function()
+                    onClick(spell)
+                end or nil,
+            })
+        end
+    end
+
+    return spells
+end
+
+-- TODO: Refactor to create a editBox that when clicked opens the menu
+-- so we dont have two separate inputs for spell selection
+
+local function CreateSpellMenu(parent, width, onClick)
+    local spellMenu = AF.CreateCascadingMenuButton(parent, width - 42)
+    spellMenu:SetLabel(QRA.L["Select spell"])
+    spellMenu:SetItems(GetAllSpells(onClick))
+
+    return spellMenu
+end
+
 --- Create a spell input field with spell icon preview
 ---@param parent Frame Parent frame
 ---@param label string|nil Label text
 ---@param width number Field width
----@param onConfirm function Callback when spell is confirmed
+---@param onConfirm? function Callback when spell is confirmed
 ---@return Frame container
 function QRA.Widgets.CreateSpellInput(parent, label, width, onConfirm)
+    local width = width or 200
     local container = CreateFrame("Frame", nil, parent)
-    AF.SetWidth(container, width or 200)
+    AF.SetWidth(container, width)
     AF.SetHeight(container, 40)
 
     local spellData = {
@@ -84,14 +122,14 @@ function QRA.Widgets.CreateSpellInput(parent, label, width, onConfirm)
 
     -- Spell icon
     local icon = container:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(32, 32)
+    icon:SetSize(34, 34)
     AF.SetPoint(icon, "LEFT", 0, 0)
     icon:SetTexture(spellData.spellIcon)  -- Default question mark icon
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
     -- Edit box for spell ID or name
     local editBox = AF.CreateEditBox(container, label or QRA.L["Spell ID"], width - 42, 20)
-    AF.SetPoint(editBox, "LEFT", icon, "RIGHT", 10, 0)
+    AF.SetPoint(editBox, "LEFT", icon, "RIGHT", 10, -8)
 
     -- Update icon when valid spell entered
     local function UpdateSpellIcon(text)
@@ -119,20 +157,44 @@ function QRA.Widgets.CreateSpellInput(parent, label, width, onConfirm)
         UpdateSpellIcon(text)
     end)
 
-    editBox:SetConfirmButton(function(text)
-        local valid, spellIdentifier = UpdateSpellIcon(text)
-        if valid and onConfirm then
-            onConfirm(spellIdentifier)
+    -- Spell menu
+    -- local spellMenu = AF.CreateCascadingMenuButton(container, width - 42)
+    -- AF.SetPoint(spellMenu, "LEFT", icon, "RIGHT", 10, 8)
+    -- spellMenu:SetLabel(QRA.L["Select spell"])
+    -- spellMenu:SetItems(GetAllSpells(function (spell)
+    --     spellData.spellId = spell.id
+    --     spellData.spellName = spell.name
+    --     spellData.spellIcon = spell.icon
+
+    --     icon:SetTexture(spell.icon)
+    --     editBox:SetText(tostring(spell.id))
+
+    --     if onConfirm then
+    --         onConfirm(spell.id)
+    --     end
+    -- end))
+    local spellMenu = CreateSpellMenu(container, width, function (spell)
+        spellData.spellId = spell.id
+        spellData.spellName = spell.name
+        spellData.spellIcon = spell.icon
+
+        icon:SetTexture(spell.icon)
+        editBox:SetText(tostring(spell.id))
+
+        if onConfirm then
+            onConfirm(spell.id)
         end
     end)
+    AF.SetPoint(spellMenu, "LEFT", icon, "RIGHT", 10, 8)
 
     -- Public API
     container.editBox = editBox
     container.icon = icon
 
-    function container:SetSpell(spellIdOrName)
-        editBox:SetText(tostring(spellIdOrName or ""))
-        UpdateSpellIcon(tostring(spellIdOrName or ""))
+    function container:SetSpell(spellId, spellName)
+        editBox:SetText(tostring(spellId or ""))
+        spellMenu:SetText(tostring(spellName or ""))
+        UpdateSpellIcon(tostring(spellId or ""))
     end
 
     function container:GetSpell()
@@ -346,7 +408,7 @@ end
 ---@param width number Slider width
 ---@param minVal number Minimum value (default 0)
 ---@param maxVal number Maximum value (default 30)
----@param onChange function Callback when value changes
+---@param onChange? function Callback when value changes
 ---@return Frame slider
 function QRA.Widgets.CreateCountdownSlider(parent, width, minVal, maxVal, onChange)
     local slider = AF.CreateSlider(parent, QRA.L["Countdown (sec)"], width or 150, minVal or 0, maxVal or 30, 1)
@@ -369,7 +431,7 @@ end
 --- Create an alert type dropdown
 ---@param parent Frame Parent frame
 ---@param width number Dropdown width
----@param onSelect function Callback when selection changes
+---@param onSelect? function Callback when selection changes
 ---@return Frame dropdown
 function QRA.Widgets.CreateAlertTypeDropdown(parent, width, onSelect)
     local dropdown = AF.CreateDropdown(parent, width or 150)
@@ -399,7 +461,7 @@ end
 --- Create a dropdown to select a trigger
 ---@param parent Frame Parent frame
 ---@param width number Dropdown width
----@param onSelect function Callback when selection changes
+---@param onSelect? function Callback when selection changes
 ---@return Frame dropdown
 function QRA.Widgets.CreateTriggerDropdown(parent, width, onSelect)
     local dropdown = AF.CreateDropdown(parent, width or 200)
