@@ -134,6 +134,13 @@ function QRA.Comm.SendToRaid(data)
         QRA.Print("You must be in a raid group to send data.")
         return
     end
+
+    local canSend = UnitIsGroupLeader("player") or UnitIsGroupAssistant("player")
+    if not canSend then
+        QRA.Print("You must be the raid leader or an assistant to send data.")
+        return
+    end
+
     QRA.SendCommMessage(COMM_PREFIX, data, "BULK", function (callbackArg, sentBytes, totalBytes, didSend)
         QRA.Debug("Comm: Sent", sentBytes, "of", totalBytes, "bytes")
         if didSend and sentBytes == totalBytes then
