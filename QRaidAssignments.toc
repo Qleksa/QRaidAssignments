@@ -30,17 +30,17 @@ UI/Main.lua
 Comm/Comm.lua
 
 # Assignments - Target Assignment System
-Assignments/data/classSpecs.lua
-Assignments/core/raidRoster.lua
-Assignments/core/assignTarget.lua
-Assignments/ui/assignTargetMenu.lua
+Assignments/Data/classSpecs.lua
+Assignments/Core/RaidRoster.lua
+Assignments/Core/AssignTarget.lua
+Assignments/UI/AssignTargetMenu.lua
 
 # DevMode - Testing and Development Tools
-DevMode/core/testMode.lua
-DevMode/core/fakeEncounter.lua
-DevMode/core/eventFirer.lua
-DevMode/core/eventHistory.lua
-DevMode/ui/testPanel.lua
-DevMode/ui/fakeBossUI.lua
-DevMode/ui/eventLogUI.lua
-DevMode/data/presets.lua
+DevMode/Core/TestMode.lua
+DevMode/Core/FakeEncounter.lua
+DevMode/Core/EventFirer.lua
+DevMode/Core/EventHistory.lua
+DevMode/UI/TestPanel.lua
+DevMode/UI/FakeBossUI.lua
+DevMode/UI/EventLogUI.lua
+DevMode/Data/Presets.lua
