@@ -6,24 +6,32 @@ local QRA = QRA
   Contains data about raid bosses and encounters
 ]]
 
+---@class BossTrigger
+---@field type string Type of trigger
+---@field target? string Target of the trigger
+
+---@class BossData
+---@field name string Boss name
+---@field abbreviation? string Optional abbreviation for the boss
+---@field encounterId number Encounter ID of the boss
+---@field npcId? number NPC ID of the boss
+---@field zoneName string Zone name where the boss is located
+---@field triggers? table Optional triggers for the boss encounter
+
+---@class InstanceData
+---@field instanceId number instance ID
+---@field bosses BossData[] list of bosses in the instance
+
+---@class Bosses
+---@field instances table<string, InstanceData> List of instances and their bosses
 QRA.Bosses = {
     instances = {
-        ["Ragefire Chasm"] = {
-            instanceId = 389,
-            bosses = {
-                {
-                    name = "Adarogg",
-                    npcId = 61408,
-                    encounterId = 1443,
-                    zoneName = "Ragefire Chasm",
-                },
-            }
-        },
         ["Throne of Thunder"] = {
             instanceId = 1098,
             bosses = {
                 {
                     name = "Jin'rokh the Breaker",
+                    abbreviation = "Jin'rokh",
                     encounterId = 1577,
                     zoneName = "Overgrown Statuary",
                 },
@@ -34,6 +42,7 @@ QRA.Bosses = {
                 },
                 {
                     name = "Council of Elders",
+                    abbreviation = "Council",
                     encounterId = 1570,
                     zoneName = "Lightning Promenade",
                 },
@@ -54,6 +63,7 @@ QRA.Bosses = {
                 },
                 {
                     name = "Durumu the Forgotten",
+                    abbreviation = "Durumu",
                     encounterId = 1572,
                     zoneName = "Watcher's Sanctum",
                 },
@@ -74,6 +84,7 @@ QRA.Bosses = {
                 },
                 {
                     name = "Twin Empyreans",
+                    abbreviation = "Twins",
                     encounterId = 1560,
                     zoneName = "Celestial Enclave",
                 },

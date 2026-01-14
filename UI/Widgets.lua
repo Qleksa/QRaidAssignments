@@ -439,47 +439,6 @@ function QRA.Widgets.CreateAlertTypeDropdown(parent, width, onSelect)
 end
 
 --------------------------------------------------
--- Trigger Selector Dropdown
---------------------------------------------------
-
---- Create a dropdown to select a trigger
----@param parent Frame Parent frame
----@param width number Dropdown width
----@param onSelect? function Callback when selection changes
----@return Frame dropdown
-function QRA.Widgets.CreateTriggerDropdown(parent, width, onSelect)
-    local dropdown = AF.CreateDropdown(parent, width or 200)
-    dropdown:SetLabel(QRA.L["Linked Trigger"])
-
-    function dropdown:RefreshTriggers()
-        local items = {}
-        local triggers = QRA.Triggers.GetAll()
-
-        for _, trigger in pairs(triggers) do
-            local details = trigger.spellName or trigger.npcName or (trigger.time and string.format("%ds", trigger.time)) or "-"
-            local typeName = QRA.Triggers.Types[trigger.type].name or trigger.type
-            table.insert(items, {
-                text = string.format("%s (%s)", details, typeName),
-                value = trigger.id,
-            })
-        end
-
-        -- Sort by name
-        table.sort(items, function(a, b) return a.text < b.text end)
-
-        dropdown:SetItems(items)
-    end
-
-    dropdown:RefreshTriggers()
-
-    if onSelect then
-        dropdown:SetOnSelect(onSelect)
-    end
-
-    return dropdown
-end
-
---------------------------------------------------
 -- Boss Selector
 --------------------------------------------------
 
@@ -494,6 +453,7 @@ local function GetAllBosses()
         for _, bossData in ipairs(instanceData.bosses) do
             table.insert(bosses[instanceName].children, {
                 text = bossData.name,
+                abbvr = bossData.abbreviation,
                 encounterId = bossData.encounterId,
             })
         end
@@ -514,6 +474,138 @@ function QRA.Widgets.CreateBossMenu(parent, width, onSelect)
     menu:SetText(QRA.L["-- Select Boss --"])
     if onSelect then
         hooksecurefunc(menu, "OnMenuSelection", onSelect)
+    end
+
+    return menu
+end
+
+--------------------------------------------------
+-- Trigger Selector Dropdown
+--------------------------------------------------
+
+-- Helper function to format trigger display text with boss name
+local function FormatTriggerText(trigger)
+    local details = trigger.spellName or trigger.npcName or (trigger.time and string.format("%ds", trigger.time)) or "-"
+    local typeName = QRA.Triggers.Types[trigger.type].name or trigger.type
+
+    -- Add boss name prefix if available
+    local prefix = ""
+    if trigger.encounterId then
+        local bossData = QRA.Bosses.GetBossByEncounterId(trigger.encounterId)
+        if bossData and bossData.name then
+            prefix = (bossData.abbreviation or bossData.name) .. " - "
+        end
+    end
+
+    return string.format("%s%s (%s)", prefix, details, typeName)
+end
+
+local function GetAllTriggersGroupedByBoss(onClick)
+    -- Start with boss structure
+    local bosses = GetAllBosses()
+    local triggers = QRA.Triggers.GetAll()
+    local triggersByBoss = {}
+    local ungroupedTriggers = {}
+
+    -- Group triggers by encounter ID
+    for _, trigger in pairs(triggers) do
+        if trigger.encounterId then
+            if not triggersByBoss[trigger.encounterId] then
+                triggersByBoss[trigger.encounterId] = {}
+            end
+            table.insert(triggersByBoss[trigger.encounterId], trigger)
+        else
+            table.insert(ungroupedTriggers, trigger)
+        end
+    end
+
+    -- Extend boss structure with triggers
+    local menuItems = {}
+    for instanceName, instanceItem in pairs(bosses) do
+        local hasTriggersInInstance = false
+
+        for _, bossItem in ipairs(instanceItem.children) do
+            bossItem.text = bossItem.abbvr or bossItem.text
+            local triggersForBoss = triggersByBoss[bossItem.encounterId]
+
+            if triggersForBoss and #triggersForBoss > 0 then
+                hasTriggersInInstance = true
+
+                -- Convert boss item to have children (triggers)
+                bossItem.notClickable = true
+                bossItem.children = {}
+
+                -- Add triggers for this boss
+                for _, trigger in ipairs(triggersForBoss) do
+                    local details = trigger.spellName or trigger.npcName or (trigger.time and string.format("%ds", trigger.time)) or "-"
+                    local typeName = QRA.Triggers.Types[trigger.type].name or trigger.type
+                    table.insert(bossItem.children, {
+                        text = string.format("%s (%s)", details, typeName),
+                        value = trigger.id,
+                        onClick = onClick and function()
+                            onClick(trigger.id)
+                        end or nil,
+                    })
+                end
+
+                -- Sort triggers alphabetically
+                table.sort(bossItem.children, function(a, b) return a.text < b.text end)
+            end
+        end
+
+        if hasTriggersInInstance then
+            menuItems[instanceName] = instanceItem
+        end
+    end
+
+    return menuItems
+end
+
+--- Create a cascading menu to select a trigger
+---@param parent Frame Parent frame
+---@param width number Menu width
+---@param onSelect? function Callback when selection changes
+---@return Frame menu
+function QRA.Widgets.CreateTriggerDropdown(parent, width, onSelect)
+    local selectedTriggerId = nil
+
+    local menu = AF.CreateCascadingMenuButton(parent, width or 200)
+    menu:SetLabel(QRA.L["Linked Trigger"])
+    menu:SetItems(GetAllTriggersGroupedByBoss(function(triggerId)
+            selectedTriggerId = triggerId
+
+            -- Update display text
+            local trigger = QRA.Triggers.Get(triggerId)
+            if trigger then
+                menu:SetText(FormatTriggerText(trigger))
+            end
+
+            -- Call user callback
+            if onSelect then
+                onSelect(triggerId)
+            end
+        end))
+
+    hooksecurefunc(menu, "OnMenuSelection", function(self, item, path)
+        self:SetText(FormatTriggerText(QRA.Triggers.Get(item.value)))
+    end)
+
+    -- Public API methods to match dropdown interface
+    function menu:GetSelectedValue()
+        return selectedTriggerId
+    end
+
+    function menu:SetSelectedValue(triggerId)
+        selectedTriggerId = triggerId
+
+        if triggerId then
+            local trigger = QRA.Triggers.Get(triggerId)
+            if trigger then
+                menu:SetText(FormatTriggerText(trigger))
+            end
+        else
+            menu:SetText(QRA.L["-- Select Trigger --"])
+        end
     end
 
     return menu
