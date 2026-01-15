@@ -144,6 +144,9 @@ local function GenerateTriggerName(triggerType, config)
     if triggerType == QRA.Triggers.Types.TIMER.event then
         local timeDisplay = string.format("%ds", config.time or 0)
         if config.repeatInterval and config.repeatInterval > 0 then
+            if config.repeatCount and config.repeatCount > 0 then
+                return string.format("%s / %ds x%d", timeDisplay, config.repeatInterval, config.repeatCount)
+            end
             return string.format("%s / %ds", timeDisplay, config.repeatInterval)
         end
         return timeDisplay
@@ -516,6 +519,7 @@ function QRA.Triggers.Create(triggerType, config, isNew)
     elseif triggerType == QRA.Triggers.Types.TIMER.event then
         trigger.time = config.time
         trigger.repeatInterval = config.repeatInterval
+        trigger.repeatCount = config.repeatCount
     elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
         trigger.targetGuid = config.targetGuid
         trigger.npcName = config.npcName or "Unknown NPC"
@@ -742,7 +746,13 @@ local function StartTimerTriggers()
                     if not encounterActive then return end
                     QRA.Triggers.Fire(trigger)
                     -- Start the repeating ticker after the first fire
-                    handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer)
+                    -- Use repeatCount to limit iterations, or nil/0 for infinite
+                    local repeatCount = trigger.repeatCount
+                    if repeatCount and repeatCount > 0 then
+                        handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer, repeatCount)
+                    else
+                        handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer)
+                    end
                 end)
             else
                 -- One-shot timer
