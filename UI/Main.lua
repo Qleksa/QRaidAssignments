@@ -795,9 +795,19 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     end
     typeDropdown:SetEnabled(editable)
 
+    -- Name field (2nd field below trigger type)
+    local nameInput = AF.CreateEditBox(form, QRA.L["Name"], 200, 20, "text")
+    AF.SetPoint(nameInput, "TOPLEFT", typeDropdown, "BOTTOMLEFT", 0, -10)
+    nameInput:Hide()
+    if trigger.name then
+        nameInput:SetText(trigger.name)
+        nameInput:SetCursorPosition(0)
+    end
+    nameInput:SetEnabled(editable)
+
     -- Spell input (shown for spell-related triggers)
     local spellInput = QRA.Widgets.CreateSpellInput(form, QRA.L["Spell ID"], 200)
-    AF.SetPoint(spellInput, "TOPLEFT", typeDropdown, "BOTTOMLEFT", 0, -35)
+    AF.SetPoint(spellInput, "TOPLEFT", nameInput, "BOTTOMLEFT", 0, -35)
     spellInput:Hide()
     if trigger.spellId then
         spellInput:SetSpell(trigger.spellId)
@@ -815,7 +825,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     end
     timerInput:SetEnabled(editable)
 
-    -- Target GUID input (shown for UNIT_HEALTH triggers)
+    -- Target GUID input (shown for UNIT_HEALTH and UNIT_DIED triggers)
     local targetGuidInput = QRA.Widgets.CreateTargetGuidInput(form, QRA.L["Target Unit/NPC ID"], 200)
     AF.SetPoint(targetGuidInput, "TOPLEFT", typeDropdown, "BOTTOMLEFT", 0, -35)
     targetGuidInput:Hide()
@@ -848,6 +858,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     -- Update visibility based on trigger type
     local function UpdateInputVisibility()
         local triggerType = typeDropdown:GetSelectedValue()
+        nameInput:Hide()
         spellInput:Hide()
         timerInput:Hide()
         targetGuidInput:Hide()
@@ -858,11 +869,13 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
            triggerType == QRA.Triggers.Types.SPELL_CAST_START.event or
            triggerType == QRA.Triggers.Types.SPELL_AURA_APPLIED.event or
            triggerType == QRA.Triggers.Types.SPELL_AURA_REMOVED.event then
+            nameInput:Show()
             spellInput:Show()
             occSelector:Show()
         elseif triggerType == QRA.Triggers.Types.TIMER.event then
             timerInput:Show()
-        elseif triggerType == QRA.Triggers.Types.NPC_DEATH.event then
+        elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
+            nameInput:Show()
             targetGuidInput:Show()
             occSelector:Show()
         elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
@@ -892,6 +905,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
         QRA.Debug("Counter formula from UI:", counterFormulaValue, type(counterFormulaValue))
         local config = {
             id = trigger.id,
+            name = strtrim(nameInput:GetText()),
             counterFormula = counterFormulaValue or "*",
             bossName = bossInput,
             encounterId = bossData and bossData.encounterId or nil,
@@ -908,7 +922,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
         elseif triggerType == QRA.Triggers.Types.TIMER.event then
             config.time = tonumber(timerInput:GetText()) or 0
             config.counterFormula = "1"
-        elseif triggerType == QRA.Triggers.Types.NPC_DEATH.event then
+        elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
             config.targetGuid = strtrim(targetGuidInput:GetText())
         elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
             config.targetGuid = strtrim(targetGuidInput:GetText())

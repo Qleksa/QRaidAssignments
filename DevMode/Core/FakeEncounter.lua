@@ -59,7 +59,7 @@ local function InitializeFakeBosses(encounterId, bossName)
         -- For now, create a single boss. Could be extended for multi-boss fights
         fakeBosses[1] = {
             unitId = "boss1",
-            npcId = bossData.npcId or encounterId,  -- Use encounterId as fallback
+            npcId = bossData.npcId,
             name = bossName,
             guid = GenerateFakeGuid(bossData.npcId or encounterId, 1),
             maxHealth = 100,
