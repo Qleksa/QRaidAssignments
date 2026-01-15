@@ -971,7 +971,6 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             -- Ensure repeatCount is an integer
             config.repeatCount = (repeatCountValue and repeatCountValue > 0) and math.floor(repeatCountValue) or nil
             config.counterFormula = "1"
-            -- Timer triggers don't use activateIn (will be handled in issue #7)
         elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
             config.targetGuid = strtrim(targetGuidInput:GetText())
             config.activateIn = activateInInput:GetValue()

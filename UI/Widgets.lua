@@ -272,26 +272,30 @@ end
 -- Activate In Input
 --------------------------------------------------
 
+---@class QRA_ActivateInInput : AF_EditBox
+---@field GetValue fun(self: QRA_ActivateInInput): number|nil
+---@field SetValue fun(self: QRA_ActivateInInput, value: number|nil)
+
 --- Create an activateIn input field (delay trigger activation)
 ---@param parent Frame Parent frame
 ---@param label string|nil Label text
 ---@param width number Field width
----@return AF_EditBox editBox
+---@return QRA_ActivateInInput editBox
 function QRA.Widgets.CreateActivateInInput(parent, label, width)
     local editBox = AF.CreateEditBox(parent, label or QRA.L["Activate In (seconds)"], width or 200, 20, "number")
-    
+
     -- Tooltip
     AF.SetTooltip(editBox, "TOPLEFT", 0, 2,
         QRA.L["Activate In (seconds)"],
         "Delay the activation of this trigger",
         "Example: 3 means the trigger activates 3 seconds after the event",
         "Leave empty for immediate activation")
-    
+
     -- Helper function to validate activateIn value
     local function IsValidActivateInValue(value)
         return value and value >= 0
     end
-    
+
     -- Public API
     function editBox:GetValue()
         local text = editBox:GetText()
@@ -304,7 +308,7 @@ function QRA.Widgets.CreateActivateInInput(parent, label, width)
         end
         return nil
     end
-    
+
     function editBox:SetValue(value)
         if IsValidActivateInValue(value) then
             editBox:SetText(tostring(value))
@@ -312,7 +316,7 @@ function QRA.Widgets.CreateActivateInInput(parent, label, width)
             editBox:SetText("")
         end
     end
-    
+
     return editBox
 end
 

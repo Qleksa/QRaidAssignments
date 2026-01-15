@@ -62,6 +62,7 @@ QRA.Bosses = {
                             type = "UNIT_DIED",
                             targetGuid = "boss",
                             counterFormula = "<=6",
+                            activateIn = 6,
                         }
                     }
                 },
