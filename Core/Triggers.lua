@@ -142,7 +142,14 @@ local function GenerateTriggerName(triggerType, config)
     end
 
     if triggerType == QRA.Triggers.Types.TIMER.event then
-        return string.format("%ds", config.time or 0)
+        local timeDisplay = string.format("%ds", config.time or 0)
+        if config.repeatInterval and config.repeatInterval > 0 then
+            if config.repeatCount and config.repeatCount > 0 then
+                return string.format("%s / %ds x%d", timeDisplay, config.repeatInterval, config.repeatCount)
+            end
+            return string.format("%s / %ds", timeDisplay, config.repeatInterval)
+        end
+        return timeDisplay
     elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
         -- Format: "boss @ 25%, 50%, 75%"
         local hpDisplay = config.hpThresholds or ""
@@ -511,6 +518,8 @@ function QRA.Triggers.Create(triggerType, config, isNew)
         trigger.spellName = config.spellName
     elseif triggerType == QRA.Triggers.Types.TIMER.event then
         trigger.time = config.time
+        trigger.repeatInterval = config.repeatInterval
+        trigger.repeatCount = config.repeatCount
     elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
         trigger.targetGuid = config.targetGuid
         trigger.npcName = config.npcName or "Unknown NPC"
@@ -726,14 +735,28 @@ local function StartTimerTriggers()
                 QRA.Triggers.Fire(trigger)
             end
 
-            if trigger.repeating and trigger.repeatInterval then
-                -- Repeating timer
-                local handle = C_Timer.NewTicker(trigger.repeatInterval, FireTimer)
-                timerHandles[id] = handle
-                -- Also fire at initial time if specified
-                if trigger.time and trigger.time > 0 then
-                    C_Timer.After(trigger.time, FireTimer)
-                end
+            if trigger.repeatInterval and trigger.repeatInterval > 0 then
+                -- Repeating timer: fire at initial time, then every interval after that
+                local initialTime = trigger.time or 0
+                -- Store handles in a table so we can cancel both initial and ticker
+                timerHandles[id] = { initial = nil, ticker = nil }
+                local handleEntry = timerHandles[id]
+                
+                handleEntry.initial = C_Timer.NewTimer(initialTime, function()
+                    if not encounterActive then return end
+                    QRA.Triggers.Fire(trigger)
+                    -- Start the repeating ticker after the first fire
+                    -- repeatCount is total fires, so ticker fires (repeatCount - 1) additional times
+                    local repeatCount = trigger.repeatCount
+                    if repeatCount and repeatCount > 1 then
+                        -- Subtract 1 because the initial fire already happened
+                        handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer, repeatCount - 1)
+                    elseif not repeatCount or repeatCount == 0 then
+                        -- No limit, repeat indefinitely
+                        handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer)
+                    end
+                    -- If repeatCount == 1, no ticker needed (only the initial fire)
+                end)
             else
                 -- One-shot timer
                 C_Timer.After(trigger.time or 0, FireTimer)
@@ -745,7 +768,16 @@ end
 --- Cancel all active timer triggers
 local function CancelTimerTriggers()
     for id, handle in pairs(timerHandles) do
-        if handle and handle.Cancel then
+        if type(handle) == "table" then
+            -- New format: table with initial and ticker
+            if handle.initial and handle.initial.Cancel then
+                handle.initial:Cancel()
+            end
+            if handle.ticker and handle.ticker.Cancel then
+                handle.ticker:Cancel()
+            end
+        elseif handle and handle.Cancel then
+            -- Legacy format: single handle
             handle:Cancel()
         end
     end
