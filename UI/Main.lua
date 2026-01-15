@@ -855,6 +855,15 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     occSelector:Hide()
     occSelector:SetEnabled(editable)
 
+    -- Activate In input (delay trigger activation)
+    local activateInInput = QRA.Widgets.CreateActivateInInput(form, QRA.L["Activate In (seconds)"], 194)
+    AF.SetPoint(activateInInput, "TOPLEFT", occSelector, "BOTTOMLEFT", 0, -5)
+    if trigger.activateIn then
+        activateInInput:SetValue(trigger.activateIn)
+    end
+    activateInInput:Hide()
+    activateInInput:SetEnabled(editable)
+
     -- Update visibility based on trigger type
     local function UpdateInputVisibility()
         local triggerType = typeDropdown:GetSelectedValue()
@@ -864,6 +873,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
         targetGuidInput:Hide()
         hpThresholdsInput:Hide()
         occSelector:Hide()
+        activateInInput:Hide()
 
         if triggerType == QRA.Triggers.Types.SPELL_CAST_SUCCESS.event or
            triggerType == QRA.Triggers.Types.SPELL_CAST_START.event or
@@ -872,15 +882,19 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             nameInput:Show()
             spellInput:Show()
             occSelector:Show()
+            activateInInput:Show()
         elseif triggerType == QRA.Triggers.Types.TIMER.event then
             timerInput:Show()
+            -- Timer triggers don't use activateIn (will be handled in issue #7)
         elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
             nameInput:Show()
             targetGuidInput:Show()
             occSelector:Show()
+            activateInInput:Show()
         elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
             targetGuidInput:Show()
             hpThresholdsInput:Show()
+            activateInInput:Show()
         end
     end
 
@@ -919,14 +933,18 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             QRA.Debug("Selected spell:", spellData)
             config.spellId = spellData.spellId
             config.spellName = spellData.spellName
+            config.activateIn = activateInInput:GetValue()
         elseif triggerType == QRA.Triggers.Types.TIMER.event then
             config.time = tonumber(timerInput:GetText()) or 0
             config.counterFormula = "1"
+            -- Timer triggers don't use activateIn (will be handled in issue #7)
         elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
             config.targetGuid = strtrim(targetGuidInput:GetText())
+            config.activateIn = activateInInput:GetValue()
         elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
             config.targetGuid = strtrim(targetGuidInput:GetText())
             config.hpThresholds = strtrim(hpThresholdsInput:GetText())
+            config.activateIn = activateInInput:GetValue()
         end
 
         QRA.Debug("Trigger config to save:", config)
