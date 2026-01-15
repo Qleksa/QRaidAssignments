@@ -119,6 +119,13 @@ local currentEncounterId = nil -- Current encounter ID for re-registration
 -- Helper Functions
 --------------------------------------------------
 
+--- Check if a trigger should delay its activation
+---@param trigger Trigger The trigger to check
+---@return boolean shouldDelay True if the trigger should delay activation
+local function ShouldDelayActivation(trigger)
+    return trigger.activateIn and trigger.activateIn > 0
+end
+
 --- Generate a unique ID for a trigger
 ---@return string
 local function GenerateTriggerID()
@@ -319,7 +326,7 @@ function QRA.Triggers.OnUnitHealth(unitId)
                     QRA.Debug("Triggers: Fired UNIT_HEALTH", trigger.id, "threshold", crossedThreshold, "%")
                     
                     -- Check if we should delay the activation
-                    if trigger.activateIn and trigger.activateIn > 0 then
+                    if ShouldDelayActivation(trigger) then
                         QRA.Debug("Triggers: Delaying UNIT_HEALTH activation by", trigger.activateIn, "seconds")
                         QRA.DelayedInvoke(trigger.activateIn, function()
                             QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count)
@@ -414,7 +421,7 @@ function QRA.Triggers.ProcessFakeUnitHealth(unitId, unitGuid, currentPercent, pr
                     QRA.Debug("Triggers: Fired UNIT_HEALTH (fake)", trigger.id, "threshold", crossedThreshold, "%")
                     
                     -- Check if we should delay the activation
-                    if trigger.activateIn and trigger.activateIn > 0 then
+                    if ShouldDelayActivation(trigger) then
                         QRA.Debug("Triggers: Delaying UNIT_HEALTH (fake) activation by", trigger.activateIn, "seconds")
                         QRA.DelayedInvoke(trigger.activateIn, function()
                             QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count)
@@ -798,7 +805,7 @@ function QRA.Triggers.Fire(trigger, eventData)
         QRA.Debug("Triggers: Fired", trigger.id, "counter", currentCounter)
         
         -- Check if we should delay the activation
-        if trigger.activateIn and trigger.activateIn > 0 then
+        if ShouldDelayActivation(trigger) then
             QRA.Debug("Triggers: Delaying activation by", trigger.activateIn, "seconds")
             QRA.DelayedInvoke(trigger.activateIn, function()
                 -- Execute linked assignments after delay

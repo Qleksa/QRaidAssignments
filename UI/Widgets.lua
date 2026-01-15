@@ -287,6 +287,11 @@ function QRA.Widgets.CreateActivateInInput(parent, label, width)
         "Example: 3 means the trigger activates 3 seconds after the event",
         "Leave empty for immediate activation")
     
+    -- Helper function to validate activateIn value
+    local function IsValidActivateInValue(value)
+        return value and value > 0
+    end
+    
     -- Public API
     function editBox:GetValue()
         local text = editBox:GetText()
@@ -294,14 +299,14 @@ function QRA.Widgets.CreateActivateInInput(parent, label, width)
             return nil
         end
         local value = tonumber(text)
-        if value and value > 0 then
+        if IsValidActivateInValue(value) then
             return value
         end
         return nil
     end
     
     function editBox:SetValue(value)
-        if value and value > 0 then
+        if IsValidActivateInValue(value) then
             editBox:SetText(tostring(value))
         else
             editBox:SetText("")

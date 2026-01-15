@@ -882,6 +882,8 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             nameInput:Show()
             spellInput:Show()
             occSelector:Show()
+            -- Position activateInInput after occSelector for spell triggers
+            AF.SetPoint(activateInInput, "TOPLEFT", occSelector, "BOTTOMLEFT", 0, -5)
             activateInInput:Show()
         elseif triggerType == QRA.Triggers.Types.TIMER.event then
             timerInput:Show()
@@ -890,10 +892,14 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             nameInput:Show()
             targetGuidInput:Show()
             occSelector:Show()
+            -- Position activateInInput after occSelector for UNIT_DIED triggers
+            AF.SetPoint(activateInInput, "TOPLEFT", occSelector, "BOTTOMLEFT", 0, -5)
             activateInInput:Show()
         elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
             targetGuidInput:Show()
             hpThresholdsInput:Show()
+            -- Position activateInInput after hpThresholdsInput for UNIT_HEALTH triggers
+            AF.SetPoint(activateInInput, "TOPLEFT", hpThresholdsInput, "BOTTOMLEFT", 0, -10)
             activateInInput:Show()
         end
     end
