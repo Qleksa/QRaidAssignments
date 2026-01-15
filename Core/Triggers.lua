@@ -746,13 +746,16 @@ local function StartTimerTriggers()
                     if not encounterActive then return end
                     QRA.Triggers.Fire(trigger)
                     -- Start the repeating ticker after the first fire
-                    -- Use repeatCount to limit iterations, or nil/0 for infinite
+                    -- repeatCount is total fires, so ticker fires (repeatCount - 1) additional times
                     local repeatCount = trigger.repeatCount
-                    if repeatCount and repeatCount > 0 then
-                        handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer, repeatCount)
-                    else
+                    if repeatCount and repeatCount > 1 then
+                        -- Subtract 1 because the initial fire already happened
+                        handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer, repeatCount - 1)
+                    elseif not repeatCount or repeatCount == 0 then
+                        -- No limit, repeat indefinitely
                         handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer)
                     end
+                    -- If repeatCount == 1, no ticker needed (only the initial fire)
                 end)
             else
                 -- One-shot timer

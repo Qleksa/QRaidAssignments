@@ -948,7 +948,8 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             local intervalValue = tonumber(intervalInput:GetText())
             config.repeatInterval = (intervalValue and intervalValue > 0) and intervalValue or nil
             local repeatCountValue = tonumber(repeatCountInput:GetText())
-            config.repeatCount = (repeatCountValue and repeatCountValue > 0) and repeatCountValue or nil
+            -- Ensure repeatCount is an integer
+            config.repeatCount = (repeatCountValue and repeatCountValue > 0) and math.floor(repeatCountValue) or nil
             config.counterFormula = "1"
         elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
             config.targetGuid = strtrim(targetGuidInput:GetText())
