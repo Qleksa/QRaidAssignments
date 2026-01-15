@@ -734,12 +734,15 @@ local function StartTimerTriggers()
             if trigger.repeatInterval and trigger.repeatInterval > 0 then
                 -- Repeating timer: fire at initial time, then every interval after that
                 local initialTime = trigger.time or 0
-                C_Timer.After(initialTime, function()
+                -- Store handles in a table so we can cancel both initial and ticker
+                timerHandles[id] = { initial = nil, ticker = nil }
+                local handleEntry = timerHandles[id]
+                
+                handleEntry.initial = C_Timer.NewTimer(initialTime, function()
                     if not encounterActive then return end
                     QRA.Triggers.Fire(trigger)
                     -- Start the repeating ticker after the first fire
-                    local handle = C_Timer.NewTicker(trigger.repeatInterval, FireTimer)
-                    timerHandles[id] = handle
+                    handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer)
                 end)
             else
                 -- One-shot timer
@@ -752,7 +755,16 @@ end
 --- Cancel all active timer triggers
 local function CancelTimerTriggers()
     for id, handle in pairs(timerHandles) do
-        if handle and handle.Cancel then
+        if type(handle) == "table" then
+            -- New format: table with initial and ticker
+            if handle.initial and handle.initial.Cancel then
+                handle.initial:Cancel()
+            end
+            if handle.ticker and handle.ticker.Cancel then
+                handle.ticker:Cancel()
+            end
+        elseif handle and handle.Cancel then
+            -- Legacy format: single handle
             handle:Cancel()
         end
     end
