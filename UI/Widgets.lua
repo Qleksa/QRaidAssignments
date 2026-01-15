@@ -859,6 +859,18 @@ function QRA.Widgets.CreateTriggerRow(parent, trigger, onEdit, onDelete)
         -- Add % signs to each threshold
         hpDisplay = hpDisplay:gsub("(%d+)", "%1%%")
         details = string.format("%s @ %s", trigger.targetGuid or "unknown", hpDisplay)
+    elseif trigger.type == QRA.Triggers.Types.TIMER.event then
+        -- Format: "10s" or "10s / 50s" or "10s / 50s x5" if interval and repeat count are set
+        local timeDisplay = trigger.time and string.format("%ds", trigger.time) or "0s"
+        if trigger.repeatInterval and trigger.repeatInterval > 0 then
+            if trigger.repeatCount and trigger.repeatCount > 0 then
+                details = string.format("%s / %ds x%d", timeDisplay, trigger.repeatInterval, trigger.repeatCount)
+            else
+                details = string.format("%s / %ds", timeDisplay, trigger.repeatInterval)
+            end
+        else
+            details = timeDisplay
+        end
     else
         details = trigger.spellName or trigger.npcName or (trigger.time and string.format("%ds", trigger.time)) or "-"
     end
