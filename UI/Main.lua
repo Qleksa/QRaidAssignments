@@ -825,6 +825,16 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     end
     timerInput:SetEnabled(editable)
 
+    -- Interval input (shown for timer triggers, below Time input)
+    local intervalInput = AF.CreateEditBox(form, QRA.L["Interval (seconds)"], 200, 20, "number")
+    AF.SetPoint(intervalInput, "TOPLEFT", timerInput, "BOTTOMLEFT", 0, -10)
+    intervalInput:Hide()
+    if trigger.repeatInterval then
+        intervalInput:SetText(tostring(trigger.repeatInterval))
+        intervalInput:SetCursorPosition(0)
+    end
+    intervalInput:SetEnabled(editable)
+
     -- Target GUID input (shown for UNIT_HEALTH and UNIT_DIED triggers)
     local targetGuidInput = QRA.Widgets.CreateTargetGuidInput(form, QRA.L["Target Unit/NPC ID"], 200)
     AF.SetPoint(targetGuidInput, "TOPLEFT", typeDropdown, "BOTTOMLEFT", 0, -35)
@@ -861,6 +871,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
         nameInput:Hide()
         spellInput:Hide()
         timerInput:Hide()
+        intervalInput:Hide()
         targetGuidInput:Hide()
         hpThresholdsInput:Hide()
         occSelector:Hide()
@@ -874,6 +885,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             occSelector:Show()
         elseif triggerType == QRA.Triggers.Types.TIMER.event then
             timerInput:Show()
+            intervalInput:Show()
         elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
             nameInput:Show()
             targetGuidInput:Show()
@@ -921,6 +933,8 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             config.spellName = spellData.spellName
         elseif triggerType == QRA.Triggers.Types.TIMER.event then
             config.time = tonumber(timerInput:GetText()) or 0
+            local intervalValue = tonumber(intervalInput:GetText())
+            config.repeatInterval = (intervalValue and intervalValue > 0) and intervalValue or nil
             config.counterFormula = "1"
         elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
             config.targetGuid = strtrim(targetGuidInput:GetText())
@@ -933,8 +947,13 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
 
         -- Validation
         local isValid = true
-        if triggerType == QRA.Triggers.Types.TIMER.event and (config.time == nil or config.time <= 0) then
-            isValid = false
+        if triggerType == QRA.Triggers.Types.TIMER.event then
+            -- For timer triggers, time must be > 0 OR repeatInterval must be > 0
+            local hasValidTime = config.time and config.time > 0
+            local hasValidInterval = config.repeatInterval and config.repeatInterval > 0
+            if not hasValidTime and not hasValidInterval then
+                isValid = false
+            end
         elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
             if not targetGuidInput:IsValid() or not hpThresholdsInput:IsValid() then
                 isValid = false

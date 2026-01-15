@@ -142,7 +142,11 @@ local function GenerateTriggerName(triggerType, config)
     end
 
     if triggerType == QRA.Triggers.Types.TIMER.event then
-        return string.format("%ds", config.time or 0)
+        local timeDisplay = string.format("%ds", config.time or 0)
+        if config.repeatInterval and config.repeatInterval > 0 then
+            return string.format("%s / %ds", timeDisplay, config.repeatInterval)
+        end
+        return timeDisplay
     elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
         -- Format: "boss @ 25%, 50%, 75%"
         local hpDisplay = config.hpThresholds or ""
@@ -511,6 +515,7 @@ function QRA.Triggers.Create(triggerType, config, isNew)
         trigger.spellName = config.spellName
     elseif triggerType == QRA.Triggers.Types.TIMER.event then
         trigger.time = config.time
+        trigger.repeatInterval = config.repeatInterval
     elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
         trigger.targetGuid = config.targetGuid
         trigger.npcName = config.npcName or "Unknown NPC"
@@ -726,14 +731,16 @@ local function StartTimerTriggers()
                 QRA.Triggers.Fire(trigger)
             end
 
-            if trigger.repeating and trigger.repeatInterval then
-                -- Repeating timer
-                local handle = C_Timer.NewTicker(trigger.repeatInterval, FireTimer)
-                timerHandles[id] = handle
-                -- Also fire at initial time if specified
-                if trigger.time and trigger.time > 0 then
-                    C_Timer.After(trigger.time, FireTimer)
-                end
+            if trigger.repeatInterval and trigger.repeatInterval > 0 then
+                -- Repeating timer: fire at initial time, then every interval after that
+                local initialTime = trigger.time or 0
+                C_Timer.After(initialTime, function()
+                    if not encounterActive then return end
+                    QRA.Triggers.Fire(trigger)
+                    -- Start the repeating ticker after the first fire
+                    local handle = C_Timer.NewTicker(trigger.repeatInterval, FireTimer)
+                    timerHandles[id] = handle
+                end)
             else
                 -- One-shot timer
                 C_Timer.After(trigger.time or 0, FireTimer)
