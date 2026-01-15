@@ -57,7 +57,7 @@ end
 
 --- Create a trigger row for the test panel
 ---@param parent Frame
----@param trigger table
+---@param trigger Trigger
 ---@param onFire function
 ---@return Frame row
 local function CreateTestTriggerRow(parent, trigger, onFire)
@@ -84,8 +84,8 @@ local function CreateTestTriggerRow(parent, trigger, onFire)
         detailText = "Spell ID: " .. trigger.spellId
     elseif trigger.time then
         detailText = trigger.time .. "s"
-    elseif trigger.npcId then
-        detailText = "NPC: " .. (trigger.npcName or trigger.npcId)
+    elseif trigger.targetGuid then
+        detailText = "NPC: " .. (trigger.npcName or trigger.targetGuid)
     elseif trigger.hpThresholds then
         detailText = "HP: " .. trigger.hpThresholds .. "%"
     else

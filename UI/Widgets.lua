@@ -804,7 +804,9 @@ function QRA.Widgets.CreateTriggerRow(parent, trigger, onEdit, onDelete)
 
     -- Trigger details (spell name, NPC name, time, or HP thresholds)
     local details
-    if trigger.type == QRA.Triggers.Types.UNIT_HEALTH.event then
+    if trigger.name then
+        details = trigger.name
+    elseif trigger.type == QRA.Triggers.Types.UNIT_HEALTH.event then
         -- Format: "boss @ 25%, 50%, 75%"
         local hpDisplay = trigger.hpThresholds or ""
         -- Add % signs to each threshold

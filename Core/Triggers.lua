@@ -133,6 +133,30 @@ local function GenerateTriggerID()
     return id
 end
 
+--- Generate a default name for a trigger
+--- @param triggerType string trigger type
+--- @param config table trigger config
+local function GenerateTriggerName(triggerType, config)
+    if config.name and config.name ~= "" then
+        return config.name
+    end
+
+    if triggerType == QRA.Triggers.Types.TIMER.event then
+        return string.format("%ds", config.time or 0)
+    elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
+        -- Format: "boss @ 25%, 50%, 75%"
+        local hpDisplay = config.hpThresholds or ""
+        -- Add % signs to each threshold
+        hpDisplay = hpDisplay:gsub("(%d+)", "%1%%")
+        return string.format("%s @ %s", config.targetGuid or "unknown", hpDisplay)
+    else
+        return string.format("%s %s",
+            GetTriggerTypeAbbreviation(triggerType),
+            config.spellName or config.targetGuid or "generic"
+        )
+    end
+end
+
 --- Reset occurrence counts for all triggers
 local function ResetOccurrenceCounts()
     wipe(occurrenceCounts)
@@ -396,12 +420,14 @@ local function BuildTriggerIndex()
             end
 
             local idKey
-            if trigger.type == QRA.Triggers.Types.UNIT_HEALTH.event then
-                -- For UNIT_HEALTH, index by targetGuid (boss, boss1, or NPC ID)
+            if trigger.type == QRA.Triggers.Types.UNIT_HEALTH.event or
+                trigger.type == QRA.Triggers.Types.NPC_DEATH.event
+            then
+                -- For UNIT_HEALTH and NPC_DEATH, index by targetGuid (boss, boss1, or NPC ID)
                 idKey = trigger.targetGuid
             else
-                -- For other types, use spellId or npcId
-                idKey = trigger.spellId or trigger.npcId
+                -- For other types, use spellId
+                idKey = trigger.spellId
             end
 
             if idKey then
@@ -422,10 +448,11 @@ local function RemoveFromIndex(trigger)
     end
 
     local idKey
-    if trigger.type == QRA.Triggers.Types.UNIT_HEALTH.event then
+    if trigger.type == QRA.Triggers.Types.UNIT_HEALTH.event or
+        trigger.type == QRA.Triggers.Types.NPC_DEATH.event then
         idKey = trigger.targetGuid
     else
-        idKey = trigger.spellId or trigger.npcId
+        idKey = trigger.spellId
     end
 
     if idKey and triggerIndex[trigger.type] and triggerIndex[trigger.type][idKey] then
@@ -462,7 +489,7 @@ function QRA.Triggers.Create(triggerType, config, isNew)
     local trigger = {
         id = isNew and GenerateTriggerID() or config.id,
         version = 1,
-        name = config.name or (GetTriggerTypeAbbreviation(triggerType) .. "_" .. time()),
+        name = GenerateTriggerName(triggerType, config),
         type = triggerType,
         enabled = true,
         default = config.default or false,
@@ -485,13 +512,14 @@ function QRA.Triggers.Create(triggerType, config, isNew)
     elseif triggerType == QRA.Triggers.Types.TIMER.event then
         trigger.time = config.time
     elseif triggerType == QRA.Triggers.Types.NPC_DEATH.event then
-        trigger.npcId = config.npcId
+        trigger.targetGuid = config.targetGuid
         trigger.npcName = config.npcName or "Unknown NPC"
     elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
         trigger.targetGuid = config.targetGuid -- "boss", "boss1", or numeric NPC ID
         trigger.hpThresholds = config.hpThresholds -- Raw comma-separated string "25,50,75"
     end
 
+    QRA.Debug("Triggers: Created trigger", trigger)
     return trigger
 end
 
@@ -729,7 +757,7 @@ end
 --------------------------------------------------
 
 --- Fire a trigger, checking occurrence count
----@param trigger table The trigger that fired
+---@param trigger Trigger The trigger that fired
 ---@param eventData table|nil Additional data from the event
 function QRA.Triggers.Fire(trigger, eventData)
     if not trigger or not trigger.enabled then return end
@@ -737,7 +765,7 @@ function QRA.Triggers.Fire(trigger, eventData)
     -- Generate key for counter tracking (based on type and identifier)
     local counterKey = string.format("%s_%s",
         trigger.type,
-        trigger.spellId or trigger.npcId or trigger.time or "generic"
+        trigger.spellId or trigger.targetGuid or trigger.time or "generic"
     )
 
     local currentCounter = IncrementOccurrence(counterKey)
