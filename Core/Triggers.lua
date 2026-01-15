@@ -317,7 +317,16 @@ function QRA.Triggers.OnUnitHealth(unitId)
                     }
 
                     QRA.Debug("Triggers: Fired UNIT_HEALTH", trigger.id, "threshold", crossedThreshold, "%")
-                    QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count)
+                    
+                    -- Check if we should delay the activation
+                    if trigger.activateIn and trigger.activateIn > 0 then
+                        QRA.Debug("Triggers: Delaying UNIT_HEALTH activation by", trigger.activateIn, "seconds")
+                        QRA.DelayedInvoke(trigger.activateIn, function()
+                            QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count)
+                        end)
+                    else
+                        QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count)
+                    end
                 end
             end
         end
@@ -403,7 +412,16 @@ function QRA.Triggers.ProcessFakeUnitHealth(unitId, unitGuid, currentPercent, pr
                     }
 
                     QRA.Debug("Triggers: Fired UNIT_HEALTH (fake)", trigger.id, "threshold", crossedThreshold, "%")
-                    QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count)
+                    
+                    -- Check if we should delay the activation
+                    if trigger.activateIn and trigger.activateIn > 0 then
+                        QRA.Debug("Triggers: Delaying UNIT_HEALTH (fake) activation by", trigger.activateIn, "seconds")
+                        QRA.DelayedInvoke(trigger.activateIn, function()
+                            QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count)
+                        end)
+                    else
+                        QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count)
+                    end
                 end
             end
         end
