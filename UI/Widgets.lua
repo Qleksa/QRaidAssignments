@@ -269,6 +269,54 @@ function QRA.Widgets.CreateCounterInput(parent, label, width)
 end
 
 --------------------------------------------------
+-- Activate In Input
+--------------------------------------------------
+
+--- Create an activateIn input field (delay trigger activation)
+---@param parent Frame Parent frame
+---@param label string|nil Label text
+---@param width number Field width
+---@return AF_EditBox editBox
+function QRA.Widgets.CreateActivateInInput(parent, label, width)
+    local editBox = AF.CreateEditBox(parent, label or QRA.L["Activate In (seconds)"], width or 200, 20, "number")
+    
+    -- Tooltip
+    AF.SetTooltip(editBox, "TOPLEFT", 0, 2,
+        QRA.L["Activate In (seconds)"],
+        "Delay the activation of this trigger",
+        "Example: 3 means the trigger activates 3 seconds after the event",
+        "Leave empty for immediate activation")
+    
+    -- Helper function to validate activateIn value
+    local function IsValidActivateInValue(value)
+        return value and value >= 0
+    end
+    
+    -- Public API
+    function editBox:GetValue()
+        local text = editBox:GetText()
+        if text == "" or text == nil then
+            return nil
+        end
+        local value = tonumber(text)
+        if IsValidActivateInValue(value) then
+            return value
+        end
+        return nil
+    end
+    
+    function editBox:SetValue(value)
+        if IsValidActivateInValue(value) then
+            editBox:SetText(tostring(value))
+        else
+            editBox:SetText("")
+        end
+    end
+    
+    return editBox
+end
+
+--------------------------------------------------
 -- HP Thresholds Input
 --------------------------------------------------
 
