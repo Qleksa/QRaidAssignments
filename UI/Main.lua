@@ -899,7 +899,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             targetGuidInput:Show()
             hpThresholdsInput:Show()
             -- Position activateInInput after hpThresholdsInput for UNIT_HEALTH triggers
-            AF.SetPoint(activateInInput, "TOPLEFT", hpThresholdsInput, "BOTTOMLEFT", 0, -10)
+            AF.SetPoint(activateInInput, "TOPLEFT", hpThresholdsInput, "BOTTOMLEFT", 0, -5)
             activateInInput:Show()
         end
     end

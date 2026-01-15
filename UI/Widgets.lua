@@ -289,7 +289,7 @@ function QRA.Widgets.CreateActivateInInput(parent, label, width)
     
     -- Helper function to validate activateIn value
     local function IsValidActivateInValue(value)
-        return value and value > 0
+        return value and value >= 0
     end
     
     -- Public API
