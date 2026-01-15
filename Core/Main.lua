@@ -86,6 +86,10 @@ function QRA.InitializeModules()
         QRA.RaidRoster.Initialize()
     end
 
+    if QRA.Bosses and QRA.Bosses.Initialize then
+        QRA.Bosses.Initialize()
+    end
+
     if QRA.Triggers and QRA.Triggers.Initialize then
         QRA.Triggers.Initialize()
     end

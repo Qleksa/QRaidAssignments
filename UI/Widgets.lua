@@ -27,12 +27,13 @@ QRA.Widgets.Colors = {
 --------------------------------------------------
 -- Trigger Type Selector
 --------------------------------------------------
+---@class QRA_TriggerTypeDropdown: AF_Dropdown
 
 --- Create a dropdown for selecting trigger types
 ---@param parent Frame Parent frame
 ---@param width number Dropdown width
----@param onSelect function Callback when selection changes
----@return Frame dropdown
+---@param onSelect? function Callback when selection changes
+---@return QRA_TriggerTypeDropdown dropdown
 function QRA.Widgets.CreateTriggerTypeDropdown(parent, width, onSelect)
     local dropdown = AF.CreateDropdown(parent, width or 150)
     dropdown:SetLabel(QRA.L["Trigger Type"])
@@ -102,12 +103,21 @@ local function CreateSpellMenu(parent, width, onClick)
     return spellMenu
 end
 
+---@class QRA_SpellInput : Frame
+---@field editBox AF_EditBox
+---@field icon Texture
+---@field SetSpell fun(self: QRA_SpellInput, spellId: number|nil, spellName: string|nil)
+---@field GetSpell fun(self: QRA_SpellInput): table
+---@field SetCursorPosition fun(self: QRA_SpellInput, position: number)
+---@field SetEnabled fun(self: QRA_SpellInput, enabled: boolean)
+---@field Clear fun(self: QRA_SpellInput)
+
 --- Create a spell input field with spell icon preview
 ---@param parent Frame Parent frame
 ---@param label string|nil Label text
 ---@param width number Field width
 ---@param onConfirm? function Callback when spell is confirmed
----@return Frame container
+---@return QRA_SpellInput frame
 function QRA.Widgets.CreateSpellInput(parent, label, width, onConfirm)
     local width = width or 200
     local container = CreateFrame("Frame", nil, parent)
@@ -189,6 +199,11 @@ function QRA.Widgets.CreateSpellInput(parent, label, width, onConfirm)
         editBox:SetCursorPosition(position)
     end
 
+    function container:SetEnabled(enabled)
+        editBox:SetEnabled(enabled)
+        spellMenu:SetEnabled(enabled)
+    end
+
     function container:Clear()
         editBox:SetText("")
         icon:SetTexture(134400)
@@ -201,13 +216,16 @@ end
 -- Occurrence Selector
 --------------------------------------------------
 
+---@class QRA_CounterInput : AF_EditBox
+---@field GetValue fun(self: QRA_CounterInput): string|nil
+---@field SetValue fun(self: QRA_CounterInput, value: string|nil)
+
 --- Create an counter formula input box
 ---@param parent Frame Parent frame
 ---@param label string|nil Label text
 ---@param width number Field width
----@return Frame container
+---@return QRA_CounterInput container
 function QRA.Widgets.CreateCounterInput(parent, label, width)
-    ---@class counterEB : AF_EditBox
     local counterEB = AF.CreateEditBox(parent, label or QRA.L["Counter"], width or 150, 20)
     counterEB:SetText("*")
 
@@ -259,7 +277,7 @@ end
 ---@param parent Frame Parent frame
 ---@param label string|nil Label text
 ---@param width number Field width
----@return Frame editBox
+---@return AF_EditBox editBox
 function QRA.Widgets.CreateHPThresholdsInput(parent, label, width)
     local editBox = AF.CreateEditBox(parent, label or QRA.L["HP Thresholds (%)"], width or 200, 20)
 
@@ -321,7 +339,7 @@ end
 ---@param parent Frame Parent frame
 ---@param label string|nil Label text
 ---@param width number Field width
----@return Frame editBox
+---@return AF_EditBox editBox
 function QRA.Widgets.CreateTargetGuidInput(parent, label, width)
     local editBox = AF.CreateEditBox(parent, label or QRA.L["Target Unit/NPC ID"], width or 200, 20)
 
@@ -775,6 +793,7 @@ function QRA.Widgets.CreateTriggerRow(parent, trigger, onEdit, onDelete)
     end)
     AF.SetPoint(enableCheck, "LEFT", 5, 0)
     enableCheck:SetChecked(trigger.enabled)
+    enableCheck:SetEnabled(not trigger.default)
 
     -- Type indicator (colored square)
     local typeColor = QRA.Widgets.Colors.triggerType[trigger.type] or "gray"
@@ -819,12 +838,17 @@ function QRA.Widgets.CreateTriggerRow(parent, trigger, onEdit, onDelete)
     local delIcon = delBtn:CreateTexture(nil, "ARTWORK")
     delIcon:SetAllPoints()
     delIcon:SetTexture("Interface\\Buttons\\UI-StopButton")
-    delIcon:SetVertexColor(0.8, 0.3, 0.3)
-    delBtn:SetScript("OnEnter", function() delIcon:SetVertexColor(1, 0.4, 0.4) end)
-    delBtn:SetScript("OnLeave", function() delIcon:SetVertexColor(0.8, 0.3, 0.3) end)
-    delBtn:SetScript("OnClick", function()
-        if onDelete then onDelete(trigger) end
-    end)
+    if trigger.default then
+        delBtn:Disable()
+        delIcon:SetVertexColor(0.5, 0.5, 0.5)
+    else
+        delIcon:SetVertexColor(0.8, 0.3, 0.3)
+        delBtn:SetScript("OnEnter", function() delIcon:SetVertexColor(1, 0.4, 0.4) end)
+        delBtn:SetScript("OnLeave", function() delIcon:SetVertexColor(0.8, 0.3, 0.3) end)
+        delBtn:SetScript("OnClick", function()
+            if onDelete then onDelete(trigger) end
+        end)
+    end
 
     return row
 end

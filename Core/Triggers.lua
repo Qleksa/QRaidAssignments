@@ -465,6 +465,7 @@ function QRA.Triggers.Create(triggerType, config, isNew)
         name = config.name or (GetTriggerTypeAbbreviation(triggerType) .. "_" .. time()),
         type = triggerType,
         enabled = true,
+        default = config.default or false,
         counterFormula = config.counterFormula, -- Counter formula (e.g., "1,3,5", ">2,+<6", "1%3")
         assignments = {},                       -- Linked assignments
         bossName = config.bossName,             -- Boss this trigger belongs to
@@ -546,25 +547,37 @@ function QRA.Triggers.UnregisterAll()
 end
 
 --- Get all triggers
----@return table
+---@return Trigger[]
 function QRA.Triggers.GetAll()
     return QRA.DB.triggers
 end
 
+--- Get triggers for a specific boss
+--- @param bossName string boss name
+--- @return Trigger[]
 function QRA.Triggers.GetBossTriggers(bossName)
     local triggers = {}
 
+    ---@param a Trigger
+    ---@param b Trigger
     local function sortFunction(a, b)
-        -- QRA.Debug("Sorting triggers", {a.type, a.time}, {b.type, b.time})
+        -- QRA.Debug("Sorting triggers", {a.default, a.type, a.time}, {b.default, b.type, b.time})
+        if a.default and not b.default then
+            return true
+        end
+        if not a.default and b.default then
+            return false
+        end
         if a.type == "TIMER" and b.type ~= "TIMER" then
             return true
-        elseif a.type ~= "TIMER" and b.type == "TIMER" then
-            return false
-        elseif a.type ~= "TIMER" and b.type ~= "TIMER" then
-            return a.createdAt < b.createdAt
-        else
-            return a.time < b.time
         end
+        if a.type ~= "TIMER" and b.type == "TIMER" then
+            return false
+        end
+        if a.type ~= "TIMER" and b.type ~= "TIMER" then
+            return a.createdAt < b.createdAt
+        end
+        return (a.time or 0) < (b.time or 0)
     end
 
     for _, trigger in ipairs(QRA.DB.triggers) do
@@ -579,7 +592,7 @@ end
 
 --- Get triggers for a specific encounter ID
 --- @param encounterId number encounter id
---- @return Trigger[] triggers
+--- @return Trigger[]
 function QRA.Triggers.GetTriggersByEncounterId(encounterId)
     local triggers = {}
 
@@ -594,7 +607,7 @@ end
 
 --- Get a specific trigger by ID
 ---@param triggerId string
----@return table|nil
+---@return Trigger|nil
 function QRA.Triggers.Get(triggerId)
     for _, trigger in ipairs(QRA.DB.triggers) do
         if trigger.id == triggerId then
@@ -607,6 +620,9 @@ end
 --------------------------------------------------
 -- Trigger Persistence
 --------------------------------------------------
+
+--- Save a new trigger to the database
+--- @param trigger Trigger trigger to save
 function QRA.Triggers.SaveTrigger(trigger)
     if not trigger or not trigger.id then
         QRA.Debug("Triggers: Invalid trigger save attempt")
@@ -617,6 +633,8 @@ function QRA.Triggers.SaveTrigger(trigger)
     QRA.Debug("Triggers: Saved trigger", trigger.id)
 end
 
+--- Update an existing trigger in the database
+--- @param trigger Trigger trigger to update
 function QRA.Triggers.UpdateTrigger(trigger)
     if not trigger or not trigger.id then
         QRA.Debug("Triggers: Invalid trigger update attempt")
@@ -654,6 +672,8 @@ function QRA.Triggers.UpsertTrigger(trigger)
     QRA.Debug("Triggers: Upserted (saved) new trigger", trigger.id)
 end
 
+--- Delete a trigger from the database
+--- @param triggerId string trigger ID to delete
 function QRA.Triggers.DeleteTrigger(triggerId)
     for index, trigger in ipairs(QRA.DB.triggers) do
         if trigger.id == triggerId then
@@ -856,6 +876,31 @@ end
 -- Initialization
 --------------------------------------------------
 
+local function CreateDefaultBossTriggers()
+    local bosses = QRA.Bosses.GetAllBosses()
+    for _, instanceData in pairs(bosses) do
+        for _, bossData in ipairs(instanceData.bosses) do
+            local triggers = bossData.triggers
+            if triggers then
+                for _, trigger in ipairs(triggers) do
+                    local triggerId = bossData.name .. "_" .. trigger.type .. "_" .. (trigger.spellId or trigger.targetGuid or trigger.time or "generic")
+                    local existingTrigger = QRA.Triggers.Get(triggerId)
+                    if not existingTrigger then
+                        local newTrigger = QRA.Triggers.Create(trigger.type, QRA.TableMerge({
+                            id = triggerId,
+                            default = true,
+                            bossName = bossData.name,
+                            encounterId = bossData.encounterId,
+                        }, trigger), false)
+                        QRA.Triggers.SaveTrigger(newTrigger)
+                    end
+                end
+            end
+        end
+    end
+end
+
 function QRA.Triggers.Initialize()
+    CreateDefaultBossTriggers()
     QRA.Debug("Triggers: Module initialized")
 end
