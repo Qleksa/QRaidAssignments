@@ -1,3 +1,4 @@
+---@diagnostic disable: missing-fields
 ---@class QRA
 local QRA = QRA
 
@@ -6,9 +7,9 @@ local QRA = QRA
   Contains data about raid bosses and encounters
 ]]
 
----@class BossTrigger
+---@class BossTrigger: Trigger
+---@field name string Name of the trigger
 ---@field type string Type of trigger
----@field target? string Target of the trigger
 
 ---@class BossData
 ---@field name string Boss name
@@ -16,7 +17,7 @@ local QRA = QRA
 ---@field encounterId number Encounter ID of the boss
 ---@field npcId? number NPC ID of the boss
 ---@field zoneName string Zone name where the boss is located
----@field triggers? table Optional triggers for the boss encounter
+---@field triggers? BossTrigger[] Optional triggers for the boss encounter
 
 ---@class InstanceData
 ---@field instanceId number instance ID
@@ -55,6 +56,14 @@ QRA.Bosses = {
                     name = "Megaera",
                     encounterId = 1578,
                     zoneName = "Forgotten Depths",
+                    triggers = {
+                        {
+                            name = "Rampage",
+                            type = "NPC_DEATH",
+                            targetGuid = "boss",
+                            counterFormula = "<=6",
+                        }
+                    }
                 },
                 {
                     name = "Ji-Kun",
@@ -103,10 +112,15 @@ QRA.Bosses = {
     }
 }
 
+--- Functions to access boss data
+--- @return table<string, InstanceData> List of all instances and their bosses
 function QRA.Bosses.GetAllBosses()
     return QRA.Bosses.instances
 end
 
+--- Get bosses by instance name
+--- @param instanceName string Name of the instance
+--- @return BossData[]|nil List of bosses in the instance or nil if not found
 function QRA.Bosses.GetBossesByInstance(instanceName)
     local instanceData = QRA.Bosses.instances[instanceName]
     if instanceData then
@@ -115,6 +129,9 @@ function QRA.Bosses.GetBossesByInstance(instanceName)
     return nil
 end
 
+--- Get boss data by encounter ID
+--- @param encounterId number Encounter ID of the boss
+--- @return BossData|nil Boss data or nil if not found
 function QRA.Bosses.GetBossByEncounterId(encounterId)
     for instanceName, instanceData in pairs(QRA.Bosses.instances) do
         for _, bossData in ipairs(instanceData.bosses) do
@@ -126,6 +143,9 @@ function QRA.Bosses.GetBossByEncounterId(encounterId)
     return nil
 end
 
+--- Get boss data by boss name
+--- @param bossName string Name of the boss
+--- @return BossData|nil Boss data or nil if not found
 function QRA.Bosses.GetBossByName(bossName)
     for instanceName, instanceData in pairs(QRA.Bosses.instances) do
         for _, bossData in ipairs(instanceData.bosses) do
@@ -137,13 +157,20 @@ function QRA.Bosses.GetBossByName(bossName)
     return nil
 end
 
+--- Get boss data by zone name
+--- @param zoneName string Zone name where the boss is located
+--- @return BossData|nil Boss data or nil if not found
 function QRA.Bosses.GetBossByZoneName(zoneName)
-    for instanceName, instanceData in pairs(QRA.Bosses.instances) do
+    for _, instanceData in pairs(QRA.Bosses.instances) do
         for _, bossData in ipairs(instanceData.bosses) do
             if bossData.zoneName == zoneName then
-                return instanceName, bossData.name, bossData
+                return bossData
             end
         end
     end
-    return nil, nil, nil
+    return nil
+end
+
+function QRA.Bosses.Initialize()
+    QRA.Debug("Bosses module initialized.")
 end

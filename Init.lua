@@ -40,13 +40,14 @@ AF.SetAddonAccentColor(QRA.name, "softlime")
 ---@class Trigger
 ---@field id string
 ---@field type string
----@field version number
+---@field version number default 1
 ---@field name string
----@field enabled boolean
+---@field enabled boolean default true
+---@field default boolean is trigger default for boss, false by default
 ---@field encounterId number
 ---@field bossName string
 ---@field counterFormula string
----@field time number? seconds after pull
+---@field time? number seconds after pull
 ---@field npcId? number
 ---@field npcName? string
 ---@field spellId? number
