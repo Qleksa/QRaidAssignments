@@ -1017,10 +1017,10 @@ function QRA.UI.ShowExportFrame(exportString)
     end)
     editBox:SetScript("OnKeyUp", function(self, key)
         if key == "LCTRL" or key == "RCTRL" or key == "LMETA" or key == "RMETA" then
-            AF.DelayedInvoke(0.2, function() ctrlDown = false end)
+            QRA.DelayedInvoke(0.2, function() ctrlDown = false end)
         end
         if ctrlDown and key == "C" then
-            AF.DelayedInvoke(0.1, function() exportFrame:Hide() end)
+            QRA.DelayedInvoke(0.1, function() exportFrame:Hide() end)
         end
     end)
 

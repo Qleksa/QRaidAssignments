@@ -28,6 +28,7 @@ QRA.Deserialize = AF.Deserialize
 QRA.DeepCopy = AF.Copy
 QRA.RegisterComm = AF.RegisterComm
 QRA.SendCommMessage = AF.SendCommMessage_Group
+QRA.DelayedInvoke = AF.DelayedInvoke
 
 AF.RegisterAddon(QRA.name, "Q's Raid Assignments")
 AF.SetAddonAccentColor(QRA.name, "softlime")
