@@ -77,8 +77,8 @@ QRA.Triggers.Types = {
         name = "Aura Removed",
         abbreviation = "SAR",
     },
-    NPC_DEATH = {
-        event = "NPC_DEATH",
+    UNIT_DIED = {
+        event = "UNIT_DIED",
         name = "NPC Death",
         abbreviation = "NPCD",
     },
@@ -421,9 +421,9 @@ local function BuildTriggerIndex()
 
             local idKey
             if trigger.type == QRA.Triggers.Types.UNIT_HEALTH.event or
-                trigger.type == QRA.Triggers.Types.NPC_DEATH.event
+                trigger.type == QRA.Triggers.Types.UNIT_DIED.event
             then
-                -- For UNIT_HEALTH and NPC_DEATH, index by targetGuid (boss, boss1, or NPC ID)
+                -- For UNIT_HEALTH and UNIT_DIED, index by targetGuid (boss, boss1, or NPC ID)
                 idKey = trigger.targetGuid
             else
                 -- For other types, use spellId
@@ -449,7 +449,7 @@ local function RemoveFromIndex(trigger)
 
     local idKey
     if trigger.type == QRA.Triggers.Types.UNIT_HEALTH.event or
-        trigger.type == QRA.Triggers.Types.NPC_DEATH.event then
+        trigger.type == QRA.Triggers.Types.UNIT_DIED.event then
         idKey = trigger.targetGuid
     else
         idKey = trigger.spellId
@@ -511,7 +511,7 @@ function QRA.Triggers.Create(triggerType, config, isNew)
         trigger.spellName = config.spellName
     elseif triggerType == QRA.Triggers.Types.TIMER.event then
         trigger.time = config.time
-    elseif triggerType == QRA.Triggers.Types.NPC_DEATH.event then
+    elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
         trigger.targetGuid = config.targetGuid
         trigger.npcName = config.npcName or "Unknown NPC"
     elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
@@ -804,15 +804,49 @@ function QRA.Triggers.ProcessCombatLogEvent(...)
         spellId = select(12, ...)
     end
 
-    local triggersToCheck = nil
-    if subevent == QRA.Triggers.Types.NPC_DEATH.event then
+    local triggersToCheck = {}
+    if subevent == QRA.Triggers.Types.UNIT_DIED.event then
         local npcId = select(6, strsplit("-", destGUID))
-        triggersToCheck = eventBucket[tonumber(npcId)]
+
+        -- Check NPC ID triggers
+        local npcTriggers = eventBucket[tonumber(npcId)]
+        if npcTriggers then
+            for _, trigger in ipairs(npcTriggers) do
+                table.insert(triggersToCheck, trigger)
+            end
+        end
+
+        -- Check generic "boss" triggers
+        local bossTriggers = eventBucket["boss"]
+        if bossTriggers then
+            for _, trigger in ipairs(bossTriggers) do
+                table.insert(triggersToCheck, trigger)
+            end
+        end
+
+        -- Check specific unit ID triggers (boss1, boss2, etc.)
+        for i = 1, 8 do
+            local unitId = i == 1 and "boss" or "boss" .. i
+            if UnitExists(unitId) and UnitGUID(unitId) == destGUID then
+                local unitTriggers = eventBucket[unitId]
+                if unitTriggers then
+                    for _, trigger in ipairs(unitTriggers) do
+                        table.insert(triggersToCheck, trigger)
+                    end
+                end
+                break
+            end
+        end
     elseif spellId then
-        triggersToCheck = eventBucket[spellId]
+        local spellTriggers = eventBucket[spellId]
+        if spellTriggers then
+            for _, trigger in ipairs(spellTriggers) do
+                table.insert(triggersToCheck, trigger)
+            end
+        end
     end
 
-    if not triggersToCheck then return end
+    if #triggersToCheck == 0 then return end
 
     local eventData = {
         timestamp = timestamp,
@@ -840,7 +874,10 @@ function QRA.Triggers.ProcessCombatLogEvent(...)
                     shouldFire = true
                 end
             elseif subevent == "UNIT_DIED" then
-                shouldFire = true
+                -- For UNIT_DIED triggers, check if targetGuid matches destGUID
+                if not trigger.targetGuid or UnitGUID(trigger.targetGuid) == destGUID then
+                    shouldFire = true
+                end
             end
 
             if shouldFire then

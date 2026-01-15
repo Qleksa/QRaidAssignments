@@ -48,7 +48,6 @@ AF.SetAddonAccentColor(QRA.name, "softlime")
 ---@field bossName string
 ---@field counterFormula string
 ---@field time? number seconds after pull
----@field npcId? number
 ---@field npcName? string
 ---@field spellId? number
 ---@field spellName? string

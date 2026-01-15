@@ -59,7 +59,7 @@ QRA.Bosses = {
                     triggers = {
                         {
                             name = "Rampage",
-                            type = "NPC_DEATH",
+                            type = "UNIT_DIED",
                             targetGuid = "boss",
                             counterFormula = "<=6",
                         }

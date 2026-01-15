@@ -825,7 +825,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     end
     timerInput:SetEnabled(editable)
 
-    -- Target GUID input (shown for UNIT_HEALTH and NPC_DEATH triggers)
+    -- Target GUID input (shown for UNIT_HEALTH and UNIT_DIED triggers)
     local targetGuidInput = QRA.Widgets.CreateTargetGuidInput(form, QRA.L["Target Unit/NPC ID"], 200)
     AF.SetPoint(targetGuidInput, "TOPLEFT", typeDropdown, "BOTTOMLEFT", 0, -35)
     targetGuidInput:Hide()
@@ -874,7 +874,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             occSelector:Show()
         elseif triggerType == QRA.Triggers.Types.TIMER.event then
             timerInput:Show()
-        elseif triggerType == QRA.Triggers.Types.NPC_DEATH.event then
+        elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
             nameInput:Show()
             targetGuidInput:Show()
             occSelector:Show()
@@ -922,7 +922,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
         elseif triggerType == QRA.Triggers.Types.TIMER.event then
             config.time = tonumber(timerInput:GetText()) or 0
             config.counterFormula = "1"
-        elseif triggerType == QRA.Triggers.Types.NPC_DEATH.event then
+        elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
             config.targetGuid = strtrim(targetGuidInput:GetText())
         elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
             config.targetGuid = strtrim(targetGuidInput:GetText())

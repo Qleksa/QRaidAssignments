@@ -135,7 +135,7 @@ end
 local function FireToTriggerProcessor(eventData)
     if QRA.Triggers and QRA.Triggers.ProcessCombatLogEvent then
         QRA.Triggers.ProcessCombatLogEvent(unpack(eventData))
-        QRA.Debug("EventFirer: Fired event", eventData[2], "spell:", eventData[13])
+        QRA.Debug("EventFirer: Fired event", eventData[2], eventData[13] and "spell: " .. eventData[13])
     end
 end
 
@@ -303,8 +303,7 @@ function EventFirer.FireNPCDeath(npcId, unitId)
     local eventData = BuildCombatLogPayload(
         "UNIT_DIED",
         "", "",
-        destGUID, destName,
-        nil, nil
+        destGUID, destName
     )
 
     FireToTriggerProcessor(eventData)
@@ -397,7 +396,7 @@ end
 --------------------------------------------------
 
 --- Fire an event for a specific trigger
----@param trigger table The trigger object
+---@param trigger Trigger The trigger object
 ---@return boolean success
 function EventFirer.FireTrigger(trigger)
     if not trigger then return false end
@@ -410,8 +409,8 @@ function EventFirer.FireTrigger(trigger)
         return EventFirer.FireAuraApplied(trigger.spellId, nil, "boss1")
     elseif trigger.type == "SPELL_AURA_REMOVED" then
         return EventFirer.FireAuraRemoved(trigger.spellId, nil, "boss1")
-    elseif trigger.type == "NPC_DEATH" then
-        return EventFirer.FireNPCDeath(trigger.npcId, "boss1")
+    elseif trigger.type == "UNIT_DIED" then
+        return EventFirer.FireNPCDeath(nil, trigger.targetGuid)
     elseif trigger.type == "TIMER" then
         return EventFirer.FireTimerTrigger(trigger.id)
     elseif trigger.type == "UNIT_HEALTH" then

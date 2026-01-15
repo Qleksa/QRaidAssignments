@@ -19,7 +19,7 @@ QRA.Widgets.Colors = {
         SPELL_AURA_APPLIED = "lime",
         SPELL_AURA_REMOVED = "orange",
         TIMER = "skyblue",
-        NPC_DEATH = "red",
+        UNIT_DIED = "red",
         UNIT_HEALTH = "purple",
     },
 }
@@ -27,22 +27,21 @@ QRA.Widgets.Colors = {
 --------------------------------------------------
 -- Trigger Type Selector
 --------------------------------------------------
----@class QRA_TriggerTypeDropdown: AF_Dropdown
 
 --- Create a dropdown for selecting trigger types
 ---@param parent Frame Parent frame
 ---@param width number Dropdown width
 ---@param onSelect? function Callback when selection changes
----@return QRA_TriggerTypeDropdown dropdown
+---@return AF_Dropdown dropdown
 function QRA.Widgets.CreateTriggerTypeDropdown(parent, width, onSelect)
     local dropdown = AF.CreateDropdown(parent, width or 150)
     dropdown:SetLabel(QRA.L["Trigger Type"])
 
     local items = {}
-    for typeKey, typeName in pairs(QRA.Triggers.Types) do
+    for _, typeName in pairs(QRA.Triggers.Types) do
         table.insert(items, {
             text = typeName.name,
-            value = typeKey,
+            value = typeName.event,
         })
     end
 
