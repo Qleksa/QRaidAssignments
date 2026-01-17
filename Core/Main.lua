@@ -36,7 +36,7 @@ function QRA.UIParent:ADDON_LOADED(addon)
     if addon ~= QRA.name then return end
     self:UnregisterEvent("ADDON_LOADED")
 
-    QRA.Print("Loaded.")
+    QRA.Print("v" .. QRA.version .. " loaded. /qra to open.")
 end
 
 --------------------------------------------------

@@ -5,6 +5,7 @@
 ## Notes: Raid assignment management with customizable triggers and alerts
 ## Dependencies: AbstractFramework
 ## SavedVariables: QRA_DB
+## X-Curse-Project-ID: 1431092
 ## X-Wago-ID: L6J95RNv
 
 Init.lua

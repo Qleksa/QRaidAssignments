@@ -6,7 +6,7 @@ local AF = _G.AbstractFramework
 QRA = {}
 
 QRA.name = "QRaidAssignments"
-QRA.version = "0.1.0"
+QRA.version = "0.2.0"
 
 --------------------------------------------------
 -- Pre-initialize module tables
