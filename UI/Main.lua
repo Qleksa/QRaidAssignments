@@ -722,9 +722,17 @@ function QRA.UI.ShowAssignmentEditor(assignment)
         msgInput:SetCursorPosition(0)
     end
 
+    -- Target input (who to use the spell on)
+    local targetInput = AF.CreateEditBox(form, QRA.L["Target (optional)"], 200, 20)
+    AF.SetPoint(targetInput, "TOPLEFT", msgInput, "BOTTOMLEFT", 0, -10)
+    if assignment.targetPlayer then
+        targetInput:SetText(assignment.targetPlayer)
+        targetInput:SetCursorPosition(0)
+    end
+
     -- Countdown slider
     local countdownSlider = QRA.Widgets.CreateCountdownSlider(form, 200, 0, 30)
-    AF.SetPoint(countdownSlider, "TOPLEFT", msgInput, "BOTTOMLEFT", 0, -25)
+    AF.SetPoint(countdownSlider, "TOPLEFT", targetInput, "BOTTOMLEFT", 0, -25)
     countdownSlider:SetValue(assignment.countdownTime or 5)
 
     -- Alert type dropdown
@@ -738,7 +746,7 @@ function QRA.UI.ShowAssignmentEditor(assignment)
     local title = isNew and QRA.L["New Assignment"] or QRA.L["Edit Assignment"]
     local dialog = AF.GetDialog(mainFrame, AF.WrapTextInColor(title, "accent"), 220)
     AF.SetPoint(dialog, "CENTER", mainFrame, 0, 0)
-    dialog:SetContent(form, 280)
+    dialog:SetContent(form, 310)
     dialog:SetToCustom("Save", "Cancel", 60)
     -- dialog:EnableYes(EnableYesButton())
     dialog:SetOnConfirm(function()
@@ -747,6 +755,10 @@ function QRA.UI.ShowAssignmentEditor(assignment)
         if msgInput:GetText() ~= "" then
             message = msgInput:GetText()
         end
+        local targetPlayer = nil
+        if targetInput:GetText() ~= "" then
+            targetPlayer = targetInput:GetText()
+        end
 
         local newAssignment = QRA.Assignments.Create({
             triggerId = triggerDropdown:GetSelectedValue(),
@@ -754,6 +766,7 @@ function QRA.UI.ShowAssignmentEditor(assignment)
             spellId = spellData.spellId,
             spellName = spellData.spellName or nil,
             message = message,
+            targetPlayer = targetPlayer,
             countdownTime = countdownSlider:GetValue(),
             alertType = alertDropdown:GetSelectedValue(),
         })
@@ -767,6 +780,7 @@ function QRA.UI.ShowAssignmentEditor(assignment)
                 spellId = newAssignment.spellId,
                 spellName = newAssignment.spellName,
                 message = newAssignment.message,
+                targetPlayer = newAssignment.targetPlayer,
                 countdownTime = newAssignment.countdownTime,
                 alertType = newAssignment.alertType,
             })
