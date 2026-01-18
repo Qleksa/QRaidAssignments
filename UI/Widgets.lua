@@ -465,15 +465,18 @@ end
 -- Countdown Slider
 --------------------------------------------------
 
+---@class QRA_Slider : AF_Slider
+---@field SetCursorPosition fun(self: QRA_Slider, position: number)
+
 --- Create a countdown time slider
 ---@param parent Frame Parent frame
 ---@param width number Slider width
----@param minVal number Minimum value (default 0)
----@param maxVal number Maximum value (default 30)
+---@param minVal? number Minimum value (default 0)
+---@param maxVal? number Maximum value (default 30)
 ---@param onChange? function Callback when value changes
----@return Frame slider
+---@return QRA_Slider slider
 function QRA.Widgets.CreateCountdownSlider(parent, width, minVal, maxVal, onChange)
-    local slider = AF.CreateSlider(parent, QRA.L["Countdown (sec)"], width or 150, minVal or 0, maxVal or 30, 1)
+    local slider = AF.CreateSlider(parent, QRA.L["Countdown (sec)"], width, minVal or 0, maxVal or 30, 1)
     slider:SetValue(5)
     slider.eb:SetCursorPosition(0)
 
@@ -481,6 +484,10 @@ function QRA.Widgets.CreateCountdownSlider(parent, width, minVal, maxVal, onChan
         slider:SetAfterValueChanged(function(value)
             onChange(value)
         end)
+    end
+
+    function slider:SetCursorPosition(position)
+        slider.eb:SetCursorPosition(position)
     end
 
     return slider
@@ -494,7 +501,7 @@ end
 ---@param parent Frame Parent frame
 ---@param width number Dropdown width
 ---@param onSelect? function Callback when selection changes
----@return Frame dropdown
+---@return AF_Dropdown dropdown
 function QRA.Widgets.CreateAlertTypeDropdown(parent, width, onSelect)
     local dropdown = AF.CreateDropdown(parent, width or 150)
     dropdown:SetLabel(QRA.L["Alert Type"])
@@ -639,11 +646,15 @@ local function GetAllTriggersGroupedByBoss(onClick)
     return menuItems
 end
 
+---@class QRA_TriggerDropdown : AF_CascadingMenuButton
+---@field GetSelectedValue fun(self: QRA_TriggerDropdown): string|nil
+---@field SetSelectedValue fun(self: QRA_TriggerDropdown, triggerId: string|nil)
+
 --- Create a cascading menu to select a trigger
 ---@param parent Frame Parent frame
 ---@param width number Menu width
 ---@param onSelect? function Callback when selection changes
----@return Frame menu
+---@return QRA_TriggerDropdown menu
 function QRA.Widgets.CreateTriggerDropdown(parent, width, onSelect)
     local selectedTriggerId = nil
 

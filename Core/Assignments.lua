@@ -281,11 +281,13 @@ function QRA.Assignments.ExecuteAlert(assignment, eventData)
     local message = assignment.message
     if not message and assignment.spellName then
         message = string.format("Use %s", assignment.spellName)
-        if assignment.targetPlayer then
-            message = message .. " on " .. assignment.targetPlayer
-        end
     end
     message = message or "Assignment triggered!"
+
+    -- Append target if specified
+    if assignment.targetPlayer then
+        message = string.format("%s on %s", message, assignment.targetPlayer)
+    end
 
     -- Execute based on alert type
     QRA.Notifications.Notify(assignment.alertType, message, assignment.soundFile)

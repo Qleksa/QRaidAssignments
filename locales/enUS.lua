@@ -60,6 +60,7 @@ L["CD"] = "CD"
 L["Spell"] = "Spell"
 L["Spell ID"] = "Spell ID"
 L["Message (optional)"] = "Message (optional)"
+L["Target (optional)"] = "Target (optional)"
 L["Countdown (sec)"] = "Countdown (sec)"
 L["Alert Type"] = "Alert Type"
 
