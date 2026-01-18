@@ -213,7 +213,7 @@ local function CreateSpellCastingSection(parent)
     AF.SetPoint(label, "TOPLEFT", section, 0, 0)
 
     -- Spell input
-    local spellInput = QRA.Widgets.CreateSpellInput(section, QRA.L["Spell ID"], 150)
+    local spellInput = QRA.Widgets.CreateSpellInput(section, QRA.L["Spell ID"], 150, false)
     AF.SetPoint(spellInput, "TOPLEFT", label, "BOTTOMLEFT", 0, -5)
 
     -- Event type dropdown
@@ -283,7 +283,7 @@ local function CreateDebuffSection(parent)
     AF.SetPoint(label, "TOPLEFT", section, 0, 0)
 
     -- Debuff spell input
-    local debuffInput = QRA.Widgets.CreateSpellInput(section, QRA.L["Debuff Spell ID"], 150)
+    local debuffInput = QRA.Widgets.CreateSpellInput(section, QRA.L["Debuff Spell ID"], 150, false)
     AF.SetPoint(debuffInput, "TOPLEFT", label, "BOTTOMLEFT", 0, -5)
 
     -- Duration input

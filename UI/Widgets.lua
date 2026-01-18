@@ -93,7 +93,6 @@ end
 
 -- TODO: Refactor to create a editBox that when clicked opens the menu
 -- so we dont have two separate inputs for spell selection
-
 local function CreateSpellMenu(parent, width, onClick)
     local spellMenu = AF.CreateCascadingMenuButton(parent, width - 42)
     spellMenu:SetLabel(QRA.L["Select spell"])
@@ -103,6 +102,7 @@ local function CreateSpellMenu(parent, width, onClick)
 end
 
 ---@class QRA_SpellInput : Frame
+---@field spellMenu AF_CascadingMenuButton
 ---@field editBox AF_EditBox
 ---@field icon Texture
 ---@field SetSpell fun(self: QRA_SpellInput, spellId: number|nil, spellName: string|nil)
@@ -115,10 +115,12 @@ end
 ---@param parent Frame Parent frame
 ---@param label string|nil Label text
 ---@param width number Field width
+---@param showSpellMenu? boolean Whether to show spell menu button, default yes
 ---@param onConfirm? function Callback when spell is confirmed
 ---@return QRA_SpellInput frame
-function QRA.Widgets.CreateSpellInput(parent, label, width, onConfirm)
+function QRA.Widgets.CreateSpellInput(parent, label, width, showSpellMenu, onConfirm)
     local width = width or 200
+    local showSpellMenu = showSpellMenu ~= false
     local container = CreateFrame("Frame", nil, parent)
     AF.SetWidth(container, width)
     AF.SetHeight(container, 40)
@@ -179,10 +181,17 @@ function QRA.Widgets.CreateSpellInput(parent, label, width, onConfirm)
         end
     end)
     AF.SetPoint(spellMenu, "LEFT", icon, "RIGHT", 10, 11)
+    if showSpellMenu then
+        spellMenu:Show()
+    else
+        spellMenu:Hide()
+        AF.SetPoint(editBox, "LEFT", icon, "RIGHT", 10, 0)
+    end
 
     -- Public API
     container.editBox = editBox
     container.icon = icon
+    container.spellMenu = spellMenu
 
     function container:SetSpell(spellId, spellName)
         editBox:SetText(tostring(spellId or ""))

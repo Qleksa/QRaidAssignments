@@ -795,8 +795,8 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     end
     typeDropdown:SetEnabled(editable)
 
-    -- Name field (2nd field below trigger type)
-    local nameInput = AF.CreateEditBox(form, QRA.L["Name"], 200, 20, "text")
+    -- Name field
+    local nameInput = AF.CreateEditBox(form, QRA.L["Name"], 200, 20)
     AF.SetPoint(nameInput, "TOPLEFT", typeDropdown, "BOTTOMLEFT", 0, -10)
     nameInput:Hide()
     if trigger.name then
@@ -806,7 +806,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     nameInput:SetEnabled(editable)
 
     -- Spell input (shown for spell-related triggers)
-    local spellInput = QRA.Widgets.CreateSpellInput(form, QRA.L["Spell ID"], 200)
+    local spellInput = QRA.Widgets.CreateSpellInput(form, QRA.L["Spell ID"], 200, false)
     AF.SetPoint(spellInput, "TOPLEFT", nameInput, "BOTTOMLEFT", 0, -35)
     spellInput:Hide()
     if trigger.spellId then
