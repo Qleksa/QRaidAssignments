@@ -731,9 +731,12 @@ function QRA.UI.ShowAssignmentEditor(assignment)
     end
 
     -- Countdown slider
-    local countdownSlider = QRA.Widgets.CreateCountdownSlider(form, 200, 0, 30)
+    local countdownSlider = QRA.Widgets.CreateCountdownSlider(form, 200, 0, 10)
     AF.SetPoint(countdownSlider, "TOPLEFT", targetInput, "BOTTOMLEFT", 0, -25)
-    countdownSlider:SetValue(assignment.countdownTime or 5)
+    if assignment.countdownTime then
+        countdownSlider:SetValue(assignment.countdownTime)
+        countdownSlider:SetCursorPosition(0)
+    end
 
     -- Alert type dropdown
     local alertDropdown = QRA.Widgets.CreateAlertTypeDropdown(form, 200)

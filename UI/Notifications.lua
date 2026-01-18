@@ -23,16 +23,16 @@ local config = {
     chatChannel = "SAY",       -- Default chat channel
 
     countdownSounds = {
-        [10] = "Interface/AddOns/QRaidAssignmentsV1/Media/Sounds/10.ogg",
-        [9] = "Interface/AddOns/QRaidAssignmentsV1/Media/Sounds/9.ogg",
-        [8] = "Interface/AddOns/QRaidAssignmentsV1/Media/Sounds/8.ogg",
-        [7] = "Interface/AddOns/QRaidAssignmentsV1/Media/Sounds/7.ogg",
-        [6] = "Interface/AddOns/QRaidAssignmentsV1/Media/Sounds/6.ogg",
-        [5] = "Interface/AddOns/QRaidAssignmentsV1/Media/Sounds/5.ogg",
-        [4] = "Interface/AddOns/QRaidAssignmentsV1/Media/Sounds/4.ogg",
-        [3] = "Interface/AddOns/QRaidAssignmentsV1/Media/Sounds/3.ogg",
-        [2] = "Interface/AddOns/QRaidAssignmentsV1/Media/Sounds/2.ogg",
-        [1] = "Interface/AddOns/QRaidAssignmentsV1/Media/Sounds/1.ogg",
+        [10] = "Interface/AddOns/QRaidAssignments/Media/Sounds/10.ogg",
+        [9] = "Interface/AddOns/QRaidAssignments/Media/Sounds/9.ogg",
+        [8] = "Interface/AddOns/QRaidAssignments/Media/Sounds/8.ogg",
+        [7] = "Interface/AddOns/QRaidAssignments/Media/Sounds/7.ogg",
+        [6] = "Interface/AddOns/QRaidAssignments/Media/Sounds/6.ogg",
+        [5] = "Interface/AddOns/QRaidAssignments/Media/Sounds/5.ogg",
+        [4] = "Interface/AddOns/QRaidAssignments/Media/Sounds/4.ogg",
+        [3] = "Interface/AddOns/QRaidAssignments/Media/Sounds/3.ogg",
+        [2] = "Interface/AddOns/QRaidAssignments/Media/Sounds/2.ogg",
+        [1] = "Interface/AddOns/QRaidAssignments/Media/Sounds/1.ogg",
     },
 }
 
@@ -203,7 +203,7 @@ function QRA.Notifications.ShowOnScreen(message, duration, color)
 end
 
 --- Show a countdown start notification
----@param assignment table The assignment starting countdown
+---@param assignment Assignment The assignment starting countdown
 ---@param seconds number Seconds remaining
 function QRA.Notifications.ShowCountdown(assignment, seconds)
     if not config.screenEnabled then return end
@@ -212,7 +212,14 @@ function QRA.Notifications.ShowCountdown(assignment, seconds)
         CreateScreenMessageFrame()
     end
 
-    local message = assignment.message or assignment.spellName or QRA.L["Assignment"]
+    local message = assignment.message
+    if not message and assignment.spellName then
+        message = string.format("Use %s", assignment.spellName)
+    end
+    message = message or "Assignment triggered!"
+    if assignment.targetPlayer then
+        message = string.format("%s on %s", message, assignment.targetPlayer)
+    end
     screenMessageFrame.text:SetText(message)
     screenMessageFrame.countdown:SetText(string.format(QRA.L["in %d seconds"], seconds))
 

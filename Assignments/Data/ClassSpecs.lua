@@ -288,5 +288,3 @@ function QRA.ClassSpecs.GetClassColor(classFile)
     end
     return 1, 1, 1
 end
-
--- QRA.Debug("ClassSpecs: Module loaded")

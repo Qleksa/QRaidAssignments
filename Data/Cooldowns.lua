@@ -34,6 +34,7 @@ QRA.Cooldowns = {
             class = "Paladin",
             spells = {
                 { name = "Devotion Aura",             id = 31821, icon = 135872 },
+                { name = "Hand of Sacrifice",         id = 6940,  icon = 135966 },
                 { name = "Divine Protection",         id = 498,   icon = 524353 },
                 { name = "Divine Shield",             id = 642,   icon = 524354 },
                 { name = "Guardian of Ancient Kings", id = 86659, icon = 135919 },
