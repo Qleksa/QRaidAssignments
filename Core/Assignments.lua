@@ -286,7 +286,7 @@ function QRA.Assignments.ExecuteAlert(assignment, eventData)
 
     -- Append target if specified
     if assignment.targetPlayer then
-        message = message .. " on " .. assignment.targetPlayer
+        message = string.format("%s on %s", message, assignment.targetPlayer)
     end
 
     -- Execute based on alert type
