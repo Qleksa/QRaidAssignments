@@ -569,8 +569,9 @@ end
 --------------------------------------------------
 
 -- Helper function to format trigger display text with boss name
+---@param trigger Trigger
 local function FormatTriggerText(trigger)
-    local details = trigger.spellName or trigger.npcName or (trigger.time and string.format("%ds", trigger.time)) or "-"
+    local details = trigger.spellName or trigger.targetGuid or (trigger.time and string.format("%ds", trigger.time)) or "-"
     local typeName = QRA.Triggers.Types[trigger.type].name or trigger.type
 
     -- Add boss name prefix if available
@@ -622,7 +623,7 @@ local function GetAllTriggersGroupedByBoss(onClick)
 
                 -- Add triggers for this boss
                 for _, trigger in ipairs(triggersForBoss) do
-                    local details = trigger.spellName or trigger.npcName or (trigger.time and string.format("%ds", trigger.time)) or "-"
+                    local details = trigger.spellName or trigger.targetGuid or (trigger.time and string.format("%ds", trigger.time)) or "-"
                     local typeName = QRA.Triggers.Types[trigger.type].name or trigger.type
                     table.insert(bossItem.children, {
                         text = string.format("%s (%s)", details, typeName),
@@ -786,7 +787,7 @@ function QRA.Widgets.CreateAssignmentRow(parent, assignment, onEdit, onDelete)
                 hpDisplay = hpDisplay:gsub("(%d+)", "%1%%")
                 triggerText = string.format("%s @ %s", trigger.targetGuid or "?", hpDisplay)
             else
-                triggerText = trigger.spellName or trigger.npcName or (trigger.time and string.format("%ds", trigger.time)) or QRA.Triggers.Types[trigger.type].name or "-"
+                triggerText = trigger.spellName or trigger.targetGuid or (trigger.time and string.format("%ds", trigger.time)) or QRA.Triggers.Types[trigger.type].name or "-"
             end
         end
     end
@@ -896,7 +897,7 @@ function QRA.Widgets.CreateTriggerRow(parent, trigger, onEdit, onDelete)
             details = timeDisplay
         end
     else
-        details = trigger.spellName or trigger.npcName or (trigger.time and string.format("%ds", trigger.time)) or "-"
+        details = trigger.spellName or trigger.targetGuid or (trigger.time and string.format("%ds", trigger.time)) or "-"
     end
 
     local detailsFS = AF.CreateFontString(row, details, "white")

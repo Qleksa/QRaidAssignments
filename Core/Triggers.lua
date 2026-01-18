@@ -331,7 +331,7 @@ function QRA.Triggers.OnUnitHealth(unitId)
                     }
 
                     QRA.Debug("Triggers: Fired UNIT_HEALTH", trigger.id, "threshold", crossedThreshold, "%")
-                    
+
                     -- Check if we should delay the activation
                     if ShouldDelayActivation(trigger) then
                         QRA.Debug("Triggers: Delaying UNIT_HEALTH activation by", trigger.activateIn, "seconds")
@@ -426,7 +426,7 @@ function QRA.Triggers.ProcessFakeUnitHealth(unitId, unitGuid, currentPercent, pr
                     }
 
                     QRA.Debug("Triggers: Fired UNIT_HEALTH (fake)", trigger.id, "threshold", crossedThreshold, "%")
-                    
+
                     -- Check if we should delay the activation
                     if ShouldDelayActivation(trigger) then
                         QRA.Debug("Triggers: Delaying UNIT_HEALTH (fake) activation by", trigger.activateIn, "seconds")
@@ -549,7 +549,6 @@ function QRA.Triggers.Create(triggerType, config, isNew)
         trigger.repeatCount = config.repeatCount
     elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
         trigger.targetGuid = config.targetGuid
-        trigger.npcName = config.npcName or "Unknown NPC"
         trigger.activateIn = config.activateIn
     elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
         trigger.targetGuid = config.targetGuid -- "boss", "boss1", or numeric NPC ID
@@ -770,7 +769,7 @@ local function StartTimerTriggers()
                 -- Store handles in a table so we can cancel both initial and ticker
                 timerHandles[id] = { initial = nil, ticker = nil }
                 local handleEntry = timerHandles[id]
-                
+
                 handleEntry.initial = C_Timer.NewTimer(initialTime, function()
                     if not encounterActive then return end
                     QRA.Triggers.Fire(trigger)
@@ -834,7 +833,7 @@ function QRA.Triggers.Fire(trigger, eventData)
     -- Check if this counter matches the trigger's formula
     if QRA.CounterFormula.Matches(trigger.counterFormula, currentCounter) then
         QRA.Debug("Triggers: Fired", trigger.id, "counter", currentCounter)
-        
+
         -- Check if we should delay the activation
         if ShouldDelayActivation(trigger) then
             QRA.Debug("Triggers: Delaying activation by", trigger.activateIn, "seconds")

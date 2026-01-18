@@ -85,7 +85,7 @@ local function CreateTestTriggerRow(parent, trigger, onFire)
     elseif trigger.time then
         detailText = trigger.time .. "s"
     elseif trigger.targetGuid then
-        detailText = "NPC: " .. (trigger.npcName or trigger.targetGuid)
+        detailText = "NPC: " .. trigger.targetGuid
     elseif trigger.hpThresholds then
         detailText = "HP: " .. trigger.hpThresholds .. "%"
     else
