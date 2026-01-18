@@ -94,7 +94,7 @@ end
 -- TODO: Refactor to create a editBox that when clicked opens the menu
 -- so we dont have two separate inputs for spell selection
 local function CreateSpellMenu(parent, width, onClick)
-    local spellMenu = AF.CreateCascadingMenuButton(parent, width - 42)
+    local spellMenu = AF.CreateCascadingMenuButton(parent, width - 46)
     spellMenu:SetLabel(QRA.L["Select spell"])
     spellMenu:SetItems(GetAllSpells(onClick))
 
@@ -139,7 +139,7 @@ function QRA.Widgets.CreateSpellInput(parent, label, width, showSpellMenu, onCon
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
     -- Edit box for spell ID or name
-    local editBox = AF.CreateEditBox(container, label or QRA.L["Spell ID"], width - 42, 20)
+    local editBox = AF.CreateEditBox(container, label or QRA.L["Spell ID"], width - 46, 20)
     AF.SetPoint(editBox, "LEFT", icon, "RIGHT", 10, -8)
 
     -- Update icon when valid spell entered
@@ -825,7 +825,7 @@ end
 
 --- Create a compact trigger row for lists
 ---@param parent Frame Parent frame
----@param trigger table The trigger data
+---@param trigger Trigger The trigger data
 ---@param onEdit function Callback when row is clicked to edit
 ---@param onDelete function Callback for delete button
 ---@return Frame row

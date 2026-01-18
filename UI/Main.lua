@@ -679,20 +679,58 @@ function QRA.UI.RefreshAll()
 end
 
 --------------------------------------------------
--- Editor Dialogs
+-- Editor Windows
 --------------------------------------------------
 
---- Show the assignment editor dialog
+---@class AF_HeaderedFrame
+local assignmentEditorFrame = nil
+---@class AF_HeaderedFrame
+local triggerEditorFrame = nil
+--- Show the assignment editor window
 ---@param assignment Assignment|nil Existing assignment to edit, or nil for new
 function QRA.UI.ShowAssignmentEditor(assignment)
     local isNew = assignment == nil
     assignment = assignment or {}
 
-    local form = CreateFrame("Frame", nil, mainFrame)
+    -- Create or reuse the editor frame
+    if not assignmentEditorFrame then
+        assignmentEditorFrame = AF.CreateHeaderedFrame(
+            QRA.UIParent,
+            "QRA_AssignmentEditor",
+            QRA.L["Assignment Editor"],
+            220,
+            370
+        )
+        AF.SetPoint(assignmentEditorFrame, "CENTER", mainFrame, 0, 0)
+        assignmentEditorFrame:SetFrameStrata("DIALOG")
+        assignmentEditorFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 10)
+        assignmentEditorFrame:EnableMouse(true)
+        assignmentEditorFrame:SetMovable(true)
+        assignmentEditorFrame:RegisterForDrag("LeftButton")
+        assignmentEditorFrame:SetScript("OnDragStart", assignmentEditorFrame.StartMoving)
+        assignmentEditorFrame:SetScript("OnDragStop", assignmentEditorFrame.StopMovingOrSizing)
+        assignmentEditorFrame:SetClampedToScreen(true)
+    end
+
+    -- Update title based on new/edit
+    local title = isNew and QRA.L["New Assignment"] or QRA.L["Edit Assignment"]
+    assignmentEditorFrame:SetTitle(AF.WrapTextInColor(title, "accent"))
+
+    -- Clear previous content
+    if assignmentEditorFrame.content then
+        assignmentEditorFrame.content:Hide()
+        assignmentEditorFrame.content:SetParent(nil)
+    end
+
+    -- Create form container
+    local form = CreateFrame("Frame", nil, assignmentEditorFrame)
+    AF.SetPoint(form, "TOPLEFT", assignmentEditorFrame, 10, -35)
+    AF.SetPoint(form, "BOTTOMRIGHT", assignmentEditorFrame, -10, 50)
+    assignmentEditorFrame.content = form
 
     -- Trigger dropdown (link to a trigger)
     local triggerDropdown = QRA.Widgets.CreateTriggerDropdown(form, 200)
-    AF.SetPoint(triggerDropdown, "TOPLEFT", 0, -15)
+    AF.SetPoint(triggerDropdown, "TOPLEFT", 0, 10)
     if assignment.triggerId then
         triggerDropdown:SetSelectedValue(assignment.triggerId)
     end
@@ -745,14 +783,10 @@ function QRA.UI.ShowAssignmentEditor(assignment)
         alertDropdown:SetSelectedValue(assignment.alertType)
     end
 
-    -- Show dialog using AF.GetDialog pattern
-    local title = isNew and QRA.L["New Assignment"] or QRA.L["Edit Assignment"]
-    local dialog = AF.GetDialog(mainFrame, AF.WrapTextInColor(title, "accent"), 220)
-    AF.SetPoint(dialog, "CENTER", mainFrame, 0, 0)
-    dialog:SetContent(form, 310)
-    dialog:SetToCustom("Save", "Cancel", 60)
-    -- dialog:EnableYes(EnableYesButton())
-    dialog:SetOnConfirm(function()
+    -- Save button
+    local saveBtn = AF.CreateButton(assignmentEditorFrame, QRA.L["Save"], "softlime", 80, 26)
+    AF.SetPoint(saveBtn, "BOTTOMRIGHT", assignmentEditorFrame, -10, 10)
+    saveBtn:SetOnClick(function()
         local spellData = spellInput:GetSpell()
         local message = nil
         if msgInput:GetText() ~= "" then
@@ -790,10 +824,27 @@ function QRA.UI.ShowAssignmentEditor(assignment)
         end
 
         QRA.UI.RefreshAll()
+        assignmentEditorFrame:Hide()
     end)
+
+    -- Cancel button
+    local cancelBtn = AF.CreateButton(assignmentEditorFrame, QRA.L["Cancel"], "gray", 80, 26)
+    AF.SetPoint(cancelBtn, "RIGHT", saveBtn, "LEFT", -10, 0)
+    cancelBtn:SetOnClick(function()
+        assignmentEditorFrame:Hide()
+    end)
+
+    -- ESC key handler
+    assignmentEditorFrame:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            self:Hide()
+        end
+    end)
+
+    assignmentEditorFrame:Show()
 end
 
---- Show the trigger editor dialog
+--- Show the trigger editor window
 ---@param trigger Trigger|nil Existing trigger to edit, or nil for new
 ---@param bossInput string|nil Boss name to associate the trigger with
 function QRA.UI.ShowTriggerEditor(trigger, bossInput)
@@ -802,11 +853,45 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     local editable = not isNew and trigger.default ~= true or isNew
     trigger = trigger or {}
 
-    local form = CreateFrame("Frame", 'QRA_TriggerEditor', mainFrame)
+    -- Create or reuse the editor frame
+    if not triggerEditorFrame then
+        triggerEditorFrame = AF.CreateHeaderedFrame(
+            QRA.UIParent,
+            "QRA_TriggerEditor",
+            QRA.L["Trigger Editor"],
+            220,
+            250
+        )
+        AF.SetPoint(triggerEditorFrame, "CENTER", mainFrame, 0, 0)
+        triggerEditorFrame:SetFrameStrata("DIALOG")
+        triggerEditorFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 10)
+        triggerEditorFrame:EnableMouse(true)
+        triggerEditorFrame:SetMovable(true)
+        triggerEditorFrame:RegisterForDrag("LeftButton")
+        triggerEditorFrame:SetScript("OnDragStart", triggerEditorFrame.StartMoving)
+        triggerEditorFrame:SetScript("OnDragStop", triggerEditorFrame.StopMovingOrSizing)
+        triggerEditorFrame:SetClampedToScreen(true)
+    end
+
+    -- Update title based on new/edit
+    local title = isNew and QRA.L["New Trigger"] or QRA.L["Edit Trigger"]
+    triggerEditorFrame:SetTitle(AF.WrapTextInColor(title, "accent"))
+
+    -- Clear previous content
+    if triggerEditorFrame.content then
+        triggerEditorFrame.content:Hide()
+        triggerEditorFrame.content:SetParent(nil)
+    end
+
+    -- Create form container
+    local form = CreateFrame("Frame", nil, triggerEditorFrame)
+    AF.SetPoint(form, "TOPLEFT", triggerEditorFrame, 10, -35)
+    AF.SetPoint(form, "BOTTOMRIGHT", triggerEditorFrame, -10, 50)
+    triggerEditorFrame.content = form
 
     -- Trigger type dropdown
     local typeDropdown = QRA.Widgets.CreateTriggerTypeDropdown(form, 200)
-    AF.SetPoint(typeDropdown, "TOPLEFT", 0, -20)
+    AF.SetPoint(typeDropdown, "TOPLEFT", 0, 10)
     if trigger.type then
         typeDropdown:SetSelectedValue(trigger.type)
     end
@@ -883,7 +968,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     hpThresholdsInput:SetEnabled(editable)
 
     -- Counter formula input
-    local occSelector = QRA.Widgets.CreateCounterInput(form, QRA.L["Counter"], 194)
+    local occSelector = QRA.Widgets.CreateCounterInput(form, QRA.L["Counter"], 200)
     AF.SetPoint(occSelector, "TOPLEFT", spellInput, "BOTTOMLEFT", 0, -5)
     QRA.Debug("Setting counter formula to:", trigger.counterFormula, "Type:", type(trigger.counterFormula))
     if trigger.counterFormula then
@@ -893,7 +978,7 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     occSelector:SetEnabled(editable)
 
     -- Activate In input (delay trigger activation)
-    local activateInInput = QRA.Widgets.CreateActivateInInput(form, QRA.L["Activate In (seconds)"], 194)
+    local activateInInput = QRA.Widgets.CreateActivateInInput(form, QRA.L["Activate In (seconds)"], 200)
     AF.SetPoint(activateInInput, "TOPLEFT", occSelector, "BOTTOMLEFT", 0, -5)
     if trigger.activateIn then
         activateInInput:SetValue(trigger.activateIn)
@@ -949,14 +1034,11 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     end)
     UpdateInputVisibility()
 
-    -- Show dialog using AF.GetDialog pattern
-    local title = isNew and QRA.L["New Trigger"] or QRA.L["Edit Trigger"]
-    local dialog = AF.GetDialog(mainFrame, AF.WrapTextInColor(title, "accent"), 220)
-    dialog:EnableYes(editable)
-    AF.SetPoint(dialog, "CENTER", mainFrame, 0, 0)
-    dialog:SetContent(form, 250)
-    dialog:SetToCustom("Save", "Cancel", 60)
-    dialog:SetOnConfirm(function()
+    -- Save button
+    local saveBtn = AF.CreateButton(triggerEditorFrame, QRA.L["Save"], "softlime", 80, 26)
+    AF.SetPoint(saveBtn, "BOTTOMRIGHT", triggerEditorFrame, -10, 10)
+    saveBtn:SetEnabled(editable)
+    saveBtn:SetOnClick(function()
         QRA.Debug("Saving trigger from editor for:", trigger, bossInput)
         local triggerType = typeDropdown:GetSelectedValue()
         QRA.Debug("Selected trigger type:", triggerType)
@@ -1019,7 +1101,6 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             return
         end
 
-
         local newTrigger = QRA.Triggers.Create(triggerType, config, isNew)
 
         if isNew then
@@ -1030,7 +1111,24 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
         end
 
         QRA.UI.RefreshAll()
+        triggerEditorFrame:Hide()
     end)
+
+    -- Cancel button
+    local cancelBtn = AF.CreateButton(triggerEditorFrame, QRA.L["Cancel"], "gray", 80, 26)
+    AF.SetPoint(cancelBtn, "RIGHT", saveBtn, "LEFT", -10, 0)
+    cancelBtn:SetOnClick(function()
+        triggerEditorFrame:Hide()
+    end)
+
+    -- ESC key handler
+    triggerEditorFrame:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            self:Hide()
+        end
+    end)
+
+    triggerEditorFrame:Show()
 end
 
 --- Show template name input dialog
