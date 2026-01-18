@@ -93,7 +93,7 @@ local function CreateEventRow(parent, event, onReplay)
     detailFS:SetWordWrap(false)
 
     -- Replay button
-    local replayBtn = AF.CreateButton(row, ">", "accent", 30, 20)
+    local replayBtn = AF.CreateButton(row, ">", "softlime", 30, 20)
     AF.SetPoint(replayBtn, "RIGHT", row, -5, 0)
     replayBtn:SetOnClick(function()
         if onReplay then

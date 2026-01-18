@@ -240,7 +240,7 @@ local function CreateSpellCastingSection(parent)
     durationInput:SetText("0")
 
     -- Cast button
-    local castBtn = AF.CreateButton(section, QRA.L["Cast"], "accent", 80, 28)
+    local castBtn = AF.CreateButton(section, QRA.L["Cast"], "softlime", 80, 28)
     AF.SetPoint(castBtn, "LEFT", durationInput, "RIGHT", 15, 0)
     castBtn:SetOnClick(function()
         local spellData = spellInput:GetSpell()

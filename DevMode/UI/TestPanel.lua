@@ -99,7 +99,7 @@ local function CreateTestTriggerRow(parent, trigger, onFire)
     detailFS:SetWordWrap(false)
 
     -- Fire button
-    local fireBtn = AF.CreateButton(row, QRA.L["Fire"], "accent", 50, 22)
+    local fireBtn = AF.CreateButton(row, QRA.L["Fire"], "softlime", 50, 22)
     AF.SetPoint(fireBtn, "RIGHT", row, -5, 0)
     fireBtn:SetOnClick(function()
         if onFire then
