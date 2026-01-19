@@ -10,6 +10,8 @@
 
 Init.lua
 
+Changelog.lua
+
 Util/Debug.lua
 Util/CounterFormula.lua
 Util/Table.lua
