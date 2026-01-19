@@ -1,6 +1,7 @@
 --[[
     QRaidAssignments - Main UI
     Primary user interface for managing triggers and assignments
+    Hierarchical tree view: Instance → Boss → Trigger → Assignments
 ]]
 
 ---@class QRA
@@ -12,484 +13,969 @@ local AF = _G.AbstractFramework
 --------------------------------------------------
 -- Constants
 --------------------------------------------------
-local UI_WIDTH = 700
-local UI_HEIGHT = 500
-local TAB_HEIGHT = 28
-local LIST_ROW_HEIGHT = 28
+local UI_WIDTH = 750
+local UI_HEIGHT = 550
+local TREE_ROW_HEIGHT = 28
+local ASSIGNMENT_ROW_HEIGHT = 24
+local INDENT_WIDTH = 20
 
 --------------------------------------------------
 -- State
 --------------------------------------------------
 ---@class AF_HeaderedFrame
 local mainFrame = nil
-local currentTab = "triggers"  -- "triggers", "assignments", "settings"
-local selectedBoss = nil  -- Filter triggers by boss
-local selectedEncounterId = nil  -- Encounter ID for selected boss
+local treeContent = nil
+local selectedBoss = nil
+local selectedEncounterId = nil
 
---------------------------------------------------
--- Tab System
---------------------------------------------------
-
-local tabs = {
-    { id = "triggers", label = QRA.L["Triggers"] },
-    { id = "assignments", label = QRA.L["Assignments"] },
-    { id = "settings", label = QRA.L["Settings"] },
+-- Collapse state (reset on each session)
+local collapsedState = {
+    instances = {},   -- [instanceName] = true/false
+    bosses = {},      -- [bossName] = true/false
+    triggers = {},    -- [triggerId] = true/false
 }
 
-local tabButtons = {}
-local tabContents = {}
+--------------------------------------------------
+-- Collapse State Management
+--------------------------------------------------
 
---- Switch to a different tab
----@param tabId string The tab to switch to
-local function SwitchTab(tabId)
-    currentTab = tabId
+local function IsInstanceCollapsed(instanceName)
+    return collapsedState.instances[instanceName] == true
+end
 
-    -- Update button states
-    for id, btn in pairs(tabButtons) do
-        if id == tabId then
-            btn:SetBackdropBorderColor(AF.GetColorRGB("accent"))
-            btn.text:SetTextColor(AF.GetColorRGB("accent"))
-        else
-            btn:SetBackdropBorderColor(AF.GetColorRGB("gray"))
-            btn.text:SetTextColor(AF.GetColorRGB("white"))
+local function IsBossCollapsed(bossName)
+    return collapsedState.bosses[bossName] == true
+end
+
+local function IsTriggerCollapsed(triggerId)
+    return collapsedState.triggers[triggerId] == true
+end
+
+local function SetInstanceCollapsed(instanceName, collapsed)
+    collapsedState.instances[instanceName] = collapsed
+end
+
+local function SetBossCollapsed(bossName, collapsed)
+    collapsedState.bosses[bossName] = collapsed
+end
+
+local function SetTriggerCollapsed(triggerId, collapsed)
+    collapsedState.triggers[triggerId] = collapsed
+end
+
+local function ExpandAll()
+    wipe(collapsedState.instances)
+    wipe(collapsedState.bosses)
+    wipe(collapsedState.triggers)
+end
+
+local function CollapseAll()
+    -- Collapse all instances
+    for instanceName, _ in pairs(QRA.Bosses.GetAllBosses()) do
+        collapsedState.instances[instanceName] = true
+    end
+    -- Collapse all bosses
+    for _, instanceData in pairs(QRA.Bosses.GetAllBosses()) do
+        for _, bossData in ipairs(instanceData.bosses) do
+            collapsedState.bosses[bossData.name] = true
         end
     end
-
-    -- Show/hide content
-    for id, content in pairs(tabContents) do
-        if id == tabId then
-            content:Show()
-        else
-            content:Hide()
-        end
+    -- Collapse all triggers
+    for _, trigger in ipairs(QRA.Triggers.GetAll()) do
+        collapsedState.triggers[trigger.id] = true
     end
 end
 
---- Create the tab bar
----@param parent Frame Parent frame
----@return Frame tabBar
-local function CreateTabBar(parent)
-    local tabBar = CreateFrame("Frame", nil, parent)
-    AF.SetHeight(tabBar, TAB_HEIGHT)
-    AF.SetPoint(tabBar, "TOPLEFT", parent, 10, -5)
-    AF.SetPoint(tabBar, "TOPRIGHT", parent, -10, -5)
+--------------------------------------------------
+-- Tree Row Widgets
+--------------------------------------------------
 
-    local tabWidth = (UI_WIDTH - 20 - (#tabs - 1) * 5) / #tabs
-    local prevTab = nil
+--- Create an instance header row
+---@param parent Frame
+---@param instanceName string
+---@param tier number|nil
+---@param onToggle function
+---@return Frame row
+local function CreateInstanceRow(parent, instanceName, tier, onToggle)
+    local row = CreateFrame("Frame", nil, parent)
+    AF.SetHeight(row, TREE_ROW_HEIGHT + 2)
+    AF.SetPoint(row, "LEFT")
+    AF.SetPoint(row, "RIGHT")
 
-    for i, tabInfo in ipairs(tabs) do
-        local btn = CreateFrame("Button", nil, tabBar, "BackdropTemplate")
-        AF.SetSize(btn, tabWidth, TAB_HEIGHT - 4)
-        btn:SetBackdrop({
-            bgFile = "Interface\\Buttons\\WHITE8X8",
-            edgeFile = "Interface\\Buttons\\WHITE8X8",
-            edgeSize = 1,
-        })
-        btn:SetBackdropColor(0.1, 0.1, 0.1, 0.8)
-        btn:SetBackdropBorderColor(AF.GetColorRGB("gray"))
+    local collapsed = IsInstanceCollapsed(instanceName)
 
-        if prevTab then
-            AF.SetPoint(btn, "LEFT", prevTab, "RIGHT", 5, 0)
-        else
-            AF.SetPoint(btn, "LEFT", tabBar, 0, 0)
-        end
+    -- Gradient background for instance header
+    local bg = row:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0.18, 0.18, 0.25, 0.95)
+    
+    -- Left accent bar
+    local accentBar = row:CreateTexture(nil, "ARTWORK")
+    accentBar:SetSize(3, TREE_ROW_HEIGHT - 4)
+    AF.SetPoint(accentBar, "LEFT", 2, 0)
+    accentBar:SetColorTexture(AF.GetColorRGB("softlime"))
 
-        local text = btn:CreateFontString(nil, "OVERLAY")
-        text:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE")
-        text:SetPoint("CENTER")
-        text:SetText(tabInfo.label)
-        btn.text = text
+    -- Collapse indicator
+    local collapseBtn = CreateFrame("Button", nil, row)
+    collapseBtn:SetSize(16, 16)
+    AF.SetPoint(collapseBtn, "LEFT", 10, 0)
+    local collapseIcon = collapseBtn:CreateFontString(nil, "ARTWORK")
+    collapseIcon:SetFont(STANDARD_TEXT_FONT, 10, "OUTLINE")
+    collapseIcon:SetPoint("CENTER")
+    collapseIcon:SetText(collapsed and ">" or "v")
+    collapseIcon:SetTextColor(AF.GetColorRGB("softlime"))
+    collapseBtn:SetScript("OnClick", function()
+        SetInstanceCollapsed(instanceName, not IsInstanceCollapsed(instanceName))
+        if onToggle then onToggle() end
+    end)
+    collapseBtn:SetScript("OnEnter", function() collapseIcon:SetTextColor(1, 1, 1) end)
+    collapseBtn:SetScript("OnLeave", function() collapseIcon:SetTextColor(AF.GetColorRGB("softlime")) end)
 
-        btn:SetScript("OnClick", function()
-            SwitchTab(tabInfo.id)
-        end)
-
-        btn:SetScript("OnEnter", function(self)
-            if currentTab ~= tabInfo.id then
-                self:SetBackdropBorderColor(AF.GetColorRGB("accent", 0.5))
-            end
-        end)
-
-        btn:SetScript("OnLeave", function(self)
-            if currentTab ~= tabInfo.id then
-                self:SetBackdropBorderColor(AF.GetColorRGB("gray"))
-            end
-        end)
-
-        tabButtons[tabInfo.id] = btn
-        prevTab = btn
+    -- Instance name with tier badge
+    local nameFS = AF.CreateFontString(row, instanceName, "softlime")
+    nameFS:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE")
+    AF.SetPoint(nameFS, "LEFT", collapseBtn, "RIGHT", 5, 0)
+    
+    -- Tier badge
+    if tier then
+        local tierBadge = AF.CreateFontString(row, string.format("T%d", tier), "white")
+        tierBadge:SetFont(STANDARD_TEXT_FONT, 9, "OUTLINE")
+        AF.SetPoint(tierBadge, "LEFT", nameFS, "RIGHT", 8, 0)
+        
+        -- Badge background
+        local tierBg = row:CreateTexture(nil, "ARTWORK", nil, -1)
+        tierBg:SetSize(tierBadge:GetStringWidth() + 8, 14)
+        tierBg:SetPoint("CENTER", tierBadge, 0, 0)
+        tierBg:SetColorTexture(0.3, 0.3, 0.4, 0.8)
     end
 
-    return tabBar
+    row.instanceName = instanceName
+
+    return row
 end
 
---------------------------------------------------
--- Assignments Tab
---------------------------------------------------
+--- Create a boss header row
+---@param parent Frame
+---@param bossData table
+---@param indentLevel number
+---@param onToggle function
+---@param onAddTrigger function
+---@return Frame row
+local function CreateBossRow(parent, bossData, indentLevel, onToggle, onAddTrigger)
+    local row = CreateFrame("Frame", nil, parent)
+    AF.SetHeight(row, TREE_ROW_HEIGHT)
+    AF.SetPoint(row, "LEFT")
+    AF.SetPoint(row, "RIGHT")
 
-local function CreateAssignmentsTab(parent)
-    local content = CreateFrame("Frame", nil, parent)
-    AF.SetPoint(content, "TOPLEFT", parent, 10, -TAB_HEIGHT - 15)
-    AF.SetPoint(content, "BOTTOMRIGHT", parent, -10, 10)
+    local collapsed = IsBossCollapsed(bossData.name)
+    local indent = indentLevel * INDENT_WIDTH
 
-    -- Header
-    local header = QRA.Widgets.CreateSectionHeader(content, QRA.L["Raid Assignments"])
-    AF.SetPoint(header, "TOPLEFT", content, 0, 0)
-    AF.SetPoint(header, "TOPRIGHT", content, 0, 0)
+    -- Subtle background for boss level
+    local bg = row:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0.10, 0.10, 0.13, 0.7)
 
-    -- Assignment list frame
-    local listFrame = AF.CreateBorderedFrame(content, nil, nil, 200, nil, "white")
-    AF.SetPoint(listFrame, "TOPLEFT", header, "BOTTOMLEFT", 0, -5)
-    AF.SetPoint(listFrame, "BOTTOMRIGHT", content, 0, 40)
-
-    -- List header row
-    local listHeader = CreateFrame("Frame", nil, listFrame)
-    AF.SetHeight(listHeader, 20)
-    AF.SetPoint(listHeader, "TOPLEFT", listFrame, 5, -5)
-    AF.SetPoint(listHeader, "TOPRIGHT", listFrame, -5, -5)
-
-    local hEnabled = AF.CreateFontString(listHeader, "", "gray")
-    AF.SetPoint(hEnabled, "LEFT", 5, 0)
-    AF.SetWidth(hEnabled, 25)
-
-    local hSpell = AF.CreateFontString(listHeader, QRA.L["Spell/Action"], "gray")
-    AF.SetPoint(hSpell, "LEFT", 33, 0)
-
-    local hAssignTo = AF.CreateFontString(listHeader, QRA.L["Assign To"] or "Assign To", "gray")
-    AF.SetPoint(hAssignTo, "LEFT", 185, 0)
-
-    local hTrigger = AF.CreateFontString(listHeader, QRA.L["Trigger"], "gray")
-    AF.SetPoint(hTrigger, "LEFT", 267, 0)
-
-    local hCountdown = AF.CreateFontString(listHeader, QRA.L["CD"], "gray")
-    AF.SetPoint(hCountdown, "RIGHT", -35, 0)
-    AF.SetWidth(hCountdown, 30)
-
-    -- Scroll list for assignments
-    local scrollList = AF.CreateScrollList(listFrame, nil, 5, 5, 8, LIST_ROW_HEIGHT, 3)
-    AF.SetPoint(scrollList, "TOPLEFT", listHeader, "BOTTOMLEFT", 0, -5)
-    AF.SetPoint(scrollList, "BOTTOMRIGHT", listFrame, -5, 8)
-    content.scrollList = scrollList
-
-    -- Refresh function
-    function content:RefreshAssignments()
-        local widgets = {}
-        local assignments = QRA.Assignments.GetAsList()
-
-        for i, assignment in ipairs(assignments) do
-            local row = QRA.Widgets.CreateAssignmentRow(
-                scrollList.slotFrame,
-                assignment,
-                function(a) QRA.UI.ShowAssignmentEditor(a) end,
-                function(a)
-                    QRA.Assignments.Remove(a.id)
-                    self:RefreshAssignments()
-                end
-            )
-
-            -- Zebra striping
-            if i % 2 == 0 then
-                local bg = row:CreateTexture(nil, "BACKGROUND")
-                bg:SetAllPoints()
-                bg:SetColorTexture(1, 1, 1, 0.03)
-            end
-
-            table.insert(widgets, row)
-        end
-
-        scrollList:SetWidgets(widgets)
-    end
-
-    -- Add Assignment button
-    local addBtn = AF.CreateButton(content, QRA.L["+ Add Assignment"], "softlime", 150, 26)
-    AF.SetPoint(addBtn, "TOPLEFT", listFrame, "BOTTOMLEFT", 0, -8)
-    addBtn:SetOnClick(function()
-        QRA.UI.ShowAssignmentEditor()
+    -- Collapse indicator
+    local collapseBtn = CreateFrame("Button", nil, row)
+    collapseBtn:SetSize(14, 14)
+    AF.SetPoint(collapseBtn, "LEFT", indent + 8, 0)
+    local collapseIcon = collapseBtn:CreateFontString(nil, "ARTWORK")
+    collapseIcon:SetFont(STANDARD_TEXT_FONT, 9, "OUTLINE")
+    collapseIcon:SetPoint("CENTER")
+    collapseIcon:SetText(collapsed and ">" or "v")
+    collapseIcon:SetTextColor(0.7, 0.7, 0.7)
+    collapseBtn:SetScript("OnClick", function()
+        SetBossCollapsed(bossData.name, not IsBossCollapsed(bossData.name))
+        if onToggle then onToggle() end
     end)
+    collapseBtn:SetScript("OnEnter", function() collapseIcon:SetTextColor(1, 1, 1) end)
+    collapseBtn:SetScript("OnLeave", function() collapseIcon:SetTextColor(0.7, 0.7, 0.7) end)
 
-    -- Quick test button
-    local testBtn = AF.CreateButton(content, QRA.L["Test Alert"], "static", 100, 26)
-    AF.SetPoint(testBtn, "LEFT", addBtn, "RIGHT", 10, 0)
-    testBtn:SetOnClick(function()
-        QRA.Notifications.TestCountdown()
-    end)
+    -- Boss name
+    local nameFS = AF.CreateFontString(row, bossData.name, "white")
+    nameFS:SetFont(STANDARD_TEXT_FONT, 11, "")
+    AF.SetPoint(nameFS, "LEFT", collapseBtn, "RIGHT", 5, 0)
 
-    -- Roster Manager button
-    local rosterBtn = AF.CreateButton(content, QRA.L["Roster"], "static", 80, 26)
-    AF.SetPoint(rosterBtn, "LEFT", testBtn, "RIGHT", 10, 0)
-    AF.SetTooltip(rosterBtn, "TOPLEFT", 0, 2, "Roster Manager", "Save current raid roster for planning", "assignments when not in raid")
-    rosterBtn:SetOnClick(function()
-        QRA.AssignTargetMenu.ShowRosterManager(parent)
-    end)
-
-    return content
-end
-
---------------------------------------------------
--- Triggers Tab
---------------------------------------------------
-
-local function CreateTriggersTab(parent)
-    local content = CreateFrame("Frame", nil, parent)
-    AF.SetPoint(content, "TOPLEFT", parent, 10, -TAB_HEIGHT - 15)
-    AF.SetPoint(content, "BOTTOMRIGHT", parent, -10, 10)
-
-    -- Top bar
-    local topBar = CreateFrame("Frame", nil, content)
-    AF.SetHeight(topBar, 24)
-    AF.SetPoint(topBar, "TOPLEFT", content, 0, 0)
-    AF.SetPoint(topBar, "TOPRIGHT", content, 0, 0)
-
-    -- Boss filter dropdown
-    local bossDropdown = QRA.Widgets.CreateBossMenu(topBar, 150, function(self, item)
-        selectedBoss = item.text
-        selectedEncounterId = item.encounterId
-        QRA.Debug("Selected boss:", selectedBoss, "encounterId:", selectedEncounterId)
-        content:SetButtonState()
-        content:RefreshTriggers()
-    end)
-    AF.SetPoint(bossDropdown, "LEFT", topBar, 0, -10)
-    content.bossDropdown = bossDropdown
-
-    -- Export button
-    local exportBtn = AF.CreateButton(content, QRA.L["Export"], "softlime", 80, 26)
-    AF.SetPoint(exportBtn, "LEFT", bossDropdown, "RIGHT", 10, 0)
-    exportBtn:SetOnClick(function()
-        local exportString = selectedEncounterId and QRA.Comm.ExportBoss(selectedEncounterId) or QRA.Comm.Export()
-        if exportString and exportString ~= "" then
-            QRA.UI.ShowExportFrame(exportString)
-        end
-    end)
-
-    -- Import button
-    local importBtn = AF.CreateButton(content, QRA.L["Import"], "softblue", 80, 26)
-    AF.SetPoint(importBtn, "LEFT", exportBtn, "RIGHT", 8, 0)
-    importBtn:SetOnClick(function()
-        QRA.UI.ShowImportFrame(function(input)
-            QRA.Comm.Import(input, false)
-        end)
-    end)
-
-    -- Test Mode button
-    local testModeBtn = AF.CreateButton(content, QRA.L["Test Mode"], "purple", 100, 26)
-    AF.SetPoint(testModeBtn, "TOPRIGHT", topBar, "RIGHT", 0, 5)
-    testModeBtn:SetOnClick(function()
-        if QRA.DevMode then
-            if not QRA.DevMode.IsActive() then
-                QRA.DevMode.Enable(selectedBoss, selectedEncounterId)
-            end
-            if QRA.DevMode.UI and QRA.DevMode.UI.ShowTestPanel then
-                -- Pass the selected boss to the test panel
-                if selectedBoss then
-                    QRA.DevMode.UI.SetSelectedBoss(selectedBoss, selectedEncounterId)
-                end
-                QRA.DevMode.UI.ShowTestPanel()
-            end
-        end
-    end)
-
-    -- Templates button
-    -- local templatesBtn = AF.CreateButton(topBar, QRA.L["Templates"], "static", 100, 24)
-    -- AF.SetPoint(templatesBtn, "RIGHT", topBar, 0, 0)
-    -- templatesBtn:SetOnClick(function()
-    --     QRA.UI.ShowTemplatesPopup()
-    -- end)
-
-    -- Trigger list frame
-    local listFrame = AF.CreateBorderedFrame(content, nil, nil, 200, nil, "gray")
-    AF.SetPoint(listFrame, "TOPLEFT", topBar, "BOTTOMLEFT", 0, -35)
-    AF.SetPoint(listFrame, "BOTTOMRIGHT", content, 0, 40)
-
-    -- List header row
-    local listHeader = CreateFrame("Frame", nil, listFrame)
-    AF.SetHeight(listHeader, 20)
-    AF.SetPoint(listHeader, "TOPLEFT", listFrame, 5, -5)
-    AF.SetPoint(listHeader, "TOPRIGHT", listFrame, -5, -5)
-
-    -- local hType = AF.CreateFontString(listHeader, QRA.L["Type"], "gray")
-    -- AF.SetPoint(hType, "LEFT", 30, 0)
-
-    local hDetails = AF.CreateFontString(listHeader, QRA.L["Details"], "gray")
-    AF.SetPoint(hDetails, "LEFT", 55, 0)
-
-    local hOcc = AF.CreateFontString(listHeader, QRA.L["#"], "gray")
-    AF.SetPoint(hOcc, "RIGHT", -30, 0)
-    AF.SetWidth(hOcc, 40)
-
-    -- Scroll list for triggers
-    local scrollList = AF.CreateScrollList(listFrame, nil, 5, 5, 8, LIST_ROW_HEIGHT, 3)
-    AF.SetPoint(scrollList, "TOPLEFT", listHeader, "BOTTOMLEFT", 0, -5)
-    AF.SetPoint(scrollList, "BOTTOMRIGHT", listFrame, -5, 8)
-    content.scrollList = scrollList
-
-    -- Refresh function
-    function content:RefreshTriggers()
-        local widgets = {}
-        local triggers = QRA.Triggers.GetBossTriggers(selectedBoss)
-        local i = 0
-
-        for _, trigger in pairs(triggers) do
-            i = i + 1
-            local row = QRA.Widgets.CreateTriggerRow(
-                scrollList.slotFrame,
-                trigger,
-                function(t) QRA.UI.ShowTriggerEditor(t, selectedBoss) end,
-                function(t)
-                    QRA.Debug("Deleting trigger", t.id)
-                    QRA.Triggers.Unregister(t.id)
-                    QRA.Triggers.DeleteTrigger(t.id)
-                    self:RefreshTriggers()
-                end
-            )
-
-            -- Zebra striping
-            if i % 2 == 0 then
-                local bg = row:CreateTexture(nil, "BACKGROUND")
-                bg:SetAllPoints()
-                bg:SetColorTexture(1, 1, 1, 0.03)
-            end
-
-            table.insert(widgets, row)
-        end
-
-        scrollList:SetWidgets(widgets)
-
-        -- Refresh boss dropdown items
-        if bossDropdown.RefreshBosses then
-            bossDropdown:RefreshBosses()
-        end
-    end
+    -- Trigger count badge
+    local triggers = QRA.Triggers.GetBossTriggers(bossData.name)
+    local countBadge = AF.CreateFontString(row, tostring(#triggers), "gray")
+    countBadge:SetFont(STANDARD_TEXT_FONT, 9, "")
+    AF.SetPoint(countBadge, "LEFT", nameFS, "RIGHT", 8, 0)
+    
+    -- Count badge background
+    local countBg = row:CreateTexture(nil, "ARTWORK", nil, -1)
+    countBg:SetSize(countBadge:GetStringWidth() + 10, 14)
+    countBg:SetPoint("CENTER", countBadge, 0, 0)
+    countBg:SetColorTexture(0.2, 0.2, 0.25, 0.8)
 
     -- Add Trigger button
-    local addBtn = AF.CreateButton(content, QRA.L["+ Add Trigger"], "softlime", 150, 26)
-    AF.SetPoint(addBtn, "TOPLEFT", listFrame, "BOTTOMLEFT", 0, -8)
-    addBtn:SetEnabled(selectedBoss ~= nil)
+    local addBtn = AF.CreateButton(row, "+", "lime", 20, 20)
+    AF.SetPoint(addBtn, "RIGHT", row, -5, 0)
+    AF.SetTooltip(addBtn, "ANCHOR_RIGHT", 0, 0, QRA.L["+ Add Trigger"])
     addBtn:SetOnClick(function()
-        QRA.UI.ShowTriggerEditor(nil, selectedBoss)
+        if onAddTrigger then onAddTrigger(bossData.name) end
     end)
 
-    -- Send to Raid button
-    local sendToRaidBtn = AF.CreateButton(content, QRA.L["Send to Raid"], "softblue", 120, 26)
-    AF.SetPoint(sendToRaidBtn, "LEFT", addBtn, "RIGHT", 10, 0)
-    sendToRaidBtn:SetOnClick(function()
-        local exportString = selectedEncounterId and QRA.Comm.ExportBoss(selectedEncounterId, true) or QRA.Comm.Export(true)
-        if exportString and exportString ~= "" then
-            QRA.Comm.SendToRaid(exportString)
-        end
-    end)
+    row.bossData = bossData
 
-    function content:SetButtonState()
-        if addBtn then addBtn:SetEnabled(selectedBoss ~= nil) end
-    end
-
-    return content
+    return row
 end
 
---------------------------------------------------
--- Templates Popup
---------------------------------------------------
+--- Create a trigger row with nested assignments
+---@param parent Frame
+---@param trigger Trigger
+---@param indentLevel number
+---@param onToggle function
+---@param onEdit function
+---@param onDelete function
+---@param onAddAssignment function
+---@return Frame row
+local function CreateTriggerRow(parent, trigger, indentLevel, onToggle, onEdit, onDelete, onAddAssignment)
+    local row = CreateFrame("Button", "QRA_TRIGGER_ROW_" .. trigger.id, parent)
+    AF.SetHeight(row, TREE_ROW_HEIGHT)
+    AF.SetPoint(row, "LEFT")
+    AF.SetPoint(row, "RIGHT")
+    row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
---- Show a popup dialog for managing templates
-function QRA.UI.ShowTemplatesPopup()
-    local form = CreateFrame("Frame", nil, mainFrame)
-    AF.SetWidth(form, 350)
-    AF.SetHeight(form, 280)
+    local collapsed = IsTriggerCollapsed(trigger.id)
+    local indent = indentLevel * INDENT_WIDTH
+    local hasAssignments = trigger.assignments and #trigger.assignments > 0
 
-    -- Template list scroll frame
-    local listFrame = AF.CreateBorderedFrame(form, nil, nil, 200, nil, "gray")
-    AF.SetPoint(listFrame, "TOPLEFT", form, 0, 0)
-    AF.SetPoint(listFrame, "TOPRIGHT", form, 0, 0)
-    AF.SetHeight(listFrame, 200)
-
-    local scrollList = AF.CreateScrollList(listFrame, nil, 5, 5, 8, 40, 3)
-    AF.SetPoint(scrollList, "TOPLEFT", listFrame, 5, -5)
-    AF.SetPoint(scrollList, "BOTTOMRIGHT", listFrame, -5, 8)
-
-    local function RefreshTemplates()
-        local widgets = {}
-        local templates = QRA.Templates.GetAsList()
-
-        for i, template in ipairs(templates) do
-            local row = CreateFrame("Frame", nil, scrollList.slotFrame)
-            AF.SetHeight(row, 36)
-            AF.SetPoint(row, "LEFT")
-            AF.SetPoint(row, "RIGHT")
-
-            -- Template name
-            local nameFS = AF.CreateFontString(row, template.name, "white")
-            AF.SetPoint(nameFS, "TOPLEFT", 10, -5)
-            AF.SetPoint(nameFS, "TOPRIGHT", row, -100, -5)
-            nameFS:SetJustifyH("LEFT")
-
-            -- Info (trigger/assignment count)
-            local infoText = string.format("%d %s, %d %s",
-                #template.triggers, QRA.L["triggers"],
-                #template.assignments, QRA.L["assignments"]
-            )
-            local infoFS = AF.CreateFontString(row, infoText, "gray")
-            AF.SetPoint(infoFS, "TOPLEFT", nameFS, "BOTTOMLEFT", 0, -2)
-
-            -- Apply button
-            local applyBtn = AF.CreateButton(row, QRA.L["Apply"], "accent", 50, 22)
-            AF.SetPoint(applyBtn, "RIGHT", row, -45, 0)
-            applyBtn:SetOnClick(function()
-                QRA.Templates.Apply(template.id, true)
-                QRA.UI.RefreshAll()
-                QRA.Print(QRA.L["Template applied:"], template.name)
-            end)
-
-            -- Delete icon
-            local delBtn = AF.CreateButton(row, "×", "red", 22, 22)
-            AF.SetPoint(delBtn, "RIGHT", row, -10, 0)
-            delBtn:SetOnClick(function()
-                QRA.Templates.Delete(template.id)
-                RefreshTemplates()
-            end)
-
-            -- Zebra striping
-            if i % 2 == 0 then
-                local bg = row:CreateTexture(nil, "BACKGROUND")
-                bg:SetAllPoints()
-                bg:SetColorTexture(1, 1, 1, 0.03)
-            end
-
-            table.insert(widgets, row)
+    -- Hover highlight
+    row:SetScript("OnEnter", function(self)
+        if not row.hoverBg then
+            row.hoverBg = row:CreateTexture(nil, "BACKGROUND")
+            row.hoverBg:SetAllPoints()
+            row.hoverBg:SetColorTexture(1, 1, 1, 0.05)
         end
+        row.hoverBg:Show()
+    end)
+    row:SetScript("OnLeave", function(self)
+        if row.hoverBg then row.hoverBg:Hide() end
+    end)
 
-        scrollList:SetWidgets(widgets)
-    end
+    -- Click handler
+    row:SetScript("OnClick", function(self, button)
+        if button == "LeftButton" then
+            if onEdit then onEdit(trigger) end
+        elseif button == "RightButton" then
+            QRA.UI.ShowTriggerContextMenu(row, trigger, onDelete, onAddAssignment, onToggle)
+        end
+    end)
 
-    RefreshTemplates()
-
-    -- Save Current as Template button
-    local saveBtn = AF.CreateButton(form, QRA.L["Save Current as Template"], "accent", 200, 26)
-    AF.SetPoint(saveBtn, "TOPLEFT", listFrame, "BOTTOMLEFT", 0, -8)
-    saveBtn:SetOnClick(function()
-        QRA.UI.ShowTemplateNameDialog(function(name)
-            local triggerIds = {}
-            for id, _ in pairs(QRA.Triggers.GetAll()) do
-                table.insert(triggerIds, id)
-            end
-            local template = QRA.Templates.CreateFromCurrent(name, triggerIds)
-            QRA.Templates.Save(template)
-            RefreshTemplates()
+    -- Collapse button (only if has assignments)
+    local collapseBtn
+    if hasAssignments then
+        collapseBtn = CreateFrame("Button", nil, row)
+        collapseBtn:SetSize(12, 12)
+        AF.SetPoint(collapseBtn, "LEFT", indent + 8, 0)
+        local collapseIcon = collapseBtn:CreateFontString(nil, "ARTWORK")
+        collapseIcon:SetFont(STANDARD_TEXT_FONT, 8, "OUTLINE")
+        collapseIcon:SetPoint("CENTER")
+        collapseIcon:SetText(collapsed and ">" or "v")
+        collapseIcon:SetTextColor(0.6, 0.6, 0.6)
+        collapseBtn:SetScript("OnClick", function()
+            SetTriggerCollapsed(trigger.id, not IsTriggerCollapsed(trigger.id))
+            if onToggle then onToggle() end
         end)
+        collapseBtn:SetScript("OnEnter", function() collapseIcon:SetTextColor(1, 1, 1) end)
+        collapseBtn:SetScript("OnLeave", function() collapseIcon:SetTextColor(0.6, 0.6, 0.6) end)
+    end
+
+    -- Enabled checkbox
+    local startOffset = hasAssignments and (indent + 22) or (indent + 12)
+    local enableCheck = AF.CreateCheckButton(row, nil, function(checked)
+        trigger.enabled = checked
+        QRA.Triggers.UpdateTrigger(trigger)
+    end)
+    AF.SetPoint(enableCheck, "LEFT", startOffset, 0)
+    enableCheck:SetChecked(trigger.enabled)
+    enableCheck:SetEnabled(not trigger.default)
+
+    -- Type indicator (colored circle with better visibility)
+    local typeColor = QRA.Widgets.Colors.triggerType[trigger.type] or "gray"
+    local typeIndicator = row:CreateTexture(nil, "ARTWORK")
+    typeIndicator:SetSize(10, 10)
+    AF.SetPoint(typeIndicator, "LEFT", startOffset + 25, 0)
+    typeIndicator:SetColorTexture(AF.GetColorRGB(typeColor))
+    
+    -- Type indicator border
+    local typeBorder = row:CreateTexture(nil, "ARTWORK", nil, 1)
+    typeBorder:SetSize(12, 12)
+    typeBorder:SetPoint("CENTER", typeIndicator, 0, 0)
+    typeBorder:SetColorTexture(0, 0, 0, 0.8)
+
+    -- Trigger details
+    local details
+    if trigger.name and trigger.name ~= "" then
+        details = trigger.name
+    elseif trigger.type == QRA.Triggers.Types.UNIT_HEALTH.event then
+        local hpDisplay = trigger.hpThresholds or ""
+        hpDisplay = hpDisplay:gsub("(%d+)", "%1%%")
+        details = string.format("%s @ %s", trigger.targetGuid or "unknown", hpDisplay)
+    elseif trigger.type == QRA.Triggers.Types.TIMER.event then
+        local timeDisplay = trigger.time and string.format("%ds", trigger.time) or "0s"
+        if trigger.repeatInterval and trigger.repeatInterval > 0 then
+            if trigger.repeatCount and trigger.repeatCount > 0 then
+                details = string.format("%s / %ds x%d", timeDisplay, trigger.repeatInterval, trigger.repeatCount)
+            else
+                details = string.format("%s / %ds", timeDisplay, trigger.repeatInterval)
+            end
+        else
+            details = timeDisplay
+        end
+    else
+        details = trigger.spellName or trigger.targetGuid or (trigger.time and string.format("%ds", trigger.time)) or "-"
+    end
+
+    local detailsFS = AF.CreateFontString(row, details, "white")
+    AF.SetPoint(detailsFS, "LEFT", startOffset + 42, 0)
+    -- AF.SetPoint(detailsFS, "RIGHT", row, -80, 0)
+    detailsFS:SetJustifyH("LEFT")
+    detailsFS:SetWordWrap(false)
+
+    -- Assignment count badge (show how many assignments)
+    local assignCount = trigger.assignments and #trigger.assignments or 0
+    if assignCount > 0 then
+        local assignBadge = AF.CreateFontString(row, tostring(assignCount), "skyblue")
+        assignBadge:SetFont(STANDARD_TEXT_FONT, 9, "")
+        AF.SetPoint(assignBadge, "RIGHT", detailsFS, 15, 0)
+
+        local assignBg = row:CreateTexture(nil, "ARTWORK", nil, -1)
+        assignBg:SetSize(assignBadge:GetStringWidth() + 8, 13)
+        assignBg:SetPoint("CENTER", assignBadge, 0, 0)
+        assignBg:SetColorTexture(0.15, 0.25, 0.35, 0.8)
+    end
+
+    -- Counter formula (not for TIMER or UNIT_HEALTH)
+    local occText = ""
+    if trigger.type ~= QRA.Triggers.Types.TIMER.event and trigger.type ~= QRA.Triggers.Types.UNIT_HEALTH.event then
+        occText = trigger.counterFormula or "*"
+    end
+    local occFS = AF.CreateFontString(row, occText, "gray")
+    occFS:SetFont(STANDARD_TEXT_FONT, 10, "")
+    AF.SetPoint(occFS, "RIGHT", row, -55, 0)
+    AF.SetWidth(occFS, 35)
+
+    -- Add Assignment button
+    local addAssignBtn = AF.CreateButton(row, "+", "skyblue", 20, 20)
+    AF.SetPoint(addAssignBtn, "RIGHT", row, -29, 0)
+    AF.SetTooltip(addAssignBtn, "ANCHOR_RIGHT", 0, 0, QRA.L["Add Assignment"])
+    addAssignBtn:SetOnClick(function()
+        if onAddAssignment then onAddAssignment(trigger.id) end
     end)
 
-    -- Show popup dialog
-    local dialog = AF.GetDialog(mainFrame, AF.WrapTextInColor(QRA.L["Manage Templates"], "accent"), 370)
-    AF.SetPoint(dialog, "CENTER", mainFrame, 0, 0)
-    dialog:SetContent(form, 250)
+    -- Delete button (only for non-default triggers)
+    if not trigger.default then
+        local delBtn = AF.CreateButton(row, "x", "red", 20, 20)
+        AF.SetPoint(delBtn, "RIGHT", row, -5, 0)
+        AF.SetTooltip(delBtn, "ANCHOR_RIGHT", 0, 0, QRA.L["Delete Trigger"])
+        delBtn:SetOnClick(function()
+            if onDelete then onDelete(trigger) end
+        end)
+    end
+
+    row.trigger = trigger
+
+    return row
+end
+
+--- Create an assignment row (nested under trigger)
+---@param parent Frame
+---@param assignment Assignment
+---@param triggerId string
+---@param indentLevel number
+---@param onEdit function
+---@param onDelete function
+---@return Frame row
+local function CreateAssignmentRow(parent, assignment, triggerId, indentLevel, onEdit, onDelete)
+    local row = CreateFrame("Button", nil, parent)
+    AF.SetHeight(row, ASSIGNMENT_ROW_HEIGHT)
+    AF.SetPoint(row, "LEFT")
+    AF.SetPoint(row, "RIGHT")
+    row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+
+    local indent = indentLevel * INDENT_WIDTH
+
+    -- Light background for assignment level
+    local bg = row:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0.08, 0.1, 0.12, 0.5)
+
+    -- Hover highlight
+    row:SetScript("OnEnter", function(self)
+        if not row.hoverBg then
+            row.hoverBg = row:CreateTexture(nil, "BACKGROUND")
+            row.hoverBg:SetAllPoints()
+            row.hoverBg:SetColorTexture(1, 1, 1, 0.08)
+        end
+        row.hoverBg:Show()
+    end)
+    row:SetScript("OnLeave", function(self)
+        if row.hoverBg then row.hoverBg:Hide() end
+    end)
+
+    -- Click handler
+    row:SetScript("OnClick", function(self, button)
+        if button == "LeftButton" then
+            if onEdit then onEdit(assignment, triggerId) end
+        elseif button == "RightButton" then
+            QRA.UI.ShowAssignmentContextMenu(row, assignment, triggerId, onDelete)
+        end
+    end)
+
+    -- Enabled checkbox
+    local enableCheck = AF.CreateCheckButton(row, nil, function(checked)
+        QRA.Assignments.Update(triggerId, assignment.id, { enabled = checked })
+    end)
+    AF.SetPoint(enableCheck, "LEFT", indent + 15, 0)
+    enableCheck:SetChecked(assignment.enabled)
+
+    -- Assignment indicator (small dash or bullet)
+    local bulletFS = AF.CreateFontString(row, "-", "gray")
+    AF.SetPoint(bulletFS, "LEFT", indent + 40, 0)
+
+    -- Spell icon (if applicable)
+    local iconOffset = indent + 55
+    if assignment.spellId then
+        local spellIcon = C_Spell.GetSpellTexture(assignment.spellId)
+        if spellIcon then
+            local icon = row:CreateTexture(nil, "ARTWORK")
+            icon:SetSize(18, 18)
+            AF.SetPoint(icon, "LEFT", iconOffset, 0)
+            icon:SetTexture(spellIcon)
+            icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            iconOffset = iconOffset + 22
+        end
+    end
+
+    -- Assignment description
+    local descText = (assignment.message and assignment.message ~= "" and assignment.message) or assignment.spellName or QRA.L["Unknown Assignment"]
+    local descFS = AF.CreateFontString(row, descText, "white")
+    descFS:SetFont(STANDARD_TEXT_FONT, 10, "")
+    AF.SetPoint(descFS, "LEFT", iconOffset, 0)
+    AF.SetWidth(descFS, 120)
+    descFS:SetJustifyH("LEFT")
+    descFS:SetWordWrap(false)
+
+    -- Assign target display
+    local assignTarget = assignment.assignTarget or "ALL"
+    local targetDisplayText = QRA.AssignTarget and QRA.AssignTarget.GetColoredDisplayText(assignTarget, false) or assignTarget
+    local targetFS = AF.CreateFontString(row, targetDisplayText, "softlime")
+    targetFS:SetFont(STANDARD_TEXT_FONT, 10, "")
+    AF.SetPoint(targetFS, "LEFT", descFS, "RIGHT", 5, 0)
+    AF.SetWidth(targetFS, 150)
+    targetFS:SetJustifyH("LEFT")
+    targetFS:SetWordWrap(false)
+
+    -- Countdown display
+    local countdownFS = AF.CreateFontString(row, string.format("%ds", assignment.countdownTime or 0), "skyblue")
+    countdownFS:SetFont(STANDARD_TEXT_FONT, 10, "")
+    AF.SetPoint(countdownFS, "RIGHT", row, -25, 0)
+    AF.SetWidth(countdownFS, 25)
+
+    -- Delete button
+    local delBtn = AF.CreateButton(row, "x", "red", 20, 20)
+    AF.SetPoint(delBtn, "RIGHT", row, -5, 0)
+    AF.SetTooltip(delBtn, "ANCHOR_RIGHT", 0, 0, QRA.L["Delete Assignment"])
+    delBtn:SetOnClick(function()
+        if onDelete then onDelete(assignment, triggerId) end
+    end)
+
+    row.assignment = assignment
+    row.triggerId = triggerId
+
+    return row
+end
+
+--- Create an orphaned assignment row
+---@param parent Frame
+---@param assignment OrphanedAssignment
+---@param onEdit function
+---@param onDelete function
+---@param onAdopt function
+---@return Frame row
+local function CreateOrphanedAssignmentRow(parent, assignment, onEdit, onDelete, onAdopt)
+    local row = CreateFrame("Button", nil, parent)
+    AF.SetHeight(row, ASSIGNMENT_ROW_HEIGHT)
+    AF.SetPoint(row, "LEFT")
+    AF.SetPoint(row, "RIGHT")
+    row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+
+    -- Warning background
+    local bg = row:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0.3, 0.15, 0.1, 0.5)
+
+    -- Hover highlight
+    row:SetScript("OnEnter", function(self)
+        if not row.hoverBg then
+            row.hoverBg = row:CreateTexture(nil, "BACKGROUND")
+            row.hoverBg:SetAllPoints()
+            row.hoverBg:SetColorTexture(1, 1, 1, 0.08)
+        end
+        row.hoverBg:Show()
+    end)
+    row:SetScript("OnLeave", function(self)
+        if row.hoverBg then row.hoverBg:Hide() end
+    end)
+
+    -- Click handler
+    row:SetScript("OnClick", function(self, button)
+        if button == "LeftButton" then
+            if onEdit then onEdit(assignment) end
+        elseif button == "RightButton" then
+            QRA.UI.ShowOrphanedAssignmentContextMenu(row, assignment, onDelete, onAdopt)
+        end
+    end)
+
+    -- Warning icon
+    local warnIcon = row:CreateFontString(nil, "ARTWORK")
+    warnIcon:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE")
+    warnIcon:SetPoint("LEFT", 10, 0)
+    warnIcon:SetText("!")
+    warnIcon:SetTextColor(1, 0.6, 0.2)
+
+    -- Enabled checkbox
+    local enableCheck = AF.CreateCheckButton(row, nil, function(checked)
+        QRA.Assignments.UpdateOrphan(assignment.id, { enabled = checked })
+    end)
+    AF.SetPoint(enableCheck, "LEFT", 25, 0)
+    enableCheck:SetChecked(assignment.enabled)
+
+    -- Spell icon (if applicable)
+    local iconOffset = 55
+    if assignment.spellId then
+        local spellIcon = C_Spell.GetSpellTexture(assignment.spellId)
+        if spellIcon then
+            local icon = row:CreateTexture(nil, "ARTWORK")
+            icon:SetSize(18, 18)
+            AF.SetPoint(icon, "LEFT", iconOffset, 0)
+            icon:SetTexture(spellIcon)
+            icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            iconOffset = iconOffset + 22
+        end
+    end
+
+    -- Assignment description
+    local descText = (assignment.message and assignment.message ~= "" and assignment.message) or assignment.spellName or QRA.L["Unknown Assignment"]
+    local descFS = AF.CreateFontString(row, descText, "white")
+    descFS:SetFont(STANDARD_TEXT_FONT, 10, "")
+    AF.SetPoint(descFS, "LEFT", iconOffset, 0)
+    AF.SetWidth(descFS, 150)
+    descFS:SetJustifyH("LEFT")
+    descFS:SetWordWrap(false)
+
+    -- Assign target
+    local assignTarget = assignment.assignTarget or "ALL"
+    local targetDisplayText = QRA.AssignTarget and QRA.AssignTarget.GetColoredDisplayText(assignTarget, false) or assignTarget
+    local targetFS = AF.CreateFontString(row, targetDisplayText, "accent")
+    targetFS:SetFont(STANDARD_TEXT_FONT, 10, "")
+    AF.SetPoint(targetFS, "LEFT", descFS, "RIGHT", 5, 0)
+    AF.SetWidth(targetFS, 70)
+    targetFS:SetJustifyH("LEFT")
+
+    -- Adopt button (assign to trigger)
+    local adoptBtn = AF.CreateButton(row, QRA.L["Assign to Trigger"], "orange", 90, 18)
+    AF.SetPoint(adoptBtn, "RIGHT", row, -25, 0)
+    adoptBtn:SetOnClick(function()
+        if onAdopt then onAdopt(assignment) end
+    end)
+
+    -- Delete button
+    local delBtn = AF.CreateButton(row, "x", "red", 20, 20)
+    AF.SetPoint(delBtn, "RIGHT", row, -5, 0)
+    delBtn:SetOnClick(function()
+        if onDelete then onDelete(assignment) end
+    end)
+
+    row.assignment = assignment
+
+    return row
 end
 
 --------------------------------------------------
--- Settings Tab
+-- Context Menus
 --------------------------------------------------
 
-local function CreateSettingsTab(parent)
-    local content = CreateFrame("Frame", nil, parent)
-    AF.SetPoint(content, "TOPLEFT", parent, 10, -TAB_HEIGHT - 15)
-    AF.SetPoint(content, "BOTTOMRIGHT", parent, -10, 10)
+--- Show context menu for a trigger
+function QRA.UI.ShowTriggerContextMenu(owner, trigger, onDelete, onAddAssignment, onRefresh)
+    local menuItems = {
+        {
+            QRA.L["Add Assignment"],
+            function()
+                if onAddAssignment then onAddAssignment(trigger.id) end
+            end,
+        },
+        {
+            QRA.L["Export"],
+            function()
+                local exportString = QRA.Comm.ExportTrigger(trigger.id)
+                QRA.UI.ShowExportFrame(exportString)
+            end,
+        },
+        {
+            QRA.L["Send to Raid"],
+            function()
+                local exportString = QRA.Comm.ExportTrigger(trigger.id, true)
+                QRA.Comm.SendToRaid(exportString)
+            end,
+        },
+    }
+
+    if not trigger.default then
+        table.insert(menuItems, {
+            QRA.L["Delete Trigger"],
+            function()
+                if onDelete then onDelete(trigger) end
+            end,
+        })
+    end
+
+    MenuUtil.CreateButtonContextMenu(owner, unpack(menuItems))
+end
+
+--- Show context menu for an assignment
+function QRA.UI.ShowAssignmentContextMenu(owner, assignment, triggerId, onDelete)
+    MenuUtil.CreateButtonContextMenu(owner,
+        {
+            QRA.L["Delete Assignment"],
+            function()
+                if onDelete then onDelete(assignment, triggerId) end
+            end,
+        }
+    )
+end
+
+--- Show context menu for an orphaned assignment
+function QRA.UI.ShowOrphanedAssignmentContextMenu(owner, assignment, onDelete, onAdopt)
+    MenuUtil.CreateButtonContextMenu(owner,
+        {
+            QRA.L["Assign to Trigger"],
+            function()
+                if onAdopt then onAdopt(assignment) end
+            end,
+        },
+        {
+            QRA.L["Delete Assignment"],
+            function()
+                if onDelete then onDelete(assignment) end
+            end,
+        }
+    )
+end
+
+--------------------------------------------------
+-- Delete Trigger Dialog
+--------------------------------------------------
+
+--- Show delete trigger confirmation with options
+---@param trigger Trigger
+---@param onComplete function Called after deletion
+function QRA.UI.ShowDeleteTriggerDialog(trigger, onComplete)
+    local hasAssignments, assignmentCount = QRA.Triggers.HasAssignments(trigger.id)
+
+    if not hasAssignments then
+        -- No assignments, just delete
+        QRA.Triggers.DeleteTrigger(trigger.id, nil)
+        if onComplete then onComplete() end
+        return
+    end
+
+    -- Has assignments, show dialog
+    local form = CreateFrame("Frame", nil, mainFrame)
+    AF.SetSize(form, 300, 80)
+
+    local msgFS = AF.CreateFontString(form, string.format(QRA.L["This trigger has %d assignment(s)"], assignmentCount), "white")
+    AF.SetPoint(msgFS, "TOPLEFT", 0, 0)
+
+    local questionFS = AF.CreateFontString(form, QRA.L["What would you like to do with the assignments?"], "gray")
+    AF.SetPoint(questionFS, "TOPLEFT", msgFS, "BOTTOMLEFT", 0, -10)
+
+    -- Buttons container
+    local btnContainer = CreateFrame("Frame", nil, form)
+    AF.SetHeight(btnContainer, 30)
+    AF.SetPoint(btnContainer, "TOPLEFT", questionFS, "BOTTOMLEFT", 0, -15)
+    AF.SetPoint(btnContainer, "TOPRIGHT", form, 0, -60)
+
+    local deleteAllBtn = AF.CreateButton(btnContainer, QRA.L["Delete All"], "red", 90, 26)
+    AF.SetPoint(deleteAllBtn, "LEFT", 0, 0)
+    
+    local orphanBtn = AF.CreateButton(btnContainer, QRA.L["Keep as Orphaned"], "orange", 120, 26)
+    AF.SetPoint(orphanBtn, "LEFT", deleteAllBtn, "RIGHT", 10, 0)
+    
+    local cancelBtn = AF.CreateButton(btnContainer, QRA.L["Cancel"], "gray", 70, 26)
+    AF.SetPoint(cancelBtn, "LEFT", orphanBtn, "RIGHT", 10, 0)
+
+    local dialog = AF.GetDialog(mainFrame, AF.WrapTextInColor(QRA.L["Delete Trigger"], "red"), 320)
+    AF.SetPoint(dialog, "CENTER", mainFrame, 0, 0)
+    dialog:SetContent(form, 100)
+
+    deleteAllBtn:SetOnClick(function()
+        QRA.Triggers.DeleteTrigger(trigger.id, false) -- Delete assignments too
+        dialog:Hide()
+        if onComplete then onComplete() end
+    end)
+
+    orphanBtn:SetOnClick(function()
+        QRA.Triggers.DeleteTrigger(trigger.id, true) -- Orphan the assignments
+        dialog:Hide()
+        if onComplete then onComplete() end
+    end)
+
+    cancelBtn:SetOnClick(function()
+        dialog:Hide()
+    end)
+end
+
+--------------------------------------------------
+-- Adopt Orphan Dialog
+--------------------------------------------------
+
+--- Show dialog to assign an orphaned assignment to a trigger
+---@param assignment OrphanedAssignment
+---@param onComplete function
+function QRA.UI.ShowAdoptOrphanDialog(assignment, onComplete)
+    local form = CreateFrame("Frame", nil, mainFrame)
+    AF.SetSize(form, 300, 60)
+
+    local triggerDropdown = QRA.Widgets.CreateTriggerDropdown(form, 280)
+    AF.SetPoint(triggerDropdown, "TOPLEFT", 0, 10)
+
+    local dialog = AF.GetDialog(mainFrame, AF.WrapTextInColor(QRA.L["Assign to Trigger"], "accent"), 320)
+    AF.SetPoint(dialog, "CENTER", mainFrame, 0, 0)
+    dialog:SetContent(form, 80)
+
+    dialog:SetOnConfirm(function()
+        local triggerId = triggerDropdown:GetSelectedValue()
+        if triggerId then
+            QRA.Assignments.AdoptOrphan(assignment.id, triggerId)
+            if onComplete then onComplete() end
+        end
+    end)
+end
+
+--------------------------------------------------
+-- Main Tree View
+--------------------------------------------------
+
+local function BuildTreeView(parent, scrollList, bossFilter)
+    local widgets = {}
+
+    local function RefreshTree()
+        BuildTreeView(parent, scrollList, bossFilter)
+    end
+
+    local function OnEditTrigger(trigger)
+        QRA.UI.ShowTriggerEditor(trigger, trigger.bossName)
+    end
+
+    local function OnDeleteTrigger(trigger)
+        QRA.UI.ShowDeleteTriggerDialog(trigger, function()
+            RefreshTree()
+        end)
+    end
+
+    local function OnAddAssignment(triggerId)
+        QRA.UI.ShowAssignmentEditor(nil, triggerId)
+    end
+
+    local function OnEditAssignment(assignment, triggerId)
+        QRA.UI.ShowAssignmentEditor(assignment, triggerId)
+    end
+
+    local function OnDeleteAssignment(assignment, triggerId)
+        QRA.Assignments.Remove(triggerId, assignment.id)
+        RefreshTree()
+    end
+
+    local function OnAddTrigger(bossName)
+        QRA.UI.ShowTriggerEditor(nil, bossName)
+    end
+
+    -- If boss filter is set, only show that boss's triggers
+    if bossFilter then
+        local triggers = QRA.Triggers.GetBossTriggers(bossFilter)
+        
+        for _, trigger in ipairs(triggers) do
+            -- Trigger row
+            local triggerRow = CreateTriggerRow(
+                scrollList.slotFrame,
+                trigger,
+                0,  -- No indent when showing single boss
+                RefreshTree,
+                OnEditTrigger,
+                OnDeleteTrigger,
+                OnAddAssignment
+            )
+            table.insert(widgets, triggerRow)
+
+            -- Nested assignments (if expanded)
+            if not IsTriggerCollapsed(trigger.id) and trigger.assignments then
+                for _, assignment in ipairs(trigger.assignments) do
+                    local assignRow = CreateAssignmentRow(
+                        scrollList.slotFrame,
+                        assignment,
+                        trigger.id,
+                        1,
+                        OnEditAssignment,
+                        OnDeleteAssignment
+                    )
+                    table.insert(widgets, assignRow)
+                end
+            end
+        end
+    else
+        -- Show all triggers grouped by Instance → Boss
+        local instances = QRA.Bosses.GetInstancesSortedByTier()
+
+        for _, instanceInfo in ipairs(instances) do
+            local instanceName = instanceInfo.name
+            local instanceData = instanceInfo.data
+
+            -- Check if instance has any triggers
+            local instanceHasTriggers = false
+            for _, bossData in ipairs(instanceData.bosses) do
+                local bossTriggers = QRA.Triggers.GetBossTriggers(bossData.name)
+                if #bossTriggers > 0 then
+                    instanceHasTriggers = true
+                    break
+                end
+            end
+
+            if instanceHasTriggers then
+                -- Instance header
+                local instanceRow = CreateInstanceRow(scrollList.slotFrame, instanceName, instanceData.tier, RefreshTree)
+                table.insert(widgets, instanceRow)
+
+                -- Bosses (if instance expanded)
+                if not IsInstanceCollapsed(instanceName) then
+                    for _, bossData in ipairs(instanceData.bosses) do
+                        local triggers = QRA.Triggers.GetBossTriggers(bossData.name)
+
+                        if #triggers > 0 then
+                            -- Boss header
+                            local bossRow = CreateBossRow(scrollList.slotFrame, bossData, 1, RefreshTree, OnAddTrigger)
+                            table.insert(widgets, bossRow)
+
+                            -- Triggers (if boss expanded)
+                            if not IsBossCollapsed(bossData.name) then
+                                for _, trigger in ipairs(triggers) do
+                                    -- Trigger row
+                                    local triggerRow = CreateTriggerRow(
+                                        scrollList.slotFrame,
+                                        trigger,
+                                        2,
+                                        RefreshTree,
+                                        OnEditTrigger,
+                                        OnDeleteTrigger,
+                                        OnAddAssignment
+                                    )
+                                    table.insert(widgets, triggerRow)
+
+                                    -- Nested assignments (if trigger expanded)
+                                    if not IsTriggerCollapsed(trigger.id) and trigger.assignments then
+                                        for _, assignment in ipairs(trigger.assignments) do
+                                            local assignRow = CreateAssignmentRow(
+                                                scrollList.slotFrame,
+                                                assignment,
+                                                trigger.id,
+                                                3,
+                                                OnEditAssignment,
+                                                OnDeleteAssignment
+                                            )
+                                            table.insert(widgets, assignRow)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- Orphaned Assignments Section
+    local orphaned = QRA.Assignments.GetOrphaned()
+    if #orphaned > 0 then
+        -- Separator
+        local separator = CreateFrame("Frame", nil, scrollList.slotFrame)
+        AF.SetHeight(separator, 8)
+        AF.SetPoint(separator, "LEFT")
+        AF.SetPoint(separator, "RIGHT")
+        table.insert(widgets, separator)
+
+        -- Orphaned header
+        local orphanHeader = CreateFrame("Frame", nil, scrollList.slotFrame)
+        AF.SetHeight(orphanHeader, TREE_ROW_HEIGHT)
+        AF.SetPoint(orphanHeader, "LEFT")
+        AF.SetPoint(orphanHeader, "RIGHT")
+
+        local orphanBg = orphanHeader:CreateTexture(nil, "BACKGROUND")
+        orphanBg:SetAllPoints()
+        orphanBg:SetColorTexture(0.3, 0.15, 0.1, 0.8)
+
+        local warnIcon = orphanHeader:CreateFontString(nil, "ARTWORK")
+        warnIcon:SetFont(STANDARD_TEXT_FONT, 14, "OUTLINE")
+        warnIcon:SetPoint("LEFT", 10, 0)
+        warnIcon:SetText("!")
+        warnIcon:SetTextColor(1, 0.6, 0.2)
+
+        local orphanTitle = AF.CreateFontString(orphanHeader, QRA.L["Orphaned Assignments"] .. " (" .. #orphaned .. ")", "orange")
+        orphanTitle:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE")
+        AF.SetPoint(orphanTitle, "LEFT", warnIcon, "RIGHT", 5, 0)
+
+        table.insert(widgets, orphanHeader)
+
+        -- Orphaned assignment rows
+        for _, assignment in ipairs(orphaned) do
+            local orphanRow = CreateOrphanedAssignmentRow(
+                scrollList.slotFrame,
+                assignment,
+                function(a) QRA.UI.ShowAssignmentEditor(a, nil) end,
+                function(a)
+                    QRA.Assignments.DeleteOrphan(a.id)
+                    RefreshTree()
+                end,
+                function(a)
+                    QRA.UI.ShowAdoptOrphanDialog(a, RefreshTree)
+                end
+            )
+            table.insert(widgets, orphanRow)
+        end
+    end
+
+    scrollList:SetWidgets(widgets)
+end
+
+--------------------------------------------------
+-- Settings Panel
+--------------------------------------------------
+
+local settingsFrame = nil
+
+--- Create and show settings panel
+function QRA.UI.ShowSettingsPanel()
+    if settingsFrame then
+        settingsFrame:Show()
+        return
+    end
+
+    settingsFrame = AF.CreateHeaderedFrame(
+        QRA.UIParent,
+        "QRA_SettingsPanel",
+        QRA.L["Settings"],
+        300,
+        350
+    )
+    AF.SetPoint(settingsFrame, "CENTER", mainFrame, 0, 0)
+    settingsFrame:SetFrameStrata("DIALOG")
+    settingsFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 10)
+
+    local content = CreateFrame("Frame", nil, settingsFrame)
+    AF.SetPoint(content, "TOPLEFT", settingsFrame, 10, -35)
+    AF.SetPoint(content, "BOTTOMRIGHT", settingsFrame, -10, 40)
 
     -- Notifications section
     local notifHeader = QRA.Widgets.CreateSectionHeader(content, QRA.L["Notification Settings"])
@@ -532,30 +1018,29 @@ local function CreateSettingsTab(parent)
 
     -- Test buttons section
     local testHeader = QRA.Widgets.CreateSectionHeader(content, QRA.L["Test Notifications"])
-    AF.SetPoint(testHeader, "TOPLEFT", chatCheck, "BOTTOMLEFT", -10, -25)
+    AF.SetPoint(testHeader, "TOPLEFT", chatCheck, "BOTTOMLEFT", -10, -20)
     AF.SetPoint(testHeader, "TOPRIGHT", content, 0, 0)
 
-    local testTTSBtn = AF.CreateButton(content, QRA.L["Test TTS"], "static", 100, 24)
+    local testTTSBtn = AF.CreateButton(content, QRA.L["Test TTS"], "static", 80, 22)
     AF.SetPoint(testTTSBtn, "TOPLEFT", testHeader, "BOTTOMLEFT", 10, -10)
     testTTSBtn:SetOnClick(QRA.Notifications.TestTTS)
 
-    local testSoundBtn = AF.CreateButton(content, QRA.L["Test Sound"], "static", 100, 24)
-    AF.SetPoint(testSoundBtn, "LEFT", testTTSBtn, "RIGHT", 10, 0)
+    local testSoundBtn = AF.CreateButton(content, QRA.L["Test Sound"], "static", 80, 22)
+    AF.SetPoint(testSoundBtn, "LEFT", testTTSBtn, "RIGHT", 8, 0)
     testSoundBtn:SetOnClick(QRA.Notifications.TestSound)
 
-    local testScreenBtn = AF.CreateButton(content, QRA.L["Test Screen"], "static", 100, 24)
-    AF.SetPoint(testScreenBtn, "LEFT", testSoundBtn, "RIGHT", 10, 0)
+    local testScreenBtn = AF.CreateButton(content, QRA.L["Test Screen"], "static", 80, 22)
+    AF.SetPoint(testScreenBtn, "TOPLEFT", testTTSBtn, "BOTTOMLEFT", 0, -8)
     testScreenBtn:SetOnClick(QRA.Notifications.TestScreen)
 
-    local testCountdownBtn = AF.CreateButton(content, QRA.L["Test Countdown"], "static", 120, 24)
-    AF.SetPoint(testCountdownBtn, "LEFT", testScreenBtn, "RIGHT", 10, 0)
+    local testCountdownBtn = AF.CreateButton(content, QRA.L["Test Countdown"], "static", 100, 22)
+    AF.SetPoint(testCountdownBtn, "LEFT", testScreenBtn, "RIGHT", 8, 0)
     testCountdownBtn:SetOnClick(QRA.Notifications.TestCountdown)
 
     -- Debug section
     local debugHeader = QRA.Widgets.CreateSectionHeader(content, QRA.L["Debug"])
-    AF.SetPoint(debugHeader, "TOPLEFT", testTTSBtn, "BOTTOMLEFT", -10, -25)
+    AF.SetPoint(debugHeader, "TOPLEFT", testScreenBtn, "BOTTOMLEFT", -10, -20)
     AF.SetPoint(debugHeader, "TOPRIGHT", content, 0, 0)
-
 
     local debugCheck = AF.CreateCheckButton(content, QRA.L["Enable Debug Mode"], function(checked)
         QRA.Settings.debug = checked
@@ -566,7 +1051,14 @@ local function CreateSettingsTab(parent)
     AF.SetPoint(debugCheck, "TOPLEFT", debugHeader, "BOTTOMLEFT", 10, -10)
     debugCheck:SetChecked(QRA.Settings.debug)
 
-    return content
+    -- Close button
+    local closeBtn = AF.CreateButton(settingsFrame, QRA.L["Close"], "gray", 80, 26)
+    AF.SetPoint(closeBtn, "BOTTOMRIGHT", settingsFrame, -10, 10)
+    closeBtn:SetOnClick(function()
+        settingsFrame:Hide()
+    end)
+
+    settingsFrame:Show()
 end
 
 --------------------------------------------------
@@ -590,13 +1082,164 @@ local function CreateMainFrame()
     -- Apply combat protection
     AF.ApplyCombatProtectionToFrame(mainFrame)
 
-    -- Create tab bar
-    local tabBar = CreateTabBar(mainFrame)
+    -- Content area
+    local content = CreateFrame("Frame", nil, mainFrame)
+    AF.SetPoint(content, "TOPLEFT", mainFrame, 10, -30)
+    AF.SetPoint(content, "BOTTOMRIGHT", mainFrame, -10, 10)
+    treeContent = content
+
+    --------------------------------------------------
+    -- Top Bar
+    --------------------------------------------------
+    local topBar = CreateFrame("Frame", nil, content)
+    AF.SetHeight(topBar, 30)
+    AF.SetPoint(topBar, "TOPLEFT", content, 0, 0)
+    AF.SetPoint(topBar, "TOPRIGHT", content, 0, 0)
+
+    -- LEFT GROUP: Boss filter and tree controls
+    -- Boss filter dropdown
+    local bossDropdown = QRA.Widgets.CreateBossMenu(topBar, 160, function(self, item)
+        selectedBoss = item.text
+        selectedEncounterId = item.encounterId
+        QRA.Debug("Selected boss:", selectedBoss, "encounterId:", selectedEncounterId)
+        QRA.UI.RefreshTree()
+    end)
+    AF.SetPoint(bossDropdown, "LEFT", topBar, 0, 0)
+
+    -- Show All button
+    local showAllBtn = AF.CreateButton(topBar, "All", "static", 30, 26)
+    AF.SetPoint(showAllBtn, "LEFT", bossDropdown, "RIGHT", 5, 0)
+    AF.SetTooltip(showAllBtn, "ANCHOR_BOTTOM", 0, 0, QRA.L["All Instances"])
+    showAllBtn:SetOnClick(function()
+        selectedBoss = nil
+        selectedEncounterId = nil
+        bossDropdown:SetText(QRA.L["All Instances"])
+        QRA.UI.RefreshTree()
+    end)
+
+    -- Separator
+    local sep1 = topBar:CreateTexture(nil, "ARTWORK")
+    sep1:SetSize(1, 20)
+    sep1:SetColorTexture(0.3, 0.3, 0.3, 0.8)
+    AF.SetPoint(sep1, "LEFT", showAllBtn, "RIGHT", 8, 0)
+
+    -- Expand/Collapse buttons
+    local expandBtn = AF.CreateButton(topBar, "+", "static", 26, 26)
+    AF.SetPoint(expandBtn, "LEFT", sep1, "RIGHT", 8, 0)
+    AF.SetTooltip(expandBtn, "ANCHOR_BOTTOM", 0, 0, QRA.L["Expand All"])
+    expandBtn:SetOnClick(function()
+        ExpandAll()
+        QRA.UI.RefreshTree()
+    end)
+
+    local collapseBtn = AF.CreateButton(topBar, "-", "static", 26, 26)
+    AF.SetPoint(collapseBtn, "LEFT", expandBtn, "RIGHT", 2, 0)
+    AF.SetTooltip(collapseBtn, "ANCHOR_BOTTOM", 0, 0, QRA.L["Collapse All"])
+    collapseBtn:SetOnClick(function()
+        CollapseAll()
+        QRA.UI.RefreshTree()
+    end)
+
+    -- CENTER GROUP: Import/Export
+    local sep2 = topBar:CreateTexture(nil, "ARTWORK")
+    sep2:SetSize(1, 20)
+    sep2:SetColorTexture(0.3, 0.3, 0.3, 0.8)
+    AF.SetPoint(sep2, "LEFT", collapseBtn, "RIGHT", 10, 0)
+
+    local importBtn = AF.CreateButton(topBar, QRA.L["Import"], "softblue", 60, 26)
+    AF.SetPoint(importBtn, "LEFT", sep2, "RIGHT", 10, 0)
+    importBtn:SetOnClick(function()
+        QRA.UI.ShowImportFrame(function(input)
+            QRA.Comm.Import(input, false)
+            QRA.UI.RefreshTree()
+        end)
+    end)
+
+    local exportBtn = AF.CreateButton(topBar, QRA.L["Export"], "softlime", 60, 26)
+    AF.SetPoint(exportBtn, "LEFT", importBtn, "RIGHT", 5, 0)
+    exportBtn:SetOnClick(function()
+        local exportString = selectedEncounterId and QRA.Comm.ExportBoss(selectedEncounterId) or QRA.Comm.Export()
+        if exportString and exportString ~= "" then
+            QRA.UI.ShowExportFrame(exportString)
+        end
+    end)
+
+    -- RIGHT GROUP: Test Mode and Settings
+    -- Settings button
+    local settingsBtn = AF.CreateButton(topBar, "S", "static", 26, 26)
+    AF.SetPoint(settingsBtn, "RIGHT", topBar, 0, 0)
+    AF.SetTooltip(settingsBtn, "ANCHOR_LEFT", 0, 0, QRA.L["Settings"])
+    settingsBtn:SetOnClick(function()
+        QRA.UI.ShowSettingsPanel()
+    end)
+
+    -- Test Mode button
+    local testModeBtn = AF.CreateButton(topBar, "Test", "purple", 50, 26)
+    AF.SetPoint(testModeBtn, "RIGHT", settingsBtn, "LEFT", -5, 0)
+    AF.SetTooltip(testModeBtn, "ANCHOR_LEFT", 0, 0, QRA.L["Test Mode"], "Open DevMode test panel")
+    testModeBtn:SetOnClick(function()
+        if QRA.DevMode then
+            if not QRA.DevMode.IsActive() then
+                QRA.DevMode.Enable(selectedBoss, selectedEncounterId)
+            end
+            if QRA.DevMode.UI and QRA.DevMode.UI.ShowTestPanel then
+                if selectedBoss then
+                    QRA.DevMode.UI.SetSelectedBoss(selectedBoss, selectedEncounterId)
+                end
+                QRA.DevMode.UI.ShowTestPanel()
+            end
+        end
+    end)
+
+    --------------------------------------------------
+    -- Tree List
+    --------------------------------------------------
+    local listFrame = AF.CreateBorderedFrame(content, nil, nil, 200, nil, "gray")
+    AF.SetPoint(listFrame, "TOPLEFT", topBar, "BOTTOMLEFT", 0, -5)
+    AF.SetPoint(listFrame, "BOTTOMRIGHT", content, 0, 40)
+
+    local scrollList = AF.CreateScrollList(listFrame, nil, 5, 5, 8, TREE_ROW_HEIGHT, 3)
+    AF.SetPoint(scrollList, "TOPLEFT", listFrame, 5, -5)
+    AF.SetPoint(scrollList, "BOTTOMRIGHT", listFrame, -5, 5)
+    content.scrollList = scrollList
+
+    --------------------------------------------------
+    -- Bottom Buttons
+    --------------------------------------------------
+    local addTriggerBtn = AF.CreateButton(content, QRA.L["+ Add Trigger"], "softlime", 120, 26)
+    AF.SetPoint(addTriggerBtn, "TOPLEFT", listFrame, "BOTTOMLEFT", 0, -8)
+    addTriggerBtn:SetEnabled(false)
+    addTriggerBtn:SetOnClick(function()
+        QRA.UI.ShowTriggerEditor(nil, selectedBoss)
+    end)
+
+    -- Update button state when boss selected
+    hooksecurefunc(bossDropdown, "OnMenuSelection", function()
+        addTriggerBtn:SetEnabled(selectedBoss ~= nil)
+    end)
+
+    -- Send to Raid button
+    local sendToRaidBtn = AF.CreateButton(content, QRA.L["Send to Raid"], "softblue", 110, 26)
+    AF.SetPoint(sendToRaidBtn, "LEFT", addTriggerBtn, "RIGHT", 10, 0)
+    sendToRaidBtn:SetOnClick(function()
+        local exportString = selectedEncounterId and QRA.Comm.ExportBoss(selectedEncounterId, true) or QRA.Comm.Export(true)
+        if exportString and exportString ~= "" then
+            QRA.Comm.SendToRaid(exportString)
+        end
+    end)
+
+    -- Roster button
+    local rosterBtn = AF.CreateButton(content, QRA.L["Roster"], "static", 80, 26)
+    AF.SetPoint(rosterBtn, "LEFT", sendToRaidBtn, "RIGHT", 10, 0)
+    AF.SetTooltip(rosterBtn, "TOPLEFT", 0, 2, "Roster Manager", "Save current raid roster for planning", "assignments when not in raid")
+    rosterBtn:SetOnClick(function()
+        QRA.AssignTargetMenu.ShowRosterManager(mainFrame)
+    end)
 
     -- Test Mode indicator (shown when DevMode is active)
-    local testModeIndicator = AF.CreateFontString(mainFrame, QRA.L["TEST MODE"], "purple")
+    local testModeIndicator = AF.CreateFontString(content, QRA.L["TEST MODE"], "purple")
     testModeIndicator:SetFont(STANDARD_TEXT_FONT, 10, "OUTLINE")
-    AF.SetPoint(testModeIndicator, "BOTTOMRIGHT", mainFrame, -24, 4)
+    AF.SetPoint(testModeIndicator, "BOTTOMRIGHT", content, 0, 12)
     testModeIndicator:Hide()
     mainFrame.testModeIndicator = testModeIndicator
 
@@ -619,23 +1262,19 @@ local function CreateMainFrame()
     -- Initial update
     UpdateTestModeIndicator()
 
-    -- Create tab contents
-    tabContents["triggers"] = CreateTriggersTab(mainFrame)
-    tabContents["assignments"] = CreateAssignmentsTab(mainFrame)
-    tabContents["settings"] = CreateSettingsTab(mainFrame)
+    -- Store references
+    content.addTriggerBtn = addTriggerBtn
+    content.bossDropdown = bossDropdown
 
-    -- Initialize to triggers tab
-    SwitchTab("triggers")
+    -- Refresh function
+    function QRA.UI.RefreshTree()
+        BuildTreeView(content, scrollList, selectedBoss)
+        content.addTriggerBtn:SetEnabled(selectedBoss ~= nil)
+    end
 
     -- Refresh data when shown
     mainFrame:SetScript("OnShow", function()
-        if tabContents["triggers"] and tabContents["triggers"].RefreshTriggers then
-            tabContents["triggers"]:RefreshTriggers()
-        end
-        if tabContents["assignments"] and tabContents["assignments"].RefreshAssignments then
-            tabContents["assignments"]:RefreshAssignments()
-        end
-        -- Update test mode indicator
+        QRA.UI.RefreshTree()
         UpdateTestModeIndicator()
     end)
 
@@ -670,11 +1309,8 @@ end
 
 --- Refresh all lists in the UI
 function QRA.UI.RefreshAll()
-    if tabContents["assignments"] and tabContents["assignments"].RefreshAssignments then
-        tabContents["assignments"]:RefreshAssignments()
-    end
-    if tabContents["triggers"] and tabContents["triggers"].RefreshTriggers then
-        tabContents["triggers"]:RefreshTriggers()
+    if QRA.UI.RefreshTree then
+        QRA.UI.RefreshTree()
     end
 end
 
@@ -686,11 +1322,17 @@ end
 local assignmentEditorFrame = nil
 ---@class AF_HeaderedFrame
 local triggerEditorFrame = nil
+
 --- Show the assignment editor window
 ---@param assignment Assignment|nil Existing assignment to edit, or nil for new
-function QRA.UI.ShowAssignmentEditor(assignment)
+---@param triggerId string|nil Trigger ID to associate with (for new assignments)
+function QRA.UI.ShowAssignmentEditor(assignment, triggerId)
     local isNew = assignment == nil
+    local isOrphaned = assignment and assignment.orphanedAt ~= nil
     assignment = assignment or {}
+
+    -- For orphaned assignments being edited, we need to handle differently
+    local existingTriggerId = triggerId or assignment.triggerId
 
     -- Create or reuse the editor frame
     if not assignmentEditorFrame then
@@ -699,7 +1341,7 @@ function QRA.UI.ShowAssignmentEditor(assignment)
             "QRA_AssignmentEditor",
             QRA.L["Assignment Editor"],
             220,
-            370
+            400
         )
         AF.SetPoint(assignmentEditorFrame, "CENTER", mainFrame, 0, 0)
         assignmentEditorFrame:SetFrameStrata("DIALOG")
@@ -731,13 +1373,20 @@ function QRA.UI.ShowAssignmentEditor(assignment)
     -- Trigger dropdown (link to a trigger)
     local triggerDropdown = QRA.Widgets.CreateTriggerDropdown(form, 200)
     AF.SetPoint(triggerDropdown, "TOPLEFT", 0, 10)
-    if assignment.triggerId then
-        triggerDropdown:SetSelectedValue(assignment.triggerId)
+    if existingTriggerId then
+        triggerDropdown:SetSelectedValue(existingTriggerId)
+    end
+
+    -- Counter formula input (for assignment-level counter)
+    local counterInput = QRA.Widgets.CreateCounterInput(form, QRA.L["Counter"], 200)
+    AF.SetPoint(counterInput, "TOPLEFT", triggerDropdown, "BOTTOMLEFT", 0, -10)
+    if assignment.counterFormula then
+        counterInput:SetValue(assignment.counterFormula)
     end
 
     -- Assign Target menu (who receives this assignment)
     local assignTargetMenu = QRA.AssignTargetMenu.CreateMenuButton(form, 200)
-    AF.SetPoint(assignTargetMenu, "TOPLEFT", triggerDropdown, "BOTTOMLEFT", 0, -30)
+    AF.SetPoint(assignTargetMenu, "TOPLEFT", counterInput, "BOTTOMLEFT", 0, -30)
     if assignment.assignTarget then
         assignTargetMenu:SetSelectedTarget(assignment.assignTarget)
     else
@@ -783,10 +1432,34 @@ function QRA.UI.ShowAssignmentEditor(assignment)
         alertDropdown:SetSelectedValue(assignment.alertType)
     end
 
-    -- Save button
-    local saveBtn = AF.CreateButton(assignmentEditorFrame, QRA.L["Save"], "softlime", 80, 26)
-    AF.SetPoint(saveBtn, "BOTTOMRIGHT", assignmentEditorFrame, -10, 10)
+    -- Save button (create once, reuse)
+    if not assignmentEditorFrame.saveBtn then
+        assignmentEditorFrame.saveBtn = AF.CreateButton(assignmentEditorFrame, QRA.L["Save"], "softlime", 80, 26)
+        AF.SetPoint(assignmentEditorFrame.saveBtn, "BOTTOMRIGHT", assignmentEditorFrame, -10, 10)
+    end
+    local saveBtn = assignmentEditorFrame.saveBtn
+
+    -- Cancel button (create once, reuse)
+    if not assignmentEditorFrame.cancelBtn then
+        assignmentEditorFrame.cancelBtn = AF.CreateButton(assignmentEditorFrame, QRA.L["Cancel"], "gray", 80, 26)
+        AF.SetPoint(assignmentEditorFrame.cancelBtn, "RIGHT", assignmentEditorFrame.saveBtn, "LEFT", -10, 0)
+        assignmentEditorFrame.cancelBtn:SetOnClick(function()
+            assignmentEditorFrame:Hide()
+        end)
+    end
+
+    -- Store current state on form for save handler to reference
+    form.assignment = assignment
+    form.isNew = isNew
+    form.isOrphaned = isOrphaned
+    form.existingTriggerId = existingTriggerId
+
     saveBtn:SetOnClick(function()
+        -- Get current state from form (not closure)
+        local currentAssignment = form.assignment
+        local currentIsNew = form.isNew
+        local currentIsOrphaned = form.isOrphaned
+
         local spellData = spellInput:GetSpell()
         local message = nil
         if msgInput:GetText() ~= "" then
@@ -797,8 +1470,11 @@ function QRA.UI.ShowAssignmentEditor(assignment)
             targetPlayer = targetInput:GetText()
         end
 
+        local selectedTriggerId = triggerDropdown:GetSelectedValue()
+
         local newAssignment = QRA.Assignments.Create({
-            triggerId = triggerDropdown:GetSelectedValue(),
+            triggerId = selectedTriggerId,
+            counterFormula = counterInput:GetValue() or "*",
             assignTarget = assignTargetMenu:GetSelectedTarget() or "ALL",
             spellId = spellData.spellId,
             spellName = spellData.spellName or nil,
@@ -808,29 +1484,54 @@ function QRA.UI.ShowAssignmentEditor(assignment)
             alertType = alertDropdown:GetSelectedValue(),
         })
 
-        if isNew then
-            QRA.Assignments.Add(newAssignment)
+        if currentIsNew then
+            if selectedTriggerId then
+                QRA.Assignments.Add(selectedTriggerId, newAssignment)
+            end
+        elseif currentIsOrphaned then
+            -- Updating an orphaned assignment
+            if selectedTriggerId then
+                -- Moving orphan to a trigger
+                QRA.Assignments.DeleteOrphan(currentAssignment.id)
+                QRA.Assignments.Add(selectedTriggerId, newAssignment)
+            else
+                -- Just updating orphan data
+                QRA.Assignments.UpdateOrphan(currentAssignment.id, {
+                    counterFormula = newAssignment.counterFormula,
+                    assignTarget = newAssignment.assignTarget,
+                    spellId = newAssignment.spellId,
+                    spellName = newAssignment.spellName,
+                    message = newAssignment.message,
+                    targetPlayer = newAssignment.targetPlayer,
+                    countdownTime = newAssignment.countdownTime,
+                    alertType = newAssignment.alertType,
+                })
+            end
         else
-            QRA.Assignments.Update(assignment.id, {
-                triggerId = newAssignment.triggerId,
-                assignTarget = newAssignment.assignTarget,
-                spellId = newAssignment.spellId,
-                spellName = newAssignment.spellName,
-                message = newAssignment.message,
-                targetPlayer = newAssignment.targetPlayer,
-                countdownTime = newAssignment.countdownTime,
-                alertType = newAssignment.alertType,
-            })
+            -- Updating existing assignment
+            local oldTriggerId = currentAssignment.triggerId
+            if oldTriggerId ~= selectedTriggerId then
+                -- Moving to different trigger
+                QRA.Assignments.Remove(oldTriggerId, currentAssignment.id)
+                if selectedTriggerId then
+                    QRA.Assignments.Add(selectedTriggerId, newAssignment)
+                end
+            else
+                -- Same trigger, just update
+                QRA.Assignments.Update(oldTriggerId, currentAssignment.id, {
+                    counterFormula = newAssignment.counterFormula,
+                    assignTarget = newAssignment.assignTarget,
+                    spellId = newAssignment.spellId,
+                    spellName = newAssignment.spellName,
+                    message = newAssignment.message,
+                    targetPlayer = newAssignment.targetPlayer,
+                    countdownTime = newAssignment.countdownTime,
+                    alertType = newAssignment.alertType,
+                })
+            end
         end
 
         QRA.UI.RefreshAll()
-        assignmentEditorFrame:Hide()
-    end)
-
-    -- Cancel button
-    local cancelBtn = AF.CreateButton(assignmentEditorFrame, QRA.L["Cancel"], "gray", 80, 26)
-    AF.SetPoint(cancelBtn, "RIGHT", saveBtn, "LEFT", -10, 0)
-    cancelBtn:SetOnClick(function()
         assignmentEditorFrame:Hide()
     end)
 
@@ -1006,7 +1707,6 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             nameInput:Show()
             spellInput:Show()
             occSelector:Show()
-            -- Position activateInInput after occSelector for spell triggers
             AF.SetPoint(activateInInput, "TOPLEFT", occSelector, "BOTTOMLEFT", 0, -5)
             activateInInput:Show()
         elseif triggerType == QRA.Triggers.Types.TIMER.event then
@@ -1017,13 +1717,11 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             nameInput:Show()
             targetGuidInput:Show()
             occSelector:Show()
-            -- Position activateInInput after occSelector for UNIT_DIED triggers
             AF.SetPoint(activateInInput, "TOPLEFT", occSelector, "BOTTOMLEFT", 0, -5)
             activateInInput:Show()
         elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
             targetGuidInput:Show()
             hpThresholdsInput:Show()
-            -- Position activateInInput after hpThresholdsInput for UNIT_HEALTH triggers
             AF.SetPoint(activateInInput, "TOPLEFT", hpThresholdsInput, "BOTTOMLEFT", 0, -5)
             activateInInput:Show()
         end
@@ -1034,22 +1732,46 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
     end)
     UpdateInputVisibility()
 
-    -- Save button
-    local saveBtn = AF.CreateButton(triggerEditorFrame, QRA.L["Save"], "softlime", 80, 26)
-    AF.SetPoint(saveBtn, "BOTTOMRIGHT", triggerEditorFrame, -10, 10)
+    -- Save button (create once, reuse)
+    if not triggerEditorFrame.saveBtn then
+        triggerEditorFrame.saveBtn = AF.CreateButton(triggerEditorFrame, QRA.L["Save"], "softlime", 80, 26)
+        AF.SetPoint(triggerEditorFrame.saveBtn, "BOTTOMRIGHT", triggerEditorFrame, -10, 10)
+    end
+    local saveBtn = triggerEditorFrame.saveBtn
     saveBtn:SetEnabled(editable)
+
+    -- Cancel button (create once, reuse)
+    if not triggerEditorFrame.cancelBtn then
+        triggerEditorFrame.cancelBtn = AF.CreateButton(triggerEditorFrame, QRA.L["Cancel"], "gray", 80, 26)
+        AF.SetPoint(triggerEditorFrame.cancelBtn, "RIGHT", triggerEditorFrame.saveBtn, "LEFT", -10, 0)
+        triggerEditorFrame.cancelBtn:SetOnClick(function()
+            triggerEditorFrame:Hide()
+        end)
+    end
+
+    -- Store current state on form for save handler to reference
+    form.trigger = trigger
+    form.isNew = isNew
+    form.bossInput = bossInput
+    form.editable = editable
+
     saveBtn:SetOnClick(function()
-        QRA.Debug("Saving trigger from editor for:", trigger, bossInput)
+        -- Get current state from form (not closure)
+        local currentTrigger = form.trigger
+        local currentIsNew = form.isNew
+        local currentBossInput = form.bossInput
+
+        QRA.Debug("Saving trigger from editor for:", currentTrigger, currentBossInput)
         local triggerType = typeDropdown:GetSelectedValue()
         QRA.Debug("Selected trigger type:", triggerType)
-        local bossData = QRA.Bosses.GetBossByName(bossInput)
+        local bossData = QRA.Bosses.GetBossByName(currentBossInput)
         local counterFormulaValue = occSelector:GetValue()
         QRA.Debug("Counter formula from UI:", counterFormulaValue, type(counterFormulaValue))
         local config = {
-            id = trigger.id,
+            id = currentTrigger.id,
             name = strtrim(nameInput:GetText()),
             counterFormula = counterFormulaValue or "*",
-            bossName = bossInput,
+            bossName = currentBossInput,
             encounterId = bossData and bossData.encounterId or nil,
         }
 
@@ -1067,7 +1789,6 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             local intervalValue = tonumber(intervalInput:GetText())
             config.repeatInterval = (intervalValue and intervalValue > 0) and intervalValue or nil
             local repeatCountValue = tonumber(repeatCountInput:GetText())
-            -- Ensure repeatCount is an integer
             config.repeatCount = (repeatCountValue and repeatCountValue > 0) and math.floor(repeatCountValue) or nil
             config.counterFormula = "1"
         elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
@@ -1084,7 +1805,6 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
         -- Validation
         local isValid = true
         if triggerType == QRA.Triggers.Types.TIMER.event then
-            -- For timer triggers, time must be > 0 OR repeatInterval must be > 0
             local hasValidTime = config.time and config.time > 0
             local hasValidInterval = config.repeatInterval and config.repeatInterval > 0
             if not hasValidTime and not hasValidInterval then
@@ -1101,23 +1821,20 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
             return
         end
 
-        local newTrigger = QRA.Triggers.Create(triggerType, config, isNew)
+        local newTrigger = QRA.Triggers.Create(triggerType, config, currentIsNew)
 
-        if isNew then
+        -- Preserve existing assignments when updating
+        if not currentIsNew and currentTrigger.assignments then
+            newTrigger.assignments = currentTrigger.assignments
+        end
+
+        if currentIsNew then
             QRA.Triggers.SaveTrigger(newTrigger)
         else
-            -- Update existing trigger
             QRA.Triggers.UpdateTrigger(newTrigger)
         end
 
         QRA.UI.RefreshAll()
-        triggerEditorFrame:Hide()
-    end)
-
-    -- Cancel button
-    local cancelBtn = AF.CreateButton(triggerEditorFrame, QRA.L["Cancel"], "gray", 80, 26)
-    AF.SetPoint(cancelBtn, "RIGHT", saveBtn, "LEFT", -10, 0)
-    cancelBtn:SetOnClick(function()
         triggerEditorFrame:Hide()
     end)
 
@@ -1140,7 +1857,6 @@ function QRA.UI.ShowTemplateNameDialog(onConfirm)
     AF.SetPoint(nameInput, "TOPLEFT", 0, 0)
     nameInput:SetText("New Template")
 
-    -- Show dialog using AF.GetDialog pattern
     local dialog = AF.GetDialog(mainFrame, AF.WrapTextInColor(QRA.L["Save Template"], "accent"), 220)
     AF.SetPoint(dialog, "CENTER", mainFrame, 0, 0)
     dialog:SetContent(form, 50)
@@ -1176,7 +1892,6 @@ function QRA.UI.ShowExportFrame(exportString)
     editBox:SetAutoFocus(true)
     editBox:SetText(exportString)
 
-    -- Auto close on Ctrl+C or ESC
     local ctrlDown = false
     editBox:SetScript("OnKeyDown", function(self, key)
         if key == "LCTRL" or key == "RCTRL" or key == "LMETA" or key == "RMETA" then

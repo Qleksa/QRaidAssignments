@@ -308,7 +308,7 @@ function QRA.AssignTarget.GetColoredDisplayText(targetStr, showResolved)
 
     -- Color based on type
     if targetInfo.type == QRA.AssignTarget.Types.ALL then
-        return AF.WrapTextInColor(text, "accent")
+        return AF.WrapTextInColor(text, "softlime")
     elseif targetInfo.type == QRA.AssignTarget.Types.ROLE then
         if targetInfo.value == "TANK" then
             return AF.WrapTextInColor(text, "skyblue")
