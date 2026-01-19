@@ -74,6 +74,7 @@ AF.SetAddonAccentColor(QRA.name, "softlime")
 ---@field assignTarget string
 ---@field alertType AlertType
 ---@field countdownTime integer Seconds before alert
+---@field activateIn? number Seconds to delay assignment activation after trigger fires
 ---@field spellId? number
 ---@field spellName? string
 ---@field targetPlayer? string

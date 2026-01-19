@@ -74,6 +74,7 @@ function QRA.Assignments.Create(config)
         -- Alert settings
         alertType = config.alertType or QRA.Assignments.AlertTypes.TTS,
         countdownTime = config.countdownTime or 5,  -- Seconds before event to alert
+        activateIn = config.activateIn,             -- Delay assignment activation (optional)
         soundFile = config.soundFile,               -- Custom sound file path
 
         -- Metadata
@@ -261,7 +262,17 @@ function QRA.Assignments.ExecuteForTrigger(triggerId, eventData, counter)
 
                 if isTarget then
                     QRA.Debug("Assignments: Executing", assignment.id, "for trigger", triggerId, "counter", counter, "target", assignTarget)
-                    StartCountdown(assignment, eventData)
+                    
+                    -- Check if we should delay the assignment activation
+                    if assignment.activateIn and assignment.activateIn > 0 then
+                        QRA.Debug("Assignments: Delaying assignment activation by", assignment.activateIn, "seconds")
+                        QRA.DelayedInvoke(assignment.activateIn, function()
+                            StartCountdown(assignment, eventData)
+                        end)
+                    else
+                        -- Execute immediately
+                        StartCountdown(assignment, eventData)
+                    end
                 else
                     QRA.Debug("Assignments: Skipping", assignment.id, "- current player not in target", assignTarget)
                 end
