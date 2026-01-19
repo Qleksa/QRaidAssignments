@@ -285,7 +285,7 @@ end
 ---@field GetValue fun(self: QRA_ActivateInInput): number|nil
 ---@field SetValue fun(self: QRA_ActivateInInput, value: number|nil)
 
---- Create an activateIn input field (delay trigger activation)
+--- Create an activateIn input field (delay trigger or assignment activation)
 ---@param parent Frame Parent frame
 ---@param label string|nil Label text
 ---@param width number Field width
@@ -296,8 +296,8 @@ function QRA.Widgets.CreateActivateInInput(parent, label, width)
     -- Tooltip
     AF.SetTooltip(editBox, "TOPLEFT", 0, 2,
         QRA.L["Activate In (seconds)"],
-        "Delay the activation of this trigger",
-        "Example: 3 means the trigger activates 3 seconds after the event",
+        "Delay the activation after the event fires",
+        "Example: 3 means activate 3 seconds after the event",
         "Leave empty for immediate activation")
 
     -- Helper function to validate activateIn value
