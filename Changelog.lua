@@ -18,6 +18,9 @@ QRA.Changelog = {}
 --------------------------------------------------
 local WINDOW_WIDTH = 600
 local WINDOW_HEIGHT = 400
+local DEV_VERSION_MAJOR = 999  -- Used for development builds with @project-version@
+local DEV_VERSION_MINOR = 999
+local DEV_VERSION_PATCH = 999
 
 --------------------------------------------------
 -- State
@@ -38,7 +41,7 @@ local function ParseVersion(versionString)
     
     -- Handle @project-version@ placeholder (development builds)
     if versionString:find("@") then
-        return 999, 999, 999
+        return DEV_VERSION_MAJOR, DEV_VERSION_MINOR, DEV_VERSION_PATCH
     end
     
     local major, minor, patch = versionString:match("^(%d+)%.(%d+)%.(%d+)")
@@ -67,22 +70,40 @@ end
 -- Changelog Content
 --------------------------------------------------
 
+-- Changelog data structure
+-- Update this before each major/minor release
+-- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
+local CHANGELOG_DATA = {
+    {
+        version = "0.6.0",
+        changes = {
+            "Added changelog window that appears on first login after new version",
+            "Improved version tracking in saved variables",
+            "Added setting to hide changelog until next version",
+        }
+    },
+    {
+        version = "0.5.0",
+        changes = {
+            "Previous version features...",
+        }
+    },
+}
+
 --- Get the changelog text for the current version
 ---@return string changelog The changelog text
 local function GetChangelogText()
-    -- This will be populated by the BigWigs packager or manually updated
-    -- Format: Plain text with version headers
-    local changelog = [[
-Version 0.6.0
-- Added changelog window that appears on first login after new version
-- Improved version tracking in saved variables
-- Added setting to hide changelog until next version
-
-Version 0.5.0
-- Previous version features...
-]]
+    local lines = {}
     
-    return changelog
+    for _, entry in ipairs(CHANGELOG_DATA) do
+        table.insert(lines, "Version " .. entry.version)
+        for _, change in ipairs(entry.changes) do
+            table.insert(lines, "- " .. change)
+        end
+        table.insert(lines, "")  -- Blank line between versions
+    end
+    
+    return table.concat(lines, "\n")
 end
 
 --------------------------------------------------
@@ -222,14 +243,14 @@ function QRA.Changelog.CheckAndShow()
     end
     
     local lastSeenVersion = QRA.DB.settings.lastSeenVersion or "0.0.0"
-    local hideUntilNext = QRA.DB.settings.hideChangelogUntilNextVersion or false
+    local hideChangelogUntilNext = QRA.DB.settings.hideChangelogUntilNextVersion or false
     
     QRA.Debug("Changelog: Last seen version:", lastSeenVersion)
     QRA.Debug("Changelog: Current version:", QRA.version)
-    QRA.Debug("Changelog: Hide until next:", hideUntilNext)
+    QRA.Debug("Changelog: Hide until next:", hideChangelogUntilNext)
     
     -- Skip if user chose to hide until next version
-    if hideUntilNext and lastSeenVersion == QRA.version then
+    if hideChangelogUntilNext and lastSeenVersion == QRA.version then
         QRA.Debug("Changelog: Skipping - user chose to hide")
         return
     end
