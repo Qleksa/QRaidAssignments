@@ -186,11 +186,16 @@ SlashCmdList.QRAASSIGNMENTS = function(msg)
 
     if msg == "" or msg == "show" then
         QRA.UI.Toggle()
+    elseif msg == "changelog" then
+        if QRA.Changelog then
+            QRA.Changelog.Show()
+        end
     elseif msg == "help" then
         QRA.Print("Commands:")
         QRA.Print("  /qra - Toggle main window")
         QRA.Print("  /qra show - Show main window")
         QRA.Print("  /qra hide - Hide main window")
+        QRA.Print("  /qra changelog - Show changelog window")
         QRA.Print("  /qra test - Test notifications")
         QRA.Print("  /qra devmode - Toggle dev/test mode")
         QRA.Print("  /qra debug - Toggle debug mode")
