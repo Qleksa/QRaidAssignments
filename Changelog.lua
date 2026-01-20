@@ -18,7 +18,12 @@ QRA.Changelog = {}
 --------------------------------------------------
 local WINDOW_WIDTH = 600
 local WINDOW_HEIGHT = 400
-local DEV_VERSION_MAJOR = 999  -- Used for development builds with @project-version@
+
+-- Development build version numbers
+-- Development builds use @project-version@ placeholder which gets replaced during packaging.
+-- While in development, we use 999.999.999 to ensure dev builds always appear as "newer"
+-- than any released version, preventing false changelog displays during development.
+local DEV_VERSION_MAJOR = 999
 local DEV_VERSION_MINOR = 999
 local DEV_VERSION_PATCH = 999
 
@@ -80,14 +85,10 @@ local CHANGELOG_DATA = {
             "Added changelog window that appears on first login after new version",
             "Improved version tracking in saved variables",
             "Added setting to hide changelog until next version",
+            "Added manual command /qra changelog for testing",
         }
     },
-    {
-        version = "0.5.0",
-        changes = {
-            "Previous version features...",
-        }
-    },
+    -- Add previous versions here as releases are made
 }
 
 --- Get the changelog text for the current version
@@ -134,7 +135,7 @@ local function CreateChangelogWindow()
     versionText:SetPoint("TOPLEFT", changelogFrame, 15, -35)
     versionText:SetPoint("TOPRIGHT", changelogFrame, -15, -35)
     versionText:SetJustifyH("LEFT")
-    versionText:SetText(string.format(QRA.L["Version %s"], QRA.version))
+    versionText:SetText(string.format(QRA.L["Version %s"], tostring(QRA.version or "Unknown")))
     versionText:SetTextColor(AF.GetColorRGB("accent"))
     
     -- Scrollable changelog content
@@ -242,21 +243,23 @@ function QRA.Changelog.CheckAndShow()
         return
     end
     
-    local lastSeenVersion = QRA.DB.settings.lastSeenVersion or "0.0.0"
+    -- Ensure we have valid version strings for comparison
+    local lastSeenVersion = tostring(QRA.DB.settings.lastSeenVersion or "0.0.0")
+    local currentVersion = tostring(QRA.version or "0.0.0")
     local hideChangelogUntilNext = QRA.DB.settings.hideChangelogUntilNextVersion or false
     
     QRA.Debug("Changelog: Last seen version:", lastSeenVersion)
-    QRA.Debug("Changelog: Current version:", QRA.version)
+    QRA.Debug("Changelog: Current version:", currentVersion)
     QRA.Debug("Changelog: Hide until next:", hideChangelogUntilNext)
     
     -- Skip if user chose to hide until next version
-    if hideChangelogUntilNext and lastSeenVersion == QRA.version then
+    if hideChangelogUntilNext and lastSeenVersion == currentVersion then
         QRA.Debug("Changelog: Skipping - user chose to hide")
         return
     end
     
     -- Check if this is a new major or minor version
-    if IsNewMajorOrMinorVersion(lastSeenVersion, QRA.version) then
+    if IsNewMajorOrMinorVersion(lastSeenVersion, currentVersion) then
         QRA.Debug("Changelog: New major/minor version detected, showing changelog")
         
         -- Reset the hide flag for new version
@@ -269,7 +272,7 @@ function QRA.Changelog.CheckAndShow()
     else
         QRA.Debug("Changelog: No new major/minor version, not showing")
         -- Update last seen version even if not showing
-        QRA.DB.settings.lastSeenVersion = QRA.version
+        QRA.DB.settings.lastSeenVersion = currentVersion
     end
 end
 

@@ -64,13 +64,11 @@ function QRA.UIParent:PLAYER_LOGIN()
     QRA.DB = QRA_DB
     QRA.Settings = QRA.DB.settings
     
-    -- Ensure new settings fields exist in existing saves
-    if not QRA.Settings.lastSeenVersion then
-        QRA.Settings.lastSeenVersion = nil
-    end
+    -- Ensure new settings fields exist in existing saves (with proper defaults)
     if QRA.Settings.hideChangelogUntilNextVersion == nil then
         QRA.Settings.hideChangelogUntilNextVersion = false
     end
+    -- lastSeenVersion is intentionally left nil for first-time users
     
     -- AFConfig.debug[QRA.name] = QRA.Settings.debug
 
