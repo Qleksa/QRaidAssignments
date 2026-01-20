@@ -699,7 +699,7 @@ function QRA.UI.ShowAssignmentEditor(assignment)
             "QRA_AssignmentEditor",
             QRA.L["Assignment Editor"],
             220,
-            370
+            410
         )
         AF.SetPoint(assignmentEditorFrame, "CENTER", mainFrame, 0, 0)
         assignmentEditorFrame:SetFrameStrata("DIALOG")
@@ -783,6 +783,13 @@ function QRA.UI.ShowAssignmentEditor(assignment)
         alertDropdown:SetSelectedValue(assignment.alertType)
     end
 
+    -- Activate In input (delay assignment activation)
+    local activateInInput = QRA.Widgets.CreateActivateInInput(form, QRA.L["Activate In (seconds)"], 200)
+    AF.SetPoint(activateInInput, "TOPLEFT", alertDropdown, "BOTTOMLEFT", 0, -10)
+    if assignment.activateIn then
+        activateInInput:SetValue(assignment.activateIn)
+    end
+
     -- Save button
     local saveBtn = AF.CreateButton(assignmentEditorFrame, QRA.L["Save"], "softlime", 80, 26)
     AF.SetPoint(saveBtn, "BOTTOMRIGHT", assignmentEditorFrame, -10, 10)
@@ -806,6 +813,7 @@ function QRA.UI.ShowAssignmentEditor(assignment)
             targetPlayer = targetPlayer,
             countdownTime = countdownSlider:GetValue(),
             alertType = alertDropdown:GetSelectedValue(),
+            activateIn = activateInInput:GetValue(),
         })
 
         if isNew then
@@ -820,6 +828,7 @@ function QRA.UI.ShowAssignmentEditor(assignment)
                 targetPlayer = newAssignment.targetPlayer,
                 countdownTime = newAssignment.countdownTime,
                 alertType = newAssignment.alertType,
+                activateIn = newAssignment.activateIn,
             })
         end
 

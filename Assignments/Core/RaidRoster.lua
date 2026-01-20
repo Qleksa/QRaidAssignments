@@ -158,7 +158,7 @@ function QRA.RaidRoster.ScanLiveRoster()
     if not isRaid and numMembers > 0 then
         local name = UnitName("player")
         local _, classFile = UnitClass("player")
-        local specIndex = GetSpecialization()
+        local specIndex = C_SpecializationInfo.GetSpecialization()
         local specAbbrev = nil
         local role = GetUnitRole("player")
 
