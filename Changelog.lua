@@ -80,6 +80,12 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
+        version = "0.9.0",
+        changes = {
+            "Update Changelog frame header title",
+        }
+    },
+    {
         version = "0.8.0",
         changes = {
             "Bump version to 0.8.0",
