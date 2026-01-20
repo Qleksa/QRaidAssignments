@@ -6,7 +6,7 @@ local AF = _G.AbstractFramework
 QRA = {}
 
 QRA.name = "QRaidAssignments"
-QRA.version = "0.6.0"
+QRA.version = "0.7.0"
 
 --------------------------------------------------
 -- Pre-initialize module tables
@@ -18,6 +18,7 @@ QRA.Assignments = {}
 QRA.Templates = {}
 QRA.Widgets = {}
 QRA.Notifications = {}
+QRA.Changelog = {}
 
 --------------------------------------------------
 -- APIs (from AbstractFramework)
@@ -74,6 +75,7 @@ AF.SetAddonAccentColor(QRA.name, "softlime")
 ---@field assignTarget string
 ---@field alertType AlertType
 ---@field countdownTime integer Seconds before alert
+---@field activateIn? number Seconds to delay assignment activation after trigger fires
 ---@field spellId? number
 ---@field spellName? string
 ---@field targetPlayer? string

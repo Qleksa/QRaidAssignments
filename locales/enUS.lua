@@ -193,6 +193,13 @@ L["Template not found"] = "Template not found"
 L["Failed to import template"] = "Failed to import template"
 
 --------------------------------------------------
+-- Changelog
+--------------------------------------------------
+L["What's New in QRaidAssignments"] = "What's New in QRaidAssignments"
+L["Version %s"] = "Version %s"
+L["Don't show until next version"] = "Don't show until next version"
+
+--------------------------------------------------
 -- Dev Mode
 --------------------------------------------------
 L["Test Mode"] = "Test Mode"

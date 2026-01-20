@@ -108,7 +108,7 @@ local function CreateInstanceRow(parent, instanceName, tier, onToggle)
     local bg = row:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints()
     bg:SetColorTexture(0.18, 0.18, 0.25, 0.95)
-    
+
     -- Left accent bar
     local accentBar = row:CreateTexture(nil, "ARTWORK")
     accentBar:SetSize(3, TREE_ROW_HEIGHT - 4)
@@ -135,13 +135,13 @@ local function CreateInstanceRow(parent, instanceName, tier, onToggle)
     local nameFS = AF.CreateFontString(row, instanceName, "softlime")
     nameFS:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE")
     AF.SetPoint(nameFS, "LEFT", collapseBtn, "RIGHT", 5, 0)
-    
+
     -- Tier badge
     if tier then
         local tierBadge = AF.CreateFontString(row, string.format("T%d", tier), "white")
         tierBadge:SetFont(STANDARD_TEXT_FONT, 9, "OUTLINE")
         AF.SetPoint(tierBadge, "LEFT", nameFS, "RIGHT", 8, 0)
-        
+
         -- Badge background
         local tierBg = row:CreateTexture(nil, "ARTWORK", nil, -1)
         tierBg:SetSize(tierBadge:GetStringWidth() + 8, 14)
@@ -201,7 +201,7 @@ local function CreateBossRow(parent, bossData, indentLevel, onToggle, onAddTrigg
     local countBadge = AF.CreateFontString(row, tostring(#triggers), "gray")
     countBadge:SetFont(STANDARD_TEXT_FONT, 9, "")
     AF.SetPoint(countBadge, "LEFT", nameFS, "RIGHT", 8, 0)
-    
+
     -- Count badge background
     local countBg = row:CreateTexture(nil, "ARTWORK", nil, -1)
     countBg:SetSize(countBadge:GetStringWidth() + 10, 14)
@@ -298,7 +298,7 @@ local function CreateTriggerRow(parent, trigger, indentLevel, onToggle, onEdit, 
     typeIndicator:SetSize(10, 10)
     AF.SetPoint(typeIndicator, "LEFT", startOffset + 25, 0)
     typeIndicator:SetColorTexture(AF.GetColorRGB(typeColor))
-    
+
     -- Type indicator border
     local typeBorder = row:CreateTexture(nil, "ARTWORK", nil, 1)
     typeBorder:SetSize(12, 12)
@@ -700,10 +700,10 @@ function QRA.UI.ShowDeleteTriggerDialog(trigger, onComplete)
 
     local deleteAllBtn = AF.CreateButton(btnContainer, QRA.L["Delete All"], "red", 90, 26)
     AF.SetPoint(deleteAllBtn, "LEFT", 0, 0)
-    
+
     local orphanBtn = AF.CreateButton(btnContainer, QRA.L["Keep as Orphaned"], "orange", 120, 26)
     AF.SetPoint(orphanBtn, "LEFT", deleteAllBtn, "RIGHT", 10, 0)
-    
+
     local cancelBtn = AF.CreateButton(btnContainer, QRA.L["Cancel"], "gray", 70, 26)
     AF.SetPoint(cancelBtn, "LEFT", orphanBtn, "RIGHT", 10, 0)
 
@@ -796,7 +796,7 @@ local function BuildTreeView(parent, scrollList, bossFilter)
     -- If boss filter is set, only show that boss's triggers
     if bossFilter then
         local triggers = QRA.Triggers.GetBossTriggers(bossFilter)
-        
+
         for _, trigger in ipairs(triggers) do
             -- Trigger row
             local triggerRow = CreateTriggerRow(
@@ -1341,6 +1341,7 @@ function QRA.UI.ShowAssignmentEditor(assignment, triggerId)
             "QRA_AssignmentEditor",
             QRA.L["Assignment Editor"],
             220,
+            410
             400
         )
         AF.SetPoint(assignmentEditorFrame, "CENTER", mainFrame, 0, 0)
@@ -1482,6 +1483,7 @@ function QRA.UI.ShowAssignmentEditor(assignment, triggerId)
             targetPlayer = targetPlayer,
             countdownTime = countdownSlider:GetValue(),
             alertType = alertDropdown:GetSelectedValue(),
+            activateIn = activateInInput:GetValue(),
         })
 
         if currentIsNew then

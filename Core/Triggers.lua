@@ -499,6 +499,12 @@ local function RemoveFromIndex(trigger)
 end
 
 local function ShouldRemoveTrigger(trigger, currentCounter)
+    -- Timer triggers are controlled by their repeatCount and C_Timer.NewTicker
+    -- They should not be removed based on counterFormula exhaustion
+    if trigger.type == QRA.Triggers.Types.TIMER.event then
+        return false
+    end
+    
     local maxCounter = QRA.CounterFormula.GetMaxCounter(trigger.counterFormula)
     if not maxCounter then
         return false -- Infinite formula, never remove
@@ -852,9 +858,10 @@ function QRA.Triggers.Fire(trigger, eventData)
     )
 
     local currentCounter = IncrementOccurrence(counterKey)
+    local shouldExecute = trigger.type == QRA.Triggers.Types.TIMER.event or QRA.CounterFormula.Matches(trigger.counterFormula, currentCounter)
 
     -- Check if this counter matches the trigger's formula
-    if QRA.CounterFormula.Matches(trigger.counterFormula, currentCounter) then
+    if shouldExecute then
         QRA.Debug("Triggers: Fired", trigger.id, "counter", currentCounter)
 
         -- Check if we should delay the activation
