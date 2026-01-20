@@ -1384,18 +1384,18 @@ function QRA.UI.ShowAssignmentEditor(assignment, triggerId)
         counterInput:SetValue(assignment.counterFormula)
     end
 
-    -- Assign Target menu (who receives this assignment)
-    local assignTargetMenu = QRA.AssignTargetMenu.CreateMenuButton(form, 200)
-    AF.SetPoint(assignTargetMenu, "TOPLEFT", counterInput, "BOTTOMLEFT", 0, -30)
+    -- Assign Target text input (who receives this assignment)
+    local assignTargetInput = QRA.Widgets.CreateAssignTargetInput(form, QRA.L["Assign To"], 200)
+    AF.SetPoint(assignTargetInput, "TOPLEFT", counterInput, "BOTTOMLEFT", 0, -10)
     if assignment.assignTarget then
-        assignTargetMenu:SetSelectedTarget(assignment.assignTarget)
+        assignTargetInput:SetValue(assignment.assignTarget)
     else
-        assignTargetMenu:SetSelectedTarget("ALL")
+        assignTargetInput:SetValue("ALL")
     end
 
     -- Spell input
     local spellInput = QRA.Widgets.CreateSpellInput(form, QRA.L["Spell"], 200)
-    AF.SetPoint(spellInput, "TOPLEFT", assignTargetMenu, "BOTTOMLEFT", 0, -35)
+    AF.SetPoint(spellInput, "TOPLEFT", assignTargetInput, "BOTTOMLEFT", 0, -15)
     if assignment.spellId then
         spellInput:SetSpell(assignment.spellId, assignment.spellName)
         spellInput:SetCursorPosition(0)
@@ -1482,7 +1482,7 @@ function QRA.UI.ShowAssignmentEditor(assignment, triggerId)
         local newAssignment = QRA.Assignments.Create({
             triggerId = selectedTriggerId,
             counterFormula = counterInput:GetValue() or "*",
-            assignTarget = assignTargetMenu:GetSelectedTarget() or "ALL",
+            assignTarget = assignTargetInput:GetValue() or "ALL",
             spellId = spellData.spellId,
             spellName = spellData.spellName or nil,
             message = message,

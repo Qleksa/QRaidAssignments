@@ -359,4 +359,37 @@ function QRA.AssignTarget.Validate(targetStr)
     return true, nil
 end
 
+--------------------------------------------------
+-- UI Tips
+--------------------------------------------------
+
+--- Get tips table for UI tooltips
+---@return table Array of tip strings
+function QRA.AssignTarget.GetTips()
+    return {
+        "|cff00ff00Assign Target Syntax|r",
+        " ",
+        "|cffffd100Basic:|r",
+        "  |cff00ff00ALL|r = Everyone in raid",
+        "  |cff00ff00Playername|r = Specific player",
+        " ",
+        "|cffffd100Roles:|r",
+        "  |cff00ff00TANK|r = All tanks",
+        "  |cff00ff00HEALER|r = All healers",
+        "  |cff00ff00DPS|r = All DPS",
+        "  |cff00ff00TANK1|r = First tank",
+        "  |cff00ff00HEALER2|r = Second healer",
+        " ",
+        "|cffffd100Classes:|r",
+        "  |cff00ff00WARR|r = All warriors",
+        "  |cff00ff00PAL1|r = First paladin",
+        "  |cff00ff00MAGE2|r = Second mage",
+        " ",
+        "|cffffd100Specs:|r",
+        "  |cff00ff00HPAL|r = All holy paladins",
+        "  |cff00ff00PWARR1|r = First protection warrior",
+        "  |cff00ff00RDRUID2|r = Second restoration druid",
+    }
+end
+
 -- QRA.Debug("AssignTarget: Module loaded")
