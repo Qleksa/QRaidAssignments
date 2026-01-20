@@ -43,19 +43,19 @@ local function ParseVersion(versionString)
     if not versionString or versionString == "" then
         return 0, 0, 0
     end
-    
+
     -- Handle @project-version@ placeholder (development builds)
     if versionString:find("@") then
         return DEV_VERSION_MAJOR, DEV_VERSION_MINOR, DEV_VERSION_PATCH
     end
-    
+
     local major, minor, patch = versionString:match("^(%d+)%.(%d+)%.(%d+)")
     if not major then
         -- Try parsing without patch version
         major, minor = versionString:match("^(%d+)%.(%d+)")
         patch = "0"
     end
-    
+
     return tonumber(major) or 0, tonumber(minor) or 0, tonumber(patch) or 0
 end
 
@@ -66,9 +66,9 @@ end
 local function IsNewMajorOrMinorVersion(lastVersion, currentVersion)
     local lastMajor, lastMinor, _ = ParseVersion(lastVersion)
     local currentMajor, currentMinor, _ = ParseVersion(currentVersion)
-    
+
     -- New major or minor version
-    return currentMajor > lastMajor or (currentMajor == lastMajor and currentMinor > lastMinor)
+    return currentMajor > lastMajor or (currentMajor == lastMajor and currentMinor >= lastMinor)
 end
 
 --------------------------------------------------
@@ -95,15 +95,15 @@ local CHANGELOG_DATA = {
 ---@return string changelog The changelog text
 local function GetChangelogText()
     local lines = {}
-    
+
     for _, entry in ipairs(CHANGELOG_DATA) do
         table.insert(lines, "Version " .. entry.version)
         for _, change in ipairs(entry.changes) do
             table.insert(lines, "- " .. change)
         end
-        table.insert(lines, "")  -- Blank line between versions
+        table.insert(lines, "") -- Blank line between versions
     end
-    
+
     return table.concat(lines, "\n")
 end
 
@@ -117,7 +117,7 @@ local function CreateChangelogWindow()
     if changelogFrame then
         return changelogFrame
     end
-    
+
     changelogFrame = AF.CreateHeaderedFrame(
         UIParent,
         "QRA_ChangelogWindow",
@@ -125,10 +125,10 @@ local function CreateChangelogWindow()
         WINDOW_WIDTH,
         WINDOW_HEIGHT
     )
-    
+
     changelogFrame:SetPoint("CENTER")
     changelogFrame:SetFrameStrata("DIALOG")
-    
+
     -- Version header
     local versionText = changelogFrame:CreateFontString(nil, "OVERLAY")
     versionText:SetFont(STANDARD_TEXT_FONT, 14, "OUTLINE")
@@ -137,12 +137,12 @@ local function CreateChangelogWindow()
     versionText:SetJustifyH("LEFT")
     versionText:SetText(string.format(QRA.L["Version %s"], tostring(QRA.version or "Unknown")))
     versionText:SetTextColor(AF.GetColorRGB("accent"))
-    
+
     -- Scrollable changelog content using AF.CreateScrollFrame
     local scrollFrame = AF.CreateScrollFrame(changelogFrame, nil, WINDOW_WIDTH - 50, WINDOW_HEIGHT - 125)
     scrollFrame:SetPoint("TOPLEFT", versionText, "BOTTOMLEFT", 0, -10)
     scrollFrame:SetPoint("BOTTOMRIGHT", changelogFrame, -25, 45)
-    
+
     -- Changelog text using AF.CreateFontString
     local changelogText = AF.CreateFontString(scrollFrame.scrollContent, GetChangelogText(), "white")
     changelogText:SetPoint("TOPLEFT", scrollFrame.scrollContent, 5, -5)
@@ -151,39 +151,33 @@ local function CreateChangelogWindow()
     changelogText:SetJustifyV("TOP")
     changelogText:SetSpacing(3)
     changelogText:SetNonSpaceWrap(true)
-    
+
     -- Calculate and set content height
     local textHeight = changelogText:GetStringHeight()
     scrollFrame:SetContentHeight(textHeight + 10)
-    
+
     -- Bottom controls frame
     local bottomFrame = CreateFrame("Frame", nil, changelogFrame)
     bottomFrame:SetPoint("BOTTOMLEFT", changelogFrame, 15, 10)
     bottomFrame:SetPoint("BOTTOMRIGHT", changelogFrame, -15, 10)
     bottomFrame:SetHeight(30)
-    
+
     -- Checkbox: Don't show until next version
-    local hideCheckbox = AF.CreateCheckBox(
+    local hideCheckbox = AF.CreateCheckButton(
         bottomFrame,
         QRA.L["Don't show until next version"],
-        false
+        function(checked)
+            if QRA.DB and QRA.DB.settings then
+                QRA.DB.settings.hideChangelogUntilNextVersion = checked
+                QRA.Debug("Changelog: Hide until next version:", checked)
+            end
+        end
     )
     hideCheckbox:SetPoint("LEFT", bottomFrame, 0, 0)
-    
-    hideCheckbox:SetOnClick(function(checked)
-        if QRA.DB and QRA.DB.settings then
-            QRA.DB.settings.hideChangelogUntilNextVersion = checked
-            QRA.Debug("Changelog: Hide until next version:", checked)
-        end
-    end)
-    
-    -- Close button
-    local closeBtn = AF.CreateButton(bottomFrame, QRA.L["Close"], "accent", 80, 28)
-    closeBtn:SetPoint("RIGHT", bottomFrame, 0, 0)
-    closeBtn:SetOnClick(function()
-        changelogFrame:Hide()
-    end)
-    
+    hideCheckbox:SetChecked(
+        QRA.DB and QRA.DB.settings and QRA.DB.settings.hideChangelogUntilNextVersion or false
+    )
+
     -- Update last seen version when closing
     changelogFrame:SetScript("OnHide", function()
         if QRA.DB and QRA.DB.settings then
@@ -191,7 +185,7 @@ local function CreateChangelogWindow()
             QRA.Debug("Changelog: Updated last seen version to", QRA.version)
         end
     end)
-    
+
     return changelogFrame
 end
 
@@ -221,29 +215,29 @@ function QRA.Changelog.CheckAndShow()
         QRA.Debug("Changelog: DB not initialized, skipping check")
         return
     end
-    
+
     -- Ensure we have valid version strings for comparison
     local lastSeenVersion = tostring(QRA.DB.settings.lastSeenVersion or "0.0.0")
     local currentVersion = tostring(QRA.version or "0.0.0")
     local hideChangelogUntilNext = QRA.DB.settings.hideChangelogUntilNextVersion or false
-    
+
     QRA.Debug("Changelog: Last seen version:", lastSeenVersion)
     QRA.Debug("Changelog: Current version:", currentVersion)
     QRA.Debug("Changelog: Hide until next:", hideChangelogUntilNext)
-    
+
     -- Skip if user chose to hide until next version
     if hideChangelogUntilNext and lastSeenVersion == currentVersion then
         QRA.Debug("Changelog: Skipping - user chose to hide")
         return
     end
-    
+
     -- Check if this is a new major or minor version
     if IsNewMajorOrMinorVersion(lastSeenVersion, currentVersion) then
         QRA.Debug("Changelog: New major/minor version detected, showing changelog")
-        
+
         -- Reset the hide flag for new version
         QRA.DB.settings.hideChangelogUntilNextVersion = false
-        
+
         -- Show changelog after a short delay to let UI settle
         QRA.DelayedInvoke(1.5, function()
             QRA.Changelog.Show()
