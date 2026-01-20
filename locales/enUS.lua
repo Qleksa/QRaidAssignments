@@ -143,6 +143,7 @@ L["assignments"] = "assignments"
 --------------------------------------------------
 -- Settings
 --------------------------------------------------
+L["Settings"] = "Settings"
 L["Notification Settings"] = "Notification Settings"
 L["Enable Text-to-Speech"] = "Enable Text-to-Speech"
 L["Enable Sounds"] = "Enable Sounds"
@@ -156,6 +157,23 @@ L["Test Countdown"] = "Test Countdown"
 L["Test Alert"] = "Test Alert"
 L["Debug"] = "Debug"
 L["Enable Debug Mode"] = "Enable Debug Mode"
+
+--------------------------------------------------
+-- Hierarchical Tree View
+--------------------------------------------------
+L["Orphaned Assignments"] = "Orphaned Assignments"
+L["No Trigger"] = "No Trigger"
+L["Assign to Trigger"] = "Assign to Trigger"
+L["Add Assignment"] = "Add Assignment"
+L["Delete Trigger"] = "Delete Trigger"
+L["Delete Assignment"] = "Delete Assignment"
+L["This trigger has %d assignment(s)"] = "This trigger has %d assignment(s)"
+L["Delete All"] = "Delete All"
+L["Keep as Orphaned"] = "Keep as Orphaned"
+L["What would you like to do with the assignments?"] = "What would you like to do with the assignments?"
+L["Expand All"] = "Expand All"
+L["Collapse All"] = "Collapse All"
+L["All Instances"] = "All Instances"
 
 --------------------------------------------------
 -- Notifications

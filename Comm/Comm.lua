@@ -20,7 +20,6 @@ local function CopyTriggersAndAssignments(triggers)
     local copiedData = {}
     for _, trigger in ipairs(triggers) do
         local copiedTrigger = QRA.DeepCopy(trigger)
-        copiedTrigger.assignments = QRA.Assignments.GetForTrigger(trigger.id)
         table.insert(copiedData, copiedTrigger)
     end
     return copiedData
@@ -58,7 +57,6 @@ function QRA.Comm.ExportTrigger(triggerId, isForAddonChannel)
     end
 
     local exportData = QRA.DeepCopy(trigger)
-    exportData.assignments = QRA.Assignments.GetForTrigger(trigger.id)
     local exportString = QRA.Serialize({exportData}, isForAddonChannel or false)
     QRA.Debug("Comm: Export String Generated")
     return exportString
@@ -91,19 +89,38 @@ local function ImportData(input, isSerialized, isForAddonChannel)
     if data then
         QRA.Debug("Comm: Deserialized Data", data)
         for _, trigger in ipairs(data) do
-            QRA.Triggers.UpsertTrigger(trigger)
-            local existingAssignments = QRA.Assignments.GetForTrigger(trigger.id)
-            local existingAssignmentsById = {}
-            for _, existingAssignment in ipairs(existingAssignments) do
-                existingAssignmentsById[existingAssignment.id] = true
-            end
-            for _, assignment in ipairs(trigger.assignments or {}) do
+            local existingTrigger = QRA.Triggers.Get(trigger.id)
 
-                if not existingAssignmentsById[assignment.id] then
-                    QRA.Assignments.Add(assignment)
-                else
-                    QRA.Assignments.Update(assignment.id, assignment)
+            if existingTrigger then
+                local existingAssignmentsById = {}
+                for _, existingAssignment in ipairs(existingTrigger.assignments or {}) do
+                    existingAssignmentsById[existingAssignment.id] = existingAssignment
                 end
+
+
+                for _, assignment in ipairs(trigger.assignments or {}) do
+                    if existingAssignmentsById[assignment.id] then
+                        -- Update existing assignment
+                        for i, existing in ipairs(existingTrigger.assignments) do
+                            if existing.id == assignment.id then
+                                existingTrigger.assignments[i] = assignment
+                                break
+                            end
+                        end
+                    else
+                        -- Add new assignment
+                        if not existingTrigger.assignments then
+                            existingTrigger.assignments = {}
+                        end
+                        table.insert(existingTrigger.assignments, assignment)
+                    end
+                end
+
+                -- Update trigger with merged assignments
+                QRA.Triggers.UpdateTrigger(existingTrigger)
+            else
+                -- New trigger - upsert directly (assignments already embedded)
+                QRA.Triggers.UpsertTrigger(trigger)
             end
         end
         QRA.UI.RefreshAll()

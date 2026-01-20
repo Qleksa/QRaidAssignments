@@ -504,7 +504,7 @@ local function ShouldRemoveTrigger(trigger, currentCounter)
     if trigger.type == QRA.Triggers.Types.TIMER.event then
         return false
     end
-    
+
     local maxCounter = QRA.CounterFormula.GetMaxCounter(trigger.counterFormula)
     if not maxCounter then
         return false -- Infinite formula, never remove
@@ -745,15 +745,38 @@ end
 
 --- Delete a trigger from the database
 --- @param triggerId string trigger ID to delete
-function QRA.Triggers.DeleteTrigger(triggerId)
+--- @param orphanAssignments boolean|nil If true, move assignments to orphaned. If false, delete them. If nil, just delete trigger (assignments already handled)
+function QRA.Triggers.DeleteTrigger(triggerId, orphanAssignments)
     for index, trigger in ipairs(QRA.DB.triggers) do
         if trigger.id == triggerId then
+            -- Handle assignments if present and orphanAssignments is specified
+            if orphanAssignments ~= nil and trigger.assignments and #trigger.assignments > 0 then
+                if orphanAssignments then
+                    -- Move assignments to orphaned
+                    QRA.Assignments.OrphanAssignments(triggerId, trigger.assignments)
+                end
+                -- If orphanAssignments is false, assignments are just deleted with the trigger
+            end
+
             table.remove(QRA.DB.triggers, index)
             QRA.Debug("Triggers: Deleted trigger", triggerId)
-            return
+            return true
         end
     end
     QRA.Debug("Triggers: Trigger not found for deletion", triggerId)
+    return false
+end
+
+--- Check if a trigger has assignments
+---@param triggerId string
+---@return boolean hasAssignments
+---@return number count
+function QRA.Triggers.HasAssignments(triggerId)
+    local trigger = QRA.Triggers.Get(triggerId)
+    if trigger and trigger.assignments then
+        return #trigger.assignments > 0, #trigger.assignments
+    end
+    return false, 0
 end
 
 --------------------------------------------------

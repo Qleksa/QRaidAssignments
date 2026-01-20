@@ -21,6 +21,7 @@ local QRA = QRA
 
 ---@class InstanceData
 ---@field instanceId number instance ID
+---@field tier number Raid tier number (higher = more recent content, e.g., T15 = 15)
 ---@field bosses BossData[] list of bosses in the instance
 
 ---@class Bosses
@@ -29,6 +30,7 @@ QRA.Bosses = {
     instances = {
         ["Throne of Thunder"] = {
             instanceId = 1098,
+            tier = 15,
             bosses = {
                 {
                     name = "Jin'rokh the Breaker",
@@ -61,7 +63,7 @@ QRA.Bosses = {
                             name = "Rampage",
                             type = "UNIT_DIED",
                             targetGuid = "boss",
-                            counterFormula = "<=6",
+                            counterFormula = "<= 6",
                             activateIn = 6,
                         }
                     }
@@ -174,4 +176,41 @@ end
 
 function QRA.Bosses.Initialize()
     QRA.Debug("Bosses module initialized.")
+end
+
+--- Get all instances sorted by tier (descending, so highest tier first)
+--- @return table[] List of {instanceName, instanceData} pairs sorted by tier
+function QRA.Bosses.GetInstancesSortedByTier()
+    local sorted = {}
+    for instanceName, instanceData in pairs(QRA.Bosses.instances) do
+        table.insert(sorted, {
+            name = instanceName,
+            data = instanceData,
+        })
+    end
+    table.sort(sorted, function(a, b)
+        return (a.data.tier or 0) > (b.data.tier or 0)
+    end)
+    return sorted
+end
+
+--- Get instance data with name
+--- @param instanceName string Name of the instance
+--- @return InstanceData|nil Instance data or nil if not found
+function QRA.Bosses.GetInstance(instanceName)
+    return QRA.Bosses.instances[instanceName]
+end
+
+--- Get instance name for a boss
+--- @param bossName string Name of the boss
+--- @return string|nil Instance name or nil if not found
+function QRA.Bosses.GetInstanceNameForBoss(bossName)
+    for instanceName, instanceData in pairs(QRA.Bosses.instances) do
+        for _, bossData in ipairs(instanceData.bosses) do
+            if bossData.name == bossName then
+                return instanceName
+            end
+        end
+    end
+    return nil
 end

@@ -70,7 +70,7 @@ AF.SetAddonAccentColor(QRA.name, "softlime")
 ---@field id string
 ---@field version number
 ---@field enabled boolean
----@field triggerId string
+---@field triggerId string? Parent trigger ID (nil for orphaned assignments)
 ---@field counterFormula string
 ---@field assignTarget string
 ---@field alertType AlertType
@@ -82,6 +82,10 @@ AF.SetAddonAccentColor(QRA.name, "softlime")
 ---@field message? string
 ---@field soundFile? string Custom sound file path
 ---@field createdAt integer
+
+---@class OrphanedAssignment : Assignment
+---@field orphanedAt integer Timestamp when assignment became orphaned
+---@field previousTriggerId string? ID of the trigger that was deleted
 
 local areLibsOkay = true
 do
