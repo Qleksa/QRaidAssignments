@@ -278,6 +278,52 @@ function QRA.Widgets.CreateCounterInput(parent, label, width)
 end
 
 --------------------------------------------------
+-- Assign Target Input
+--------------------------------------------------
+
+---@class QRA_AssignTargetInput : AF_EditBox
+---@field GetValue fun(self: QRA_AssignTargetInput): string|nil
+---@field SetValue fun(self: QRA_AssignTargetInput, value: string|nil)
+
+--- Create an assign target input box
+---@param parent Frame Parent frame
+---@param label string|nil Label text
+---@param width number Field width
+---@return QRA_AssignTargetInput editBox
+function QRA.Widgets.CreateAssignTargetInput(parent, label, width)
+    local editBox = AF.CreateEditBox(parent, label or QRA.L["Assign To"], width or 150, 20)
+    editBox:SetText("ALL")
+
+    -- Force initial validation since SetText doesn't trigger OnTextChanged
+    local initialText = editBox:GetText()
+    local isValid, errorMsg = QRA.AssignTarget.Validate(initialText)
+    if not isValid then
+        editBox:SetBackdropBorderColor(AF.GetColorRGB("red"))
+    else
+        editBox:SetBackdropBorderColor(AF.GetColorRGB("gray"))
+    end
+
+    editBox:SetOnTextChanged(function(text)
+        local ok, err = QRA.AssignTarget.Validate(text)
+        QRA.Debug("Assign Target Input: Validation result:", ok, err)
+    end)
+
+    AF.SetTooltip(editBox, "TOPLEFT", 0, 2, unpack(QRA.AssignTarget.GetTips()))
+
+    -- Public API
+    function editBox:GetValue()
+        return editBox:GetText() == "" and nil or editBox:GetText()
+    end
+
+    function editBox:SetValue(value)
+        local textValue = tostring(value or "ALL")
+        editBox:SetText(textValue)
+    end
+
+    return editBox
+end
+
+--------------------------------------------------
 -- Activate In Input
 --------------------------------------------------
 
