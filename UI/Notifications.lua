@@ -34,7 +34,15 @@ local config = {
         [2] = "Interface/AddOns/QRaidAssignments/Media/Sounds/2.ogg",
         [1] = "Interface/AddOns/QRaidAssignments/Media/Sounds/1.ogg",
     },
+
+    framePosition = {
+        point = "TOP",
+        xOfs = 0,
+        yOfs = -200,
+    }
 }
+
+local MOVER_GROUP = "QRA Movers"
 
 --------------------------------------------------
 -- Screen Message Frame
@@ -53,14 +61,28 @@ local screenMessageFrame = nil
 ---@type TickerCallback
 local countdownTicker = nil
 
+local function UpdateFramePosition(point, x, y)
+    if not screenMessageFrame then return end
+
+    config.framePosition.point = point
+    config.framePosition.xOfs = x
+    config.framePosition.yOfs = y
+
+    AF.SetPoint(screenMessageFrame, point, x, y)
+end
+
+
 --- Create the screen message display frame
 local function CreateScreenMessageFrame()
     if screenMessageFrame then return end
 
     local progressBarMaxValue = 100
+    local framePosition = config.framePosition
 
     screenMessageFrame = AF.CreateBorderedFrame(QRA.UIParent, "QRA_ScreenMessageFrame", 250, 80, nil, "softlime")
-    AF.SetPoint(screenMessageFrame, "TOP", QRA.UIParent, "TOP", 0, -200)
+    AF.CreateMover(screenMessageFrame, MOVER_GROUP, "Notification Frame", UpdateFramePosition)
+    AF.SetTooltip(screenMessageFrame, "TOPLEFT", 0, 2, "Drag to move the notification frame position")
+    AF.SetPoint(screenMessageFrame, framePosition.point, framePosition.xOfs, framePosition.yOfs)
     screenMessageFrame:SetFrameLevel(300)
     screenMessageFrame:Hide()
 
@@ -234,13 +256,14 @@ function QRA.Notifications.ShowCountdown(assignment, seconds)
     end
 
     local message = assignment.message
-    if not message and assignment.spellName then
+    if message == "" and assignment.spellName then
         message = string.format("Use %s", assignment.spellName)
+        if assignment.targetPlayer then
+            message = message .. " on " .. assignment.targetPlayer
+        end
     end
     message = message or "Assignment triggered!"
-    if assignment.targetPlayer then
-        message = string.format("%s on %s", message, assignment.targetPlayer)
-    end
+
     screenMessageFrame.text:SetText(message)
     screenMessageFrame:SetSpell(assignment.spellId)
     screenMessageFrame.countText:SetText("in " .. seconds)
@@ -420,6 +443,7 @@ function QRA.Notifications.SaveToDB()
         chatEnabled = config.chatEnabled,
         screenDuration = config.screenDuration,
         chatChannel = config.chatChannel,
+        framePosition = config.framePosition,
     }
 end
 

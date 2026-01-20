@@ -1006,7 +1006,7 @@ function QRA.Widgets.CreateSectionHeader(parent, title, collapsible)
     AF.SetPoint(bg, "BOTTOMRIGHT")
 
     -- Title text
-    local titleFS = AF.CreateFontString(header, title, "accent")
+    local titleFS = AF.CreateFontString(header, title, "softlime")
     AF.SetPoint(titleFS, "LEFT", 10, 0)
 
     -- Collapse button (optional)

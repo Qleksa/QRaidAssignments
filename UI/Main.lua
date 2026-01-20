@@ -967,14 +967,14 @@ function QRA.UI.ShowSettingsPanel()
         "QRA_SettingsPanel",
         QRA.L["Settings"],
         300,
-        350
+        430
     )
     AF.SetPoint(settingsFrame, "CENTER", mainFrame, 0, 0)
     settingsFrame:SetFrameStrata("DIALOG")
     settingsFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 10)
 
     local content = CreateFrame("Frame", nil, settingsFrame)
-    AF.SetPoint(content, "TOPLEFT", settingsFrame, 10, -35)
+    AF.SetPoint(content, "TOPLEFT", settingsFrame, 10, -10)
     AF.SetPoint(content, "BOTTOMRIGHT", settingsFrame, -10, 40)
 
     -- Notifications section
@@ -1025,21 +1025,38 @@ function QRA.UI.ShowSettingsPanel()
     AF.SetPoint(testTTSBtn, "TOPLEFT", testHeader, "BOTTOMLEFT", 10, -10)
     testTTSBtn:SetOnClick(QRA.Notifications.TestTTS)
 
-    local testSoundBtn = AF.CreateButton(content, QRA.L["Test Sound"], "static", 80, 22)
+    local testSoundBtn = AF.CreateButton(content, QRA.L["Test Sound"], "static", 90, 22)
     AF.SetPoint(testSoundBtn, "LEFT", testTTSBtn, "RIGHT", 8, 0)
     testSoundBtn:SetOnClick(QRA.Notifications.TestSound)
 
-    local testScreenBtn = AF.CreateButton(content, QRA.L["Test Screen"], "static", 80, 22)
+    local testScreenBtn = AF.CreateButton(content, QRA.L["Test Screen"], "static", 100, 22)
     AF.SetPoint(testScreenBtn, "TOPLEFT", testTTSBtn, "BOTTOMLEFT", 0, -8)
     testScreenBtn:SetOnClick(QRA.Notifications.TestScreen)
 
-    local testCountdownBtn = AF.CreateButton(content, QRA.L["Test Countdown"], "static", 100, 22)
+    local testCountdownBtn = AF.CreateButton(content, QRA.L["Test Countdown"], "static", 125, 22)
     AF.SetPoint(testCountdownBtn, "LEFT", testScreenBtn, "RIGHT", 8, 0)
     testCountdownBtn:SetOnClick(QRA.Notifications.TestCountdown)
 
+    -- Movers section
+    local moversHeader = QRA.Widgets.CreateSectionHeader(content, QRA.L["Movers"])
+    AF.SetPoint(moversHeader, "TOPLEFT", testScreenBtn, "BOTTOMLEFT", -10, -20)
+    AF.SetPoint(moversHeader, "TOPRIGHT", content, 0, 0)
+
+    local showMoversBtn = AF.CreateButton(content, QRA.L["Show Movers"], "static", 115, 26)
+    AF.SetPoint(showMoversBtn, "TOPLEFT", moversHeader, "BOTTOMLEFT", 0, -15)
+    showMoversBtn:SetOnClick(function()
+        AF.ShowMovers("QRA Movers")
+    end)
+
+    local hideMoversBtn = AF.CreateButton(content, QRA.L["Hide Movers"], "static", 100, 26)
+    AF.SetPoint(hideMoversBtn, "LEFT", showMoversBtn, "RIGHT", 8, 0)
+    hideMoversBtn:SetOnClick(function()
+        AF.HideMovers()
+    end)
+
     -- Debug section
     local debugHeader = QRA.Widgets.CreateSectionHeader(content, QRA.L["Debug"])
-    AF.SetPoint(debugHeader, "TOPLEFT", testScreenBtn, "BOTTOMLEFT", -10, -20)
+    AF.SetPoint(debugHeader, "TOPLEFT", showMoversBtn, "BOTTOMLEFT", 0, -20)
     AF.SetPoint(debugHeader, "TOPRIGHT", content, 0, 0)
 
     local debugCheck = AF.CreateCheckButton(content, QRA.L["Enable Debug Mode"], function(checked)
