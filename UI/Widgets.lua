@@ -551,7 +551,7 @@ end
 ---@param parent Frame Parent frame
 ---@param width number Dropdown width
 ---@param onSelect function Callback when selection changes
----@return Frame dropdown
+---@return AF_CascadingMenuButton dropdown
 function QRA.Widgets.CreateBossMenu(parent, width, onSelect)
     local menu = AF.CreateCascadingMenuButton(parent, width or 200)
     menu:SetLabel(QRA.L["Boss"])

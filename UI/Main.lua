@@ -292,18 +292,18 @@ local function CreateTriggerRow(parent, trigger, indentLevel, onToggle, onEdit, 
     enableCheck:SetChecked(trigger.enabled)
     enableCheck:SetEnabled(not trigger.default)
 
-    -- Type indicator (colored circle with better visibility)
+    -- Type indicator border
+    local typeBorder = row:CreateTexture(nil, "ARTWORK", nil, -1)
+    typeBorder:SetSize(12, 12)
+    AF.SetPoint(typeBorder, "LEFT", startOffset + 25, 0)
+    typeBorder:SetColorTexture(0, 0, 0, 0.8)
+
+    -- Type indicator
     local typeColor = QRA.Widgets.Colors.triggerType[trigger.type] or "gray"
     local typeIndicator = row:CreateTexture(nil, "ARTWORK")
     typeIndicator:SetSize(10, 10)
-    AF.SetPoint(typeIndicator, "LEFT", startOffset + 25, 0)
+    typeIndicator:SetPoint("CENTER", typeBorder, 0, 0)
     typeIndicator:SetColorTexture(AF.GetColorRGB(typeColor))
-
-    -- Type indicator border
-    local typeBorder = row:CreateTexture(nil, "ARTWORK", nil, 1)
-    typeBorder:SetSize(12, 12)
-    typeBorder:SetPoint("CENTER", typeIndicator, 0, 0)
-    typeBorder:SetColorTexture(0, 0, 0, 0.8)
 
     -- Trigger details
     local details
@@ -1198,7 +1198,7 @@ local function CreateMainFrame()
     AF.SetPoint(listFrame, "TOPLEFT", topBar, "BOTTOMLEFT", 0, -5)
     AF.SetPoint(listFrame, "BOTTOMRIGHT", content, 0, 40)
 
-    local scrollList = AF.CreateScrollList(listFrame, nil, 5, 5, 8, TREE_ROW_HEIGHT, 3)
+    local scrollList = AF.CreateScrollList(listFrame, nil, 5, 5, 13, TREE_ROW_HEIGHT, 3)
     AF.SetPoint(scrollList, "TOPLEFT", listFrame, 5, -5)
     AF.SetPoint(scrollList, "BOTTOMRIGHT", listFrame, -5, 5)
     content.scrollList = scrollList
@@ -1341,8 +1341,7 @@ function QRA.UI.ShowAssignmentEditor(assignment, triggerId)
             "QRA_AssignmentEditor",
             QRA.L["Assignment Editor"],
             220,
-            410
-            400
+            425
         )
         AF.SetPoint(assignmentEditorFrame, "CENTER", mainFrame, 0, 0)
         assignmentEditorFrame:SetFrameStrata("DIALOG")
@@ -1433,6 +1432,13 @@ function QRA.UI.ShowAssignmentEditor(assignment, triggerId)
         alertDropdown:SetSelectedValue(assignment.alertType)
     end
 
+    -- Activate In input (delay assignment activation)
+    local activateInInput = QRA.Widgets.CreateActivateInInput(form, QRA.L["Activate In (seconds)"], 200)
+    AF.SetPoint(activateInInput, "TOPLEFT", alertDropdown, "BOTTOMLEFT", 0, -10)
+    if assignment.activateIn then
+        activateInInput:SetValue(assignment.activateIn)
+    end
+
     -- Save button (create once, reuse)
     if not assignmentEditorFrame.saveBtn then
         assignmentEditorFrame.saveBtn = AF.CreateButton(assignmentEditorFrame, QRA.L["Save"], "softlime", 80, 26)
@@ -1507,6 +1513,7 @@ function QRA.UI.ShowAssignmentEditor(assignment, triggerId)
                     targetPlayer = newAssignment.targetPlayer,
                     countdownTime = newAssignment.countdownTime,
                     alertType = newAssignment.alertType,
+                    activateIn = newAssignment.activateIn,
                 })
             end
         else
@@ -1529,6 +1536,7 @@ function QRA.UI.ShowAssignmentEditor(assignment, triggerId)
                     targetPlayer = newAssignment.targetPlayer,
                     countdownTime = newAssignment.countdownTime,
                     alertType = newAssignment.alertType,
+                    activateIn = newAssignment.activateIn,
                 })
             end
         end
@@ -1771,11 +1779,20 @@ function QRA.UI.ShowTriggerEditor(trigger, bossInput)
         QRA.Debug("Counter formula from UI:", counterFormulaValue, type(counterFormulaValue))
         local config = {
             id = currentTrigger.id,
-            name = strtrim(nameInput:GetText()),
             counterFormula = counterFormulaValue or "*",
             bossName = currentBossInput,
             encounterId = bossData and bossData.encounterId or nil,
         }
+
+        -- Only include name for trigger types that show the name input field and should preserve custom names
+        -- Timer and HP% triggers auto-generate names based on their configuration
+        if triggerType ~= QRA.Triggers.Types.TIMER.event and
+           triggerType ~= QRA.Triggers.Types.UNIT_HEALTH.event then
+            local customName = strtrim(nameInput:GetText())
+            if customName ~= "" then
+                config.name = customName
+            end
+        end
 
         if triggerType == QRA.Triggers.Types.SPELL_CAST_SUCCESS.event or
            triggerType == QRA.Triggers.Types.SPELL_CAST_START.event or

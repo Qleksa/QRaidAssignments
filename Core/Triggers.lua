@@ -504,7 +504,7 @@ local function ShouldRemoveTrigger(trigger, currentCounter)
     if trigger.type == QRA.Triggers.Types.TIMER.event then
         return false
     end
-    
+
     local maxCounter = QRA.CounterFormula.GetMaxCounter(trigger.counterFormula)
     if not maxCounter then
         return false -- Infinite formula, never remove
@@ -757,7 +757,7 @@ function QRA.Triggers.DeleteTrigger(triggerId, orphanAssignments)
                 end
                 -- If orphanAssignments is false, assignments are just deleted with the trigger
             end
-            
+
             table.remove(QRA.DB.triggers, index)
             QRA.Debug("Triggers: Deleted trigger", triggerId)
             return true
