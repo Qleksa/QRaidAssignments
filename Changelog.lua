@@ -80,6 +80,18 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
+        version = "0.10.0",
+        changes = {
+            "Remove old assignment migration code",
+            "Add mover for notification frame",
+            "Replace AssignTarget cascading menu with text field (#40)",
+            "Fix spell input position and allow message and target in assignment editor to be empty",
+            "Make notification widget prettier and added better countdown sounds",
+            "Clean up AssignTargetInput validation code",
+            "Replace AssignTarget menu with text field",
+        }
+    },
+    {
         version = "0.8.0",
         changes = {
             "Bump version to 0.8.0",
