@@ -305,9 +305,7 @@ function QRA.Widgets.CreateAssignTargetInput(parent, label, width)
 
     editBox:SetOnTextChanged(function(text)
         local ok, err = QRA.AssignTarget.Validate(text)
-        editBox:SetText(text)
-        -- Optional: Could add visual validation feedback here
-        -- editBox:SetBackdropBorderColor(ok and AF.GetColorRGB("gray") or AF.GetColorRGB("red"))
+        QRA.Debug("Assign Target Input: Validation result:", ok, err)
     end)
 
     AF.SetTooltip(editBox, "TOPLEFT", 0, 2, unpack(QRA.AssignTarget.GetTips()))
