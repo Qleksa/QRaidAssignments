@@ -63,19 +63,19 @@ function QRA.UIParent:PLAYER_LOGIN()
     end
     QRA.DB = QRA_DB
     QRA.Settings = QRA.DB.settings
-    
+
     -- Ensure new settings fields exist in existing saves (with proper defaults)
     if QRA.Settings.hideChangelogUntilNextVersion == nil then
         QRA.Settings.hideChangelogUntilNextVersion = false
     end
     -- lastSeenVersion is intentionally left nil for first-time users
-    
+
     -- AFConfig.debug[QRA.name] = QRA.Settings.debug
 
     -- Initialize all modules
     QRA.InitializeModules()
     QRA.Debug("All modules initialized")
-    
+
     -- Check and show changelog if needed (after all modules are ready)
     if QRA.Changelog and QRA.Changelog.CheckAndShow then
         QRA.Changelog.CheckAndShow()

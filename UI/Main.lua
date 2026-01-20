@@ -1395,7 +1395,7 @@ function QRA.UI.ShowAssignmentEditor(assignment, triggerId)
 
     -- Spell input
     local spellInput = QRA.Widgets.CreateSpellInput(form, QRA.L["Spell"], 200)
-    AF.SetPoint(spellInput, "TOPLEFT", assignTargetInput, "BOTTOMLEFT", 0, -15)
+    AF.SetPoint(spellInput, "TOPLEFT", assignTargetInput, "BOTTOMLEFT", 0, -25)
     if assignment.spellId then
         spellInput:SetSpell(assignment.spellId, assignment.spellName)
         spellInput:SetCursorPosition(0)
@@ -1416,6 +1416,9 @@ function QRA.UI.ShowAssignmentEditor(assignment, triggerId)
         targetInput:SetText(assignment.targetPlayer)
         targetInput:SetCursorPosition(0)
     end
+    AF.SetTooltip(targetInput, "TOPLEFT", 0, 2,
+        "Specify a target player name for the spell assignment.\nIf message is provided it overrides specified target."
+    )
 
     -- Countdown slider
     local countdownSlider = QRA.Widgets.CreateCountdownSlider(form, 200, 0, 10)
@@ -1462,20 +1465,13 @@ function QRA.UI.ShowAssignmentEditor(assignment, triggerId)
     form.existingTriggerId = existingTriggerId
 
     saveBtn:SetOnClick(function()
-        -- Get current state from form (not closure)
         local currentAssignment = form.assignment
         local currentIsNew = form.isNew
         local currentIsOrphaned = form.isOrphaned
 
         local spellData = spellInput:GetSpell()
-        local message = nil
-        if msgInput:GetText() ~= "" then
-            message = msgInput:GetText()
-        end
-        local targetPlayer = nil
-        if targetInput:GetText() ~= "" then
-            targetPlayer = targetInput:GetText()
-        end
+        local message = msgInput:GetText()
+        local targetPlayer = targetInput:GetText()
 
         local selectedTriggerId = triggerDropdown:GetSelectedValue()
 
