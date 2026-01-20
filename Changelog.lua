@@ -80,6 +80,17 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
+        version = "0.7.0",
+        changes = {
+            "Bump version to 0.7.0",
+            "Add changelog window on first login after version update with automated generation (#37)",
+            "Fix timer triggers with intervals being removed prematurely (#36)",
+            "Fix GetSpecialization call",
+            "Add activateIn field to assignments (#35)",
+            "Add copilot instructions",
+        }
+    },
+    {
         version = "0.6.0",
         changes = {
             "Added changelog window that appears on first login after new version",
