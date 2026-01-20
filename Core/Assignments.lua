@@ -50,7 +50,7 @@ end
 
 --- Create a new assignment
 ---@param config table Assignment configuration
----@return table Assignment The configured assignment object
+---@return Assignment Assignment The configured assignment object
 function QRA.Assignments.Create(config)
     ---@type Assignment
     local assignment = {
