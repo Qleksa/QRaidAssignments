@@ -139,7 +139,7 @@ local function CreateChangelogWindow()
     changelogFrame = AF.CreateHeaderedFrame(
         UIParent,
         "QRA_ChangelogWindow",
-        QRA.L["What's New in QRaidAssignments"],
+        QRA.L["What's New in Q's Raid Assignments"],
         WINDOW_WIDTH,
         WINDOW_HEIGHT
     )
