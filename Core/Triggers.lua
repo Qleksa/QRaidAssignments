@@ -835,9 +835,10 @@ function QRA.Triggers.Fire(trigger, eventData)
     )
 
     local currentCounter = IncrementOccurrence(counterKey)
+    local shouldExecute = trigger.type == QRA.Triggers.Types.TIMER.event or QRA.CounterFormula.Matches(trigger.counterFormula, currentCounter)
 
     -- Check if this counter matches the trigger's formula
-    if QRA.CounterFormula.Matches(trigger.counterFormula, currentCounter) then
+    if shouldExecute then
         QRA.Debug("Triggers: Fired", trigger.id, "counter", currentCounter)
 
         -- Check if we should delay the activation
@@ -867,7 +868,7 @@ end
 
 --- Process combat log events and check triggers
 function QRA.Triggers.ProcessCombatLogEvent(...)
-    QRA.Debug("Triggers: Processing combat log event")
+    -- QRA.Debug("Triggers: Processing combat log event")
     if not encounterActive then return end
 
     local timestamp, subevent, _, sourceGUID, sourceName, _, _, destGUID, destName = ...
