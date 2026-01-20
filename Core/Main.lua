@@ -56,16 +56,30 @@ function QRA.UIParent:PLAYER_LOGIN()
             notifications = {},
             settings = {
                 debug = false,
+                lastSeenVersion = nil,
+                hideChangelogUntilNextVersion = false,
             }
         }
     end
     QRA.DB = QRA_DB
     QRA.Settings = QRA.DB.settings
+    
+    -- Ensure new settings fields exist in existing saves (with proper defaults)
+    if QRA.Settings.hideChangelogUntilNextVersion == nil then
+        QRA.Settings.hideChangelogUntilNextVersion = false
+    end
+    -- lastSeenVersion is intentionally left nil for first-time users
+    
     -- AFConfig.debug[QRA.name] = QRA.Settings.debug
 
     -- Initialize all modules
     QRA.InitializeModules()
     QRA.Debug("All modules initialized")
+    
+    -- Check and show changelog if needed (after all modules are ready)
+    if QRA.Changelog and QRA.Changelog.CheckAndShow then
+        QRA.Changelog.CheckAndShow()
+    end
 end
 
 --------------------------------------------------
@@ -104,6 +118,10 @@ function QRA.InitializeModules()
 
     if QRA.UI and QRA.UI.Initialize then
         QRA.UI.Initialize()
+    end
+
+    if QRA.Changelog and QRA.Changelog.Initialize then
+        QRA.Changelog.Initialize()
     end
 
     if QRA.Comm and QRA.Comm.Initialize then
@@ -166,11 +184,16 @@ SlashCmdList.QRAASSIGNMENTS = function(msg)
 
     if msg == "" or msg == "show" then
         QRA.UI.Toggle()
+    elseif msg == "changelog" then
+        if QRA.Changelog then
+            QRA.Changelog.Show()
+        end
     elseif msg == "help" then
         QRA.Print("Commands:")
         QRA.Print("  /qra - Toggle main window")
         QRA.Print("  /qra show - Show main window")
         QRA.Print("  /qra hide - Hide main window")
+        QRA.Print("  /qra changelog - Show changelog window")
         QRA.Print("  /qra test - Test notifications")
         QRA.Print("  /qra devmode - Toggle dev/test mode")
         QRA.Print("  /qra debug - Toggle debug mode")

@@ -18,6 +18,7 @@ QRA.Assignments = {}
 QRA.Templates = {}
 QRA.Widgets = {}
 QRA.Notifications = {}
+QRA.Changelog = {}
 
 --------------------------------------------------
 -- APIs (from AbstractFramework)
