@@ -138,44 +138,23 @@ local function CreateChangelogWindow()
     versionText:SetText(string.format(QRA.L["Version %s"], tostring(QRA.version or "Unknown")))
     versionText:SetTextColor(AF.GetColorRGB("accent"))
     
-    -- Scrollable changelog content
-    local scrollFrame = CreateFrame("ScrollFrame", nil, changelogFrame, "UIPanelScrollFrameTemplate")
+    -- Scrollable changelog content using AF.CreateScrollFrame
+    local scrollFrame = AF.CreateScrollFrame(changelogFrame, nil, WINDOW_WIDTH - 50, WINDOW_HEIGHT - 125)
     scrollFrame:SetPoint("TOPLEFT", versionText, "BOTTOMLEFT", 0, -10)
-    scrollFrame:SetPoint("BOTTOMRIGHT", changelogFrame, -35, 45)
+    scrollFrame:SetPoint("BOTTOMRIGHT", changelogFrame, -25, 45)
     
-    -- Backdrop for scroll area
-    local backdrop = CreateFrame("Frame", nil, scrollFrame, "BackdropTemplate")
-    backdrop:SetAllPoints(scrollFrame)
-    backdrop:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    })
-    backdrop:SetBackdropColor(0.05, 0.05, 0.05, 0.9)
-    backdrop:SetBackdropBorderColor(AF.GetColorRGB("gray"))
-    backdrop:SetFrameLevel(scrollFrame:GetFrameLevel() - 1)
-    
-    local content = CreateFrame("Frame", nil, scrollFrame)
-    content:SetSize(WINDOW_WIDTH - 60, 1) -- Height will be set based on text
-    scrollFrame:SetScrollChild(content)
-    
-    -- Changelog text
-    local changelogText = content:CreateFontString(nil, "OVERLAY")
-    changelogText:SetFont(STANDARD_TEXT_FONT, 12)
-    changelogText:SetPoint("TOPLEFT", content, 10, -10)
-    changelogText:SetPoint("TOPRIGHT", content, -10, -10)
+    -- Changelog text using AF.CreateFontString
+    local changelogText = AF.CreateFontString(scrollFrame.scrollContent, GetChangelogText(), "white")
+    changelogText:SetPoint("TOPLEFT", scrollFrame.scrollContent, 5, -5)
+    changelogText:SetPoint("TOPRIGHT", scrollFrame.scrollContent, -5, -5)
     changelogText:SetJustifyH("LEFT")
     changelogText:SetJustifyV("TOP")
     changelogText:SetSpacing(3)
     changelogText:SetNonSpaceWrap(true)
-    changelogText:SetTextColor(1, 1, 1, 1)
     
-    local changelogContent = GetChangelogText()
-    changelogText:SetText(changelogContent)
-    
-    -- Adjust content height based on text
+    -- Calculate and set content height
     local textHeight = changelogText:GetStringHeight()
-    content:SetHeight(textHeight + 20)
+    scrollFrame:SetContentHeight(textHeight + 10)
     
     -- Bottom controls frame
     local bottomFrame = CreateFrame("Frame", nil, changelogFrame)
