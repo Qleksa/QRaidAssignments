@@ -1324,7 +1324,7 @@ local assignmentEditorFrame = nil
 local triggerEditorFrame = nil
 
 --- Show the assignment editor window
----@param assignment Assignment|nil Existing assignment to edit, or nil for new
+---@param assignment OrphanedAssignment|nil Existing assignment to edit, or nil for new
 ---@param triggerId string|nil Trigger ID to associate with (for new assignments)
 function QRA.UI.ShowAssignmentEditor(assignment, triggerId)
     local isNew = assignment == nil

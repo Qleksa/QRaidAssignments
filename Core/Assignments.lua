@@ -424,7 +424,7 @@ function QRA.Assignments.ExecuteForTrigger(triggerId, eventData, counter)
                 local isTarget = QRA.AssignTarget.IsCurrentPlayerTarget(assignTarget)
 
                 if isTarget then
-                    QRA.Debug("Assignments: Executing", assignment.id, "for trigger", triggerId, "counter", counter, "target", assignTarget)
+                    -- QRA.Debug("Assignments: Executing", assignment.id, "for trigger", triggerId, "counter", counter, "target", assignTarget)
 
                     -- Check if we should delay the assignment activation
                     if assignment.activateIn and assignment.activateIn > 0 then
@@ -448,7 +448,7 @@ end
 ---@param assignment table The assignment
 ---@param eventData table|nil Event data
 function QRA.Assignments.ExecuteAlert(assignment, eventData)
-    QRA.Debug("Assignments: Executing alert for assignment", assignment)
+    -- QRA.Debug("Assignments: Executing alert for assignment", assignment)
     assignment.lastExecuted = time()
 
     -- Build the alert message

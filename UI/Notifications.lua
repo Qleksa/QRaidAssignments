@@ -39,35 +39,51 @@ local config = {
 --------------------------------------------------
 -- Screen Message Frame
 --------------------------------------------------
+
+---@class QRA_ScreenMessageFrame : AF_BorderedFrame
+---@field icon Texture
+---@field text AF_FontString
+---@field countText AF_FontString
+---@field progressBar AF_BlizzardStatusBar
+---@field fadeAnim AnimationGroup
+---@field SetBarValue fun(self: QRA_ScreenMessageFrame, value: number)
+---@field SetSpell fun(self: QRA_ScreenMessageFrame, spellId: number)
 local screenMessageFrame = nil
 
--- TODO: Use AF framses
+---@type TickerCallback
+local countdownTicker = nil
 
 --- Create the screen message display frame
 local function CreateScreenMessageFrame()
     if screenMessageFrame then return end
 
-    screenMessageFrame = CreateFrame("Frame", "QRA_ScreenMessage", QRA.UIParent)
-    screenMessageFrame:SetSize(400, 60)
-    screenMessageFrame:SetPoint("CENTER", 0, 150)
-    screenMessageFrame:SetFrameStrata("HIGH")
+    local progressBarMaxValue = 100
+
+    screenMessageFrame = AF.CreateBorderedFrame(QRA.UIParent, "QRA_ScreenMessageFrame", 250, 80, nil, "softlime")
+    AF.SetPoint(screenMessageFrame, "TOP", QRA.UIParent, "TOP", 0, -200)
+    screenMessageFrame:SetFrameLevel(300)
     screenMessageFrame:Hide()
 
-    -- Background
-    local bg = screenMessageFrame:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints()
-    bg:SetColorTexture(0, 0, 0, 0.7)
+    -- Spell icon
+    local icon = screenMessageFrame:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(40, 40)
+    AF.SetPoint(icon, "LEFT", screenMessageFrame, 15, 0)
+    screenMessageFrame.icon = icon
 
-    -- Message text
-    local text = AF.CreateFontString(screenMessageFrame, "", "yellow")
-    AF.SetPoint(text, "CENTER")
-    text:SetJustifyH("CENTER")
+    -- Spell name
+    local text = AF.CreateFontString(screenMessageFrame, "", "softlime")
+    AF.SetPoint(text, "LEFT", icon, "RIGHT", 10, 10)
     screenMessageFrame.text = text
 
-    -- Countdown text (smaller, below main message)
-    local countdown = AF.CreateFontString(screenMessageFrame, "", "white")
-    AF.SetPoint(countdown, "TOP", text, "BOTTOM", 0, -5)
-    screenMessageFrame.countdown = countdown
+    -- Countdown text
+    local countText = AF.CreateFontString(screenMessageFrame, "", "yellow")
+    AF.SetPoint(countText, "LEFT", icon, "RIGHT", 10, -10)
+    screenMessageFrame.countText = countText
+
+    -- Progress bar
+    local progressBar = AF.CreateBlizzardStatusBar(screenMessageFrame, 0, progressBarMaxValue, 200, 8, "softlime")
+    AF.SetPoint(progressBar, "BOTTOM", screenMessageFrame, 0, 10)
+    screenMessageFrame.progressBar = progressBar
 
     -- Animation group for fade out
     local ag = screenMessageFrame:CreateAnimationGroup()
@@ -81,6 +97,20 @@ local function CreateScreenMessageFrame()
         screenMessageFrame:SetAlpha(1)
     end)
     screenMessageFrame.fadeAnim = ag
+
+    -- Public API
+    function screenMessageFrame:SetBarValue(value)
+        self.progressBar:SetBarValue(value)
+    end
+
+    function screenMessageFrame:SetSpell(spellId)
+        if spellId then
+            local spellIcon = C_Spell.GetSpellTexture(spellId)
+            self.icon:SetTexture(spellIcon)
+        else
+            self.icon:SetTexture(134400)
+        end
+    end
 end
 
 ---@param type AlertType Notification type
@@ -109,9 +139,9 @@ function QRA.Notifications.SpeakTTS(message, voice)
     if not config.ttsEnabled then return end
     if not message or message == "" then return end
 
-    -- Use the TextToSpeech API if available (Retail only)
+
     if C_VoiceChat and C_VoiceChat.SpeakText then
-        local voiceId = voice or Enum.TtsVoiceType.Standard
+        local voiceId = voice or Enum.TtsVoiceType.Alternate
         C_VoiceChat.SpeakText(
             voiceId,
             message,
@@ -120,17 +150,8 @@ function QRA.Notifications.SpeakTTS(message, voice)
             100   -- Volume
         )
     else
-        -- Classic fallback: use LibTextToSpeech if available, or print to chat
-        local LibTTS = LibStub and LibStub("LibTextToSpeech", true)
-        if LibTTS then
-            LibTTS:Speak(message)
-        else
-            -- Final fallback: just print it
-            QRA.Print("|cffFFFF00[TTS]|r " .. message)
-        end
+        QRA.Print("Issue with TTS: C_VoiceChat.SpeakText not available")
     end
-
-    QRA.Debug("Notifications: TTS -", message)
 end
 
 --------------------------------------------------
@@ -188,7 +209,7 @@ function QRA.Notifications.ShowOnScreen(message, duration, color)
     else
         screenMessageFrame.text:SetTextColor(1, 1, 0)  -- Yellow default
     end
-    screenMessageFrame.countdown:SetText("")
+    screenMessageFrame.countText:SetText("")
 
     -- Reset and show
     screenMessageFrame:SetAlpha(1)
@@ -221,7 +242,9 @@ function QRA.Notifications.ShowCountdown(assignment, seconds)
         message = string.format("%s on %s", message, assignment.targetPlayer)
     end
     screenMessageFrame.text:SetText(message)
-    screenMessageFrame.countdown:SetText(string.format(QRA.L["in %d seconds"], seconds))
+    screenMessageFrame:SetSpell(assignment.spellId)
+    screenMessageFrame.countText:SetText("in " .. seconds)
+    screenMessageFrame:SetBarValue(100)
 
     screenMessageFrame:SetAlpha(1)
     screenMessageFrame:Show()
@@ -229,13 +252,22 @@ function QRA.Notifications.ShowCountdown(assignment, seconds)
     -- Don't auto-hide during countdown
     screenMessageFrame.fadeAnim:Stop()
 
+    if countdownTicker then
+        countdownTicker:Cancel()
+    end
+
     local remaining = seconds
-    C_Timer.NewTicker(1, function()
-        remaining = remaining - 1
+    local startTime = GetTime()
+    QRA.Notifications.PlayCountdown(seconds)
+    countdownTicker = C_Timer.NewTicker(1, function()
+        local elapsed = GetTime() - startTime
+        remaining = seconds - elapsed
+
         if remaining > 0 then
-            QRA.Notifications.PlayCountdown(remaining)
+            QRA.Notifications.PlayCountdown(math.ceil(remaining))
+            screenMessageFrame.progressBar:SetBarValue((remaining / seconds) * 100)
         end
-        QRA.Notifications.UpdateCountdown(remaining)
+        QRA.Notifications.UpdateCountdown(math.ceil(remaining))
     end, seconds)
 end
 
@@ -243,16 +275,17 @@ end
 ---@param seconds number Seconds remaining
 function QRA.Notifications.UpdateCountdown(seconds)
     if screenMessageFrame and screenMessageFrame:IsShown() then
-        if seconds > 0 then
-            screenMessageFrame.countdown:SetText(string.format(QRA.L["in %d seconds"], seconds))
-        else
-            screenMessageFrame.countdown:SetText(QRA.L["NOW!"])
-            screenMessageFrame.countdown:SetTextColor(1, 0, 0)  -- Red
+        if seconds <= 0 then
+            screenMessageFrame.countText:SetText(AF.WrapTextInColor("NOW!", "red"))
+            screenMessageFrame:SetBarValue(0)
+
 
             -- Start fade out
             screenMessageFrame.fadeAnim:Stop()
             screenMessageFrame.fadeAnim:GetAnimations():SetStartDelay(1.5)
             screenMessageFrame.fadeAnim:Play()
+        else
+            screenMessageFrame.countText:SetText("in " .. math.ceil(seconds))
         end
     end
 end
