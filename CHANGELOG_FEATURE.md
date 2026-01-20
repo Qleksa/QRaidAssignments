@@ -3,6 +3,8 @@
 ## Overview
 The changelog window displays automatically on the first login after a new major or minor version update. This helps users stay informed about new features and improvements.
 
+**✨ Changelog content is now automatically generated from git commits!** See [CHANGELOG_AUTOMATION.md](CHANGELOG_AUTOMATION.md) for details.
+
 ## How It Works
 
 ### Automatic Display
@@ -47,12 +49,81 @@ local CHANGELOG_DATA = {
 }
 ```
 
-### Best Practices
+### Automated Updates (Recommended) ⚡
+
+**Changelog content is automatically generated from git commits!**
+
+When you push a version tag, the GitHub Actions workflow automatically:
+1. Extracts commits since the last tag
+2. Formats them as changelog entries
+3. Updates `CHANGELOG_DATA` in Changelog.lua
+4. Commits the changes
+5. Packages and releases
+
+**To use automation:**
+```bash
+# Write good commit messages during development
+git commit -m "Add support for boss phase detection"
+git commit -m "Fix timer accuracy in long encounters"
+
+# When ready to release, just tag and push
+git tag v0.7.0
+git push origin v0.7.0
+```
+
+See **[CHANGELOG_AUTOMATION.md](CHANGELOG_AUTOMATION.md)** for complete automation guide.
+
+### Manual Updates (Alternative)
+
+You can still manually edit `CHANGELOG_DATA` if preferred:
+1. Edit the table in `Changelog.lua` before release
+2. Add new version at the top
+3. Commit changes
+4. Tag and push
+
+### Automated Updates (Recommended) ⚡
+
+**Changelog content is automatically generated from git commits!**
+
+When you push a version tag, the GitHub Actions workflow automatically:
+1. Extracts commits since the last tag
+2. Formats them as changelog entries
+3. Updates `CHANGELOG_DATA` in Changelog.lua
+4. Commits the changes
+5. Packages and releases
+
+**To use automation:**
+```bash
+# Write good commit messages during development
+git commit -m "Add support for boss phase detection"
+git commit -m "Fix timer accuracy in long encounters"
+
+# When ready to release, just tag and push
+git tag v0.7.0
+git push origin v0.7.0
+```
+
+See **[CHANGELOG_AUTOMATION.md](CHANGELOG_AUTOMATION.md)** for complete automation guide.
+
+### Manual Updates (Alternative)
+
+You can still manually edit `CHANGELOG_DATA` if preferred:
+1. Edit the table in `Changelog.lua` before release
+2. Add new version at the top
+3. Commit changes
+4. Tag and push
+
+### Best Practices (for Manual Updates)
 1. **Add new versions at the top** of the `CHANGELOG_DATA` table
 2. **Keep entries concise** - focus on user-visible changes
 3. **Use clear language** - avoid technical jargon
 4. **Group by type** if there are many changes (Features, Fixes, etc.)
-5. **Update before tagging** a new release
+
+### Commit Message Best Practices (for Automation)
+- Start with a verb (Add, Fix, Improve, Update)
+- Be specific and descriptive
+- Focus on user-visible changes
+- Keep it under 72 characters
 
 ### Format Guidelines
 - Start each change with a dash (`-`)
@@ -80,25 +151,26 @@ Test version changes by manipulating saved variables:
 ## Development Builds
 Development builds using `@project-version@` placeholder are assigned version `999.999.999` to ensure they always show as newer than released versions.
 
-## Future Enhancements
+## Changelog Automation
 
-### Potential Automation
-The issue mentions possible automation using BigWigs packager workflow. Options include:
+The addon now features **automated changelog generation** from git commits!
 
-1. **Git Commit Parsing**: Extract changelog from git log
-2. **CHANGELOG.md File**: Maintain a markdown file and parse it
-3. **GitHub Actions**: Automate injection before release
+When you push a version tag (e.g., `v0.7.0`), a GitHub Actions workflow:
+- Extracts commits since the previous tag
+- Filters out non-user-facing commits
+- Formats them as changelog entries
+- Updates `Changelog.lua` automatically
+- Commits and pushes the changes
+- Proceeds with packaging and release
 
-For now, manual updates are recommended for full control over content and formatting.
+**Documentation:** See [CHANGELOG_AUTOMATION.md](CHANGELOG_AUTOMATION.md) for complete guide.
 
-### Implementation Ideas
-If automation is desired, create a GitHub Actions workflow that:
-1. Extracts recent changes (commits or from CHANGELOG.md)
-2. Formats them into Lua table structure
-3. Updates `Changelog.lua` using sed/awk
-4. Commits the change before running packager
-
-See `.github/workflows/release.yml` for current release workflow.
+**Quick Start:**
+```bash
+git tag v0.7.0
+git push origin v0.7.0
+# Automation handles the rest!
+```
 
 ## Troubleshooting
 
