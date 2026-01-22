@@ -624,7 +624,7 @@ local function CreateTreeWidgets(parent, listParent, bossName)
                 listParent,
                 trigger,
                 0,  -- No indent when showing single boss
-                RefreshTree,
+                QRA.UI.RefreshTree,
                 OnEditTrigger,
                 OnDeleteTrigger,
                 OnAddAssignment
@@ -666,7 +666,7 @@ local function CreateTreeWidgets(parent, listParent, bossName)
 
             if instanceHasTriggers then
                 -- Instance header
-                local instanceRow = CreateInstanceRow(listParent, instanceName, instanceData.tier, RefreshTree)
+                local instanceRow = CreateInstanceRow(listParent, instanceName, instanceData.tier, QRA.UI.RefreshTree)
                 table.insert(widgets, instanceRow)
 
                 -- Bosses (if instance expanded)
@@ -676,7 +676,7 @@ local function CreateTreeWidgets(parent, listParent, bossName)
 
                         if #triggers > 0 then
                             -- Boss header
-                            local bossRow = CreateBossRow(listParent, bossData, 1, RefreshTree, OnAddTrigger)
+                            local bossRow = CreateBossRow(listParent, bossData, 1, QRA.UI.RefreshTree, OnAddTrigger)
                             table.insert(widgets, bossRow)
 
                             -- Triggers (if boss expanded)
@@ -687,7 +687,7 @@ local function CreateTreeWidgets(parent, listParent, bossName)
                                         listParent,
                                         trigger,
                                         2,
-                                        RefreshTree,
+                                        QRA.UI.RefreshTree,
                                         OnEditTrigger,
                                         OnDeleteTrigger,
                                         OnAddAssignment
@@ -757,10 +757,10 @@ local function CreateTreeWidgets(parent, listParent, bossName)
                 function(a) QRA.UI.ShowAssignmentEditor(a, nil) end,
                 function(a)
                     QRA.Assignments.DeleteOrphan(a.id)
-                    RefreshTree()
+                    QRA.UI.RefreshTree()
                 end,
                 function(a)
-                    QRA.UI.ShowAdoptOrphanDialog(a, RefreshTree)
+                    QRA.UI.ShowAdoptOrphanDialog(a, QRA.UI.RefreshTree)
                 end
             )
             table.insert(widgets, orphanRow)
