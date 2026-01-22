@@ -1,5 +1,5 @@
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 
 --- Count table entries
 ---@param tbl table

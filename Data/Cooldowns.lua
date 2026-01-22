@@ -4,7 +4,7 @@
 ]]
 
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 
 ---@class ClassSpell
 ---@field name string Spell name

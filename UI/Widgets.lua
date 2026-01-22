@@ -4,7 +4,7 @@
 ]]
 
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 QRA.Widgets = {}
 
 ---@type AbstractFramework

@@ -3,7 +3,7 @@
 local AF = _G.AbstractFramework
 
 ---@class QRA
-QRA = {}
+local QRA = select(2, ...)
 
 QRA.name = "QRaidAssignments"
 QRA.version = "0.11.0"

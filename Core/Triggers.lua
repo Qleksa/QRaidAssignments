@@ -5,7 +5,7 @@
 ]]
 
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 QRA.Triggers = {}
 
 local frame = CreateFrame("Frame", "QRA_TriggerFrame") -- Event frame for combat log and timers

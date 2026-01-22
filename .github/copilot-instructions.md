@@ -59,7 +59,7 @@ end
 Each module follows this structure:
 ```lua
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 QRA.ModuleName = {}
 
 -- State (local)
