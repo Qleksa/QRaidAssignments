@@ -29,7 +29,9 @@ Core/Templates.lua
 
 UI/Widgets.lua
 UI/Notifications.lua
-UI/Main.lua
+UI/Tree.lua
+UI/Settings.lua
+UI/UI.lua
 
 Comm/Comm.lua
 

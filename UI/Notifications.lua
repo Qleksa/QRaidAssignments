@@ -465,6 +465,6 @@ end
 
 function QRA.Notifications.Initialize()
     QRA.Notifications.LoadFromDB()
-    -- CreateScreenMessageFrame()
+    CreateScreenMessageFrame()
     QRA.Debug("Notifications: Module initialized")
 end

@@ -26,8 +26,8 @@ local BOSS_FRAME_HEIGHT = 80
 -- State
 --------------------------------------------------
 local fakeBossPanelFrame = nil
-local bossFrames = {}  -- UI frames for each fake boss
-local selectedTarget = nil  -- Selected player target for spells/debuffs
+local bossFrames = {}
+local selectedTarget = nil
 
 --------------------------------------------------
 -- Helper Functions

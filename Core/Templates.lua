@@ -213,7 +213,7 @@ function QRA.Templates.Apply(templateId, clearExisting)
 
         -- Generate new ID to avoid conflicts
         newTrigger.id = nil
-        
+
         -- Also regenerate IDs for embedded assignments and update triggerId references
         if newTrigger.assignments then
             for _, assignment in ipairs(newTrigger.assignments) do
@@ -221,7 +221,7 @@ function QRA.Templates.Apply(templateId, clearExisting)
                 -- triggerId will be set after trigger is created
             end
         end
-        
+
         newTrigger = QRA.Triggers.Create(newTrigger.type, newTrigger, true)
 
         -- Update triggerId in embedded assignments
