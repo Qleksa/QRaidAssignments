@@ -10,7 +10,9 @@ QRA.DevMode.UI = QRA.DevMode.UI or {}
 
 local DevModeUI = QRA.DevMode.UI
 local EventHistory = QRA.DevMode.EventHistory
-local AF = _G.AbstractFramework
+
+---@type AbstractFramework
+local AF = QRA.AF
 
 --------------------------------------------------
 -- Constants

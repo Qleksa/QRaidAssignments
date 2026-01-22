@@ -11,7 +11,9 @@ QRA.DevMode.UI = QRA.DevMode.UI or {}
 local DevModeUI = QRA.DevMode.UI
 local FakeEncounter = QRA.DevMode.FakeEncounter
 local EventFirer = QRA.DevMode.EventFirer
-local AF = _G.AbstractFramework
+
+---@type AbstractFramework
+local AF = QRA.AF
 
 --------------------------------------------------
 -- Constants

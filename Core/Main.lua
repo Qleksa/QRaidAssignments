@@ -4,9 +4,6 @@
 ]]
 
 
----@type AbstractFramework
-local AF = _G.AbstractFramework
-
 ---@class QRA
 local QRA = QRA
 

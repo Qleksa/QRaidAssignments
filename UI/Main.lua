@@ -8,7 +8,8 @@
 local QRA = QRA
 QRA.UI = QRA.UI or {}
 
-local AF = _G.AbstractFramework
+---@type AbstractFramework
+local AF = QRA.AF
 
 --------------------------------------------------
 -- Constants

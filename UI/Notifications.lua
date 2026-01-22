@@ -7,7 +7,8 @@
 local QRA = QRA
 QRA.Notifications = {}
 
-local AF = _G.AbstractFramework
+---@type AbstractFramework
+local AF = QRA.AF
 
 --------------------------------------------------
 -- Configuration
@@ -464,6 +465,6 @@ end
 
 function QRA.Notifications.Initialize()
     QRA.Notifications.LoadFromDB()
-    CreateScreenMessageFrame()
+    -- CreateScreenMessageFrame()
     QRA.Debug("Notifications: Module initialized")
 end

@@ -8,6 +8,9 @@
 local QRA = QRA
 QRA.AssignTarget = {}
 
+---@type AbstractFramework
+local AF = QRA.AF
+
 --------------------------------------------------
 -- Target Types
 --------------------------------------------------
@@ -297,7 +300,6 @@ end
 ---@param showResolved boolean|nil
 ---@return string coloredText
 function QRA.AssignTarget.GetColoredDisplayText(targetStr, showResolved)
-    local AF = _G.AbstractFramework
     local targetInfo = QRA.AssignTarget.Parse(targetStr)
 
     if not targetInfo then

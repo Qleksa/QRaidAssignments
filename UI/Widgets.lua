@@ -7,7 +7,8 @@
 local QRA = QRA
 QRA.Widgets = {}
 
-local AF = _G.AbstractFramework
+---@type AbstractFramework
+local AF = QRA.AF
 
 --------------------------------------------------
 -- Widget Colors

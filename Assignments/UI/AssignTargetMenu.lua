@@ -6,7 +6,9 @@
 
 ---@class QRA
 local QRA = QRA
-local AF = _G.AbstractFramework
+
+---@type AbstractFramework
+local AF = QRA.AF
 
 QRA.AssignTargetMenu = {}
 
