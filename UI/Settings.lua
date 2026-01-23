@@ -1,5 +1,5 @@
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 
 QRA.UI.Settings = {}
 

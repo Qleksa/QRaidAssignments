@@ -5,7 +5,7 @@
 ]]
 
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 
 ---@type AbstractFramework
 local AF = QRA.AF

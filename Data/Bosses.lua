@@ -1,6 +1,6 @@
 ---@diagnostic disable: missing-fields
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 
 --[[
   QRaidAssignments - Bosses Data File

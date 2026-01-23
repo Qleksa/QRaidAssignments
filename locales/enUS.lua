@@ -4,7 +4,7 @@
 ]]
 
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 if not QRA then return end  -- Safety check
 
 QRA.L = QRA.L or {}

@@ -20,7 +20,7 @@
 ]]
 
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 QRA.CounterFormula = {}
 
 --- Parse a single term
