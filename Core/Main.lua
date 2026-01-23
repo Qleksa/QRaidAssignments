@@ -101,10 +101,6 @@ function QRA.InitializeModules()
         QRA.Bosses.Initialize()
     end
 
-    if QRA.Encounter and QRA.Encounter.Initialize then
-        QRA.Encounter.Initialize()
-    end
-
     if QRA.BossMods and QRA.BossMods.Initialize then
         QRA.BossMods.Initialize()
     end

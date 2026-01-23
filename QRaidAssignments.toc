@@ -45,7 +45,8 @@ Assignments/Core/RaidRoster.lua
 Assignments/Core/AssignTarget.lua
 Assignments/UI/AssignTargetMenu.lua
 
-BossMods/Encounter.lua
+Encounter/Encounter.lua
+
 BossMods/BigWigs.lua
 BossMods/DBM.lua
 BossMods/BossMods.lua

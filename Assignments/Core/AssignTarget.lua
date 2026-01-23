@@ -6,6 +6,7 @@
 
 ---@class QRA
 local QRA = select(2, ...)
+
 QRA.AssignTarget = {}
 
 ---@type AbstractFramework
@@ -14,7 +15,8 @@ local AF = _G.AbstractFramework
 --------------------------------------------------
 -- Target Types
 --------------------------------------------------
----@enum AssignTargetType
+
+---@enum QRA_AssignTargetType
 QRA.AssignTarget.Types = {
     ALL = "ALL",           -- Everyone in raid
     ROLE = "ROLE",         -- Tank, Healer, DPS

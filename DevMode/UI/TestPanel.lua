@@ -35,7 +35,7 @@ local updateEncounterStatusFunc = nil  -- Will be set after creation
 
 --- Create the boss dropdown
 ---@param parent Frame
----@return Frame dropdown
+---@return AF_CascadingMenuButton dropdown
 local function CreateBossDropdown(parent)
     local dropdown = QRA.Widgets.CreateBossMenu(parent, 200, function(self, item)
         selectedBoss = item.text
@@ -156,6 +156,7 @@ function DevModeUI.CreateTestPanel()
     -- Restore last selected boss
     if QRA.DB.devMode and QRA.DB.devMode.lastBossName then
         selectedBoss = QRA.DB.devMode.lastBossName
+        bossDropdown:SetText(selectedBoss)
         selectedEncounterId = QRA.DB.devMode.lastEncounterId
         -- Note: The dropdown will need to be set externally after bosses are loaded
     end

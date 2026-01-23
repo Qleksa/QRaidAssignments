@@ -603,7 +603,7 @@ function QRA.Widgets.CreateBossMenu(parent, width, onSelect)
     local menu = AF.CreateCascadingMenuButton(parent, width or 200)
     menu:SetLabel(QRA.L["Boss"])
     menu:SetItems(GetAllBosses())
-    menu:SetText(QRA.L["-- Select Boss --"])
+    menu:SetText(QRA.L["All Instances"])
     if onSelect then
         hooksecurefunc(menu, "OnMenuSelection", onSelect)
     end
