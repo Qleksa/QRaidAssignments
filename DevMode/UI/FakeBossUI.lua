@@ -4,13 +4,15 @@
 ]]
 
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 QRA.DevMode = QRA.DevMode or {}
 QRA.DevMode.UI = QRA.DevMode.UI or {}
 
 local DevModeUI = QRA.DevMode.UI
 local FakeEncounter = QRA.DevMode.FakeEncounter
 local EventFirer = QRA.DevMode.EventFirer
+
+---@type AbstractFramework
 local AF = _G.AbstractFramework
 
 --------------------------------------------------
@@ -24,8 +26,8 @@ local BOSS_FRAME_HEIGHT = 80
 -- State
 --------------------------------------------------
 local fakeBossPanelFrame = nil
-local bossFrames = {}  -- UI frames for each fake boss
-local selectedTarget = nil  -- Selected player target for spells/debuffs
+local bossFrames = {}
+local selectedTarget = nil
 
 --------------------------------------------------
 -- Helper Functions

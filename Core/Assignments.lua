@@ -9,7 +9,7 @@
 ]]
 
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 QRA.Assignments = {}
 
 --------------------------------------------------
@@ -424,7 +424,7 @@ function QRA.Assignments.ExecuteForTrigger(triggerId, eventData, counter)
                 local isTarget = QRA.AssignTarget.IsCurrentPlayerTarget(assignTarget)
 
                 if isTarget then
-                    QRA.Debug("Assignments: Executing", assignment.id, "for trigger", triggerId, "counter", counter, "target", assignTarget)
+                    -- QRA.Debug("Assignments: Executing", assignment.id, "for trigger", triggerId, "counter", counter, "target", assignTarget)
 
                     -- Check if we should delay the assignment activation
                     if assignment.activateIn and assignment.activateIn > 0 then
@@ -448,20 +448,21 @@ end
 ---@param assignment table The assignment
 ---@param eventData table|nil Event data
 function QRA.Assignments.ExecuteAlert(assignment, eventData)
-    QRA.Debug("Assignments: Executing alert for assignment", assignment)
+    -- QRA.Debug("Assignments: Executing alert for assignment", assignment)
     assignment.lastExecuted = time()
 
     -- Build the alert message
     local message = assignment.message
-    if not message and assignment.spellName then
+    if message == "" and assignment.spellName then
         message = string.format("Use %s", assignment.spellName)
+        -- Append target if specified
+        if assignment.targetPlayer and assignment.targetPlayer ~= "" then
+            message = message .. " on " .. assignment.targetPlayer
+        end
     end
     message = message or "Assignment triggered!"
 
-    -- Append target if specified
-    if assignment.targetPlayer then
-        message = string.format("%s on %s", message, assignment.targetPlayer)
-    end
+
 
     -- Execute based on alert type
     QRA.Notifications.Notify(assignment.alertType, message, assignment.soundFile)
@@ -493,61 +494,6 @@ function QRA.Assignments.LoadFromDB()
 end
 
 --------------------------------------------------
--- Migration (from old separate storage to embedded)
---------------------------------------------------
-
---- Migrate assignments from old storage format to embedded in triggers
---- Called once on PLAYER_LOGIN if old data exists
-function QRA.Assignments.MigrateFromOldFormat()
-    local oldAssignments = QRA.DB.assignments
-    if not oldAssignments or QRA.TableCount(oldAssignments) == 0 then
-        QRA.Debug("Assignments: No old assignments to migrate")
-        return
-    end
-
-    QRA.Debug("Assignments: Migrating", QRA.TableCount(oldAssignments), "assignments to new format")
-
-    -- Initialize orphaned assignments if needed
-    if not QRA.DB.orphanedAssignments then
-        QRA.DB.orphanedAssignments = {}
-    end
-
-    local migratedCount = 0
-    local orphanedCount = 0
-
-    for _, assignment in pairs(oldAssignments) do
-        local triggerId = assignment.triggerId
-        local trigger = triggerId and QRA.Triggers.Get(triggerId)
-
-        if trigger then
-            -- Add to trigger's assignments array
-            if not trigger.assignments then
-                trigger.assignments = {}
-            end
-            table.insert(trigger.assignments, assignment)
-            migratedCount = migratedCount + 1
-        else
-            -- No valid trigger - orphan it
-            ---@type OrphanedAssignment
-            local orphaned = QRA.DeepCopy(assignment)
-            orphaned.orphanedAt = time()
-            orphaned.previousTriggerId = triggerId
-            orphaned.triggerId = nil
-            table.insert(QRA.DB.orphanedAssignments, orphaned)
-            orphanedCount = orphanedCount + 1
-        end
-    end
-
-    -- Clear old assignments storage
-    QRA.DB.assignments = nil
-
-    if migratedCount > 0 or orphanedCount > 0 then
-        QRA.Print("Migrated", migratedCount, "assignments to triggers,", orphanedCount, "orphaned")
-    end
-    QRA.Debug("Assignments: Migration complete")
-end
-
---------------------------------------------------
 -- Initialization
 --------------------------------------------------
 
@@ -556,9 +502,6 @@ function QRA.Assignments.Initialize()
     if not QRA.DB.orphanedAssignments then
         QRA.DB.orphanedAssignments = {}
     end
-
-    -- Migrate old assignments if they exist
-    QRA.Assignments.MigrateFromOldFormat()
 
     QRA.Debug("Assignments: Module initialized")
 end

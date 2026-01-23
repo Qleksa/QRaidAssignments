@@ -1,5 +1,5 @@
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 
 if not QRA.AreLibsOkay() then
     return

@@ -4,9 +4,10 @@
 ]]
 
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 QRA.Widgets = {}
 
+---@type AbstractFramework
 local AF = _G.AbstractFramework
 
 --------------------------------------------------
@@ -275,6 +276,52 @@ function QRA.Widgets.CreateCounterInput(parent, label, width)
     end
 
     return counterEB
+end
+
+--------------------------------------------------
+-- Assign Target Input
+--------------------------------------------------
+
+---@class QRA_AssignTargetInput : AF_EditBox
+---@field GetValue fun(self: QRA_AssignTargetInput): string|nil
+---@field SetValue fun(self: QRA_AssignTargetInput, value: string|nil)
+
+--- Create an assign target input box
+---@param parent Frame Parent frame
+---@param label string|nil Label text
+---@param width number Field width
+---@return QRA_AssignTargetInput editBox
+function QRA.Widgets.CreateAssignTargetInput(parent, label, width)
+    local editBox = AF.CreateEditBox(parent, label or QRA.L["Assign To"], width or 150, 20)
+    editBox:SetText("ALL")
+
+    -- Force initial validation since SetText doesn't trigger OnTextChanged
+    local initialText = editBox:GetText()
+    local isValid, errorMsg = QRA.AssignTarget.Validate(initialText)
+    if not isValid then
+        editBox:SetBackdropBorderColor(AF.GetColorRGB("red"))
+    else
+        editBox:SetBackdropBorderColor(AF.GetColorRGB("gray"))
+    end
+
+    editBox:SetOnTextChanged(function(text)
+        local ok, err = QRA.AssignTarget.Validate(text)
+        QRA.Debug("Assign Target Input: Validation result:", ok, err)
+    end)
+
+    AF.SetTooltip(editBox, "TOPLEFT", 0, 2, unpack(QRA.AssignTarget.GetTips()))
+
+    -- Public API
+    function editBox:GetValue()
+        return editBox:GetText() == "" and nil or editBox:GetText()
+    end
+
+    function editBox:SetValue(value)
+        local textValue = tostring(value or "ALL")
+        editBox:SetText(textValue)
+    end
+
+    return editBox
 end
 
 --------------------------------------------------
@@ -699,315 +746,6 @@ function QRA.Widgets.CreateTriggerDropdown(parent, width, onSelect)
     end
 
     return menu
-end
-
---------------------------------------------------
--- Assignment Row Widget
---------------------------------------------------
-
---- Create a compact assignment row for lists
----@param parent Frame Parent frame
----@param assignment table The assignment data
----@param onEdit function Callback when row is clicked to edit
----@param onDelete function Callback for delete button
----@return Frame row
-function QRA.Widgets.CreateAssignmentRow(parent, assignment, onEdit, onDelete)
-    local row = CreateFrame("Button", "QRA_ASSIGNMENT_ROW_" .. (assignment.id or "UNKNOWN"), parent)
-    AF.SetHeight(row, 28)
-    AF.SetPoint(row, "LEFT")
-    AF.SetPoint(row, "RIGHT")
-
-    -- Make row clickable to edit
-    row:SetScript("OnClick", function(self, button)
-        if button == "LeftButton" and onEdit then
-            onEdit(assignment)
-        end
-    end)
-
-    -- Hover highlight
-    row:SetScript("OnEnter", function(self)
-        if not row.hoverBg then
-            row.hoverBg = row:CreateTexture(nil, "BACKGROUND")
-            row.hoverBg:SetAllPoints()
-            row.hoverBg:SetColorTexture(1, 1, 1, 0.05)
-        end
-        row.hoverBg:Show()
-    end)
-    row:SetScript("OnLeave", function(self)
-        if row.hoverBg then row.hoverBg:Hide() end
-    end)
-
-    -- Enabled checkbox
-    local enableCheck = AF.CreateCheckButton(row, nil, function(checked)
-        assignment.enabled = checked
-        QRA.Assignments.SaveToDB()
-    end)
-    AF.SetPoint(enableCheck, "LEFT", 5, 0)
-    enableCheck:SetChecked(assignment.enabled)
-
-    -- Spell icon (if applicable)
-    local iconOffset = 30
-    if assignment.spellId then
-        local _, spellIcon = C_Spell.GetSpellTexture(assignment.spellId)
-        if spellIcon then
-            local icon = row:CreateTexture(nil, "ARTWORK")
-            icon:SetSize(20, 20)
-            AF.SetPoint(icon, "LEFT", iconOffset, 0)
-            icon:SetTexture(spellIcon)
-            icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-            iconOffset = iconOffset + 25
-        end
-    end
-
-    -- Assignment description (spell/message)
-    local descText = (assignment.message ~= "" and assignment.message) or assignment.spellName or QRA.L["Unknown Assignment"]
-    local descFS = AF.CreateFontString(row, descText, "white")
-    AF.SetPoint(descFS, "LEFT", iconOffset, 0)
-    AF.SetWidth(descFS, 120)
-    descFS:SetJustifyH("LEFT")
-    descFS:SetWordWrap(false)
-
-    -- Assign target display (who receives this)
-    local assignTarget = assignment.assignTarget or "ALL"
-    local targetDisplayText = QRA.AssignTarget and QRA.AssignTarget.GetColoredDisplayText(assignTarget, false) or assignTarget
-    local targetFS = AF.CreateFontString(row, targetDisplayText, "accent")
-    AF.SetPoint(targetFS, "LEFT", descFS, "RIGHT", 5, 0)
-    AF.SetWidth(targetFS, 80)
-    targetFS:SetJustifyH("LEFT")
-    targetFS:SetWordWrap(false)
-
-    -- Trigger name (if linked)
-    local triggerText = "-"
-    if assignment.triggerId then
-        local trigger = QRA.Triggers.Get(assignment.triggerId)
-        if trigger then
-            if trigger.type == QRA.Triggers.Types.UNIT_HEALTH.event then
-                -- Format: "boss @ 25%, 50%"
-                local hpDisplay = trigger.hpThresholds or ""
-                hpDisplay = hpDisplay:gsub("(%d+)", "%1%%")
-                triggerText = string.format("%s @ %s", trigger.targetGuid or "?", hpDisplay)
-            else
-                triggerText = trigger.spellName or trigger.targetGuid or (trigger.time and string.format("%ds", trigger.time)) or QRA.Triggers.Types[trigger.type].name or "-"
-            end
-        end
-    end
-    local triggerFS = AF.CreateFontString(row, triggerText, "gray")
-    AF.SetPoint(triggerFS, "LEFT", targetFS, "RIGHT", 5, 0)
-    AF.SetWidth(triggerFS, 150)
-    triggerFS:SetJustifyH("LEFT")
-    triggerFS:SetWordWrap(false)
-
-    -- Countdown display
-    local countdownFS = AF.CreateFontString(row, string.format("%ds", assignment.countdownTime or 0), "skyblue")
-    AF.SetPoint(countdownFS, "RIGHT", row, -30, 0)
-    AF.SetWidth(countdownFS, 30)
-
-    -- Delete icon button
-    local delBtn = CreateFrame("Button", nil, row)
-    delBtn:SetSize(16, 16)
-    AF.SetPoint(delBtn, "RIGHT", row, -5, 0)
-    local delIcon = delBtn:CreateTexture(nil, "ARTWORK")
-    delIcon:SetAllPoints()
-    delIcon:SetTexture("Interface\\Buttons\\UI-StopButton")
-    delIcon:SetVertexColor(0.8, 0.3, 0.3)
-    delBtn:SetScript("OnEnter", function() delIcon:SetVertexColor(1, 0.4, 0.4) end)
-    delBtn:SetScript("OnLeave", function() delIcon:SetVertexColor(0.8, 0.3, 0.3) end)
-    delBtn:SetScript("OnClick", function(self, button)
-        if onDelete then onDelete(assignment) end
-    end)
-
-    return row
-end
-
---------------------------------------------------
--- Trigger Row Widget
---------------------------------------------------
-
---- Create a compact trigger row for lists
----@param parent Frame Parent frame
----@param trigger Trigger The trigger data
----@param onEdit function Callback when row is clicked to edit
----@param onDelete function Callback for delete button
----@return Frame row
-function QRA.Widgets.CreateTriggerRow(parent, trigger, onEdit, onDelete)
-    local row = CreateFrame("Button", "QRA_TRIGGER_ROW" .. (trigger.id and "_" .. trigger.id or ""), parent)
-    AF.SetHeight(row, 28)
-    AF.SetPoint(row, "LEFT")
-    AF.SetPoint(row, "RIGHT")
-    row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-
-    -- Make row clickable to edit
-    row:SetScript("OnClick", function(self, button)
-        if button == "LeftButton" and onEdit then
-            onEdit(trigger)
-        elseif button == "RightButton" then
-            QRA.Widgets.ShowContextMenu(row, trigger)
-        end
-    end)
-
-    -- Hover highlight
-    row:SetScript("OnEnter", function()
-        if not row.hoverBg then
-            row.hoverBg = row:CreateTexture(nil, "BACKGROUND")
-            row.hoverBg:SetAllPoints()
-            row.hoverBg:SetColorTexture(1, 1, 1, 0.05)
-        end
-        row.hoverBg:Show()
-    end)
-    row:SetScript("OnLeave", function()
-        if row.hoverBg then row.hoverBg:Hide() end
-    end)
-
-    -- Enabled checkbox
-    local enableCheck = AF.CreateCheckButton(row, nil, function(checked)
-        trigger.enabled = checked
-        QRA.Triggers.UpdateTrigger(trigger)
-    end)
-    AF.SetPoint(enableCheck, "LEFT", 5, 0)
-    enableCheck:SetChecked(trigger.enabled)
-    enableCheck:SetEnabled(not trigger.default)
-
-    -- Type indicator (colored square)
-    local typeColor = QRA.Widgets.Colors.triggerType[trigger.type] or "gray"
-    local typeIndicator = row:CreateTexture(nil, "ARTWORK")
-    typeIndicator:SetSize(14, 14)
-    AF.SetPoint(typeIndicator, "LEFT", 30, 0)
-    typeIndicator:SetColorTexture(AF.GetColorRGB(typeColor))
-
-    -- Trigger details (spell name, NPC name, time, or HP thresholds)
-    local details
-    if trigger.name then
-        details = trigger.name
-    elseif trigger.type == QRA.Triggers.Types.UNIT_HEALTH.event then
-        -- Format: "boss @ 25%, 50%, 75%"
-        local hpDisplay = trigger.hpThresholds or ""
-        -- Add % signs to each threshold
-        hpDisplay = hpDisplay:gsub("(%d+)", "%1%%")
-        details = string.format("%s @ %s", trigger.targetGuid or "unknown", hpDisplay)
-    elseif trigger.type == QRA.Triggers.Types.TIMER.event then
-        -- Format: "10s" or "10s / 50s" or "10s / 50s x5" if interval and repeat count are set
-        local timeDisplay = trigger.time and string.format("%ds", trigger.time) or "0s"
-        if trigger.repeatInterval and trigger.repeatInterval > 0 then
-            if trigger.repeatCount and trigger.repeatCount > 0 then
-                details = string.format("%s / %ds x%d", timeDisplay, trigger.repeatInterval, trigger.repeatCount)
-            else
-                details = string.format("%s / %ds", timeDisplay, trigger.repeatInterval)
-            end
-        else
-            details = timeDisplay
-        end
-    else
-        details = trigger.spellName or trigger.targetGuid or (trigger.time and string.format("%ds", trigger.time)) or "-"
-    end
-
-    local detailsFS = AF.CreateFontString(row, details, "white")
-    AF.SetPoint(detailsFS, "LEFT", 50, 0)
-    AF.SetPoint(detailsFS, "RIGHT", row, -80, 0)
-    detailsFS:SetJustifyH("LEFT")
-    detailsFS:SetWordWrap(false)
-
-    -- Occurrence display (don't show for UNIT_HEALTH as it always fires once)
-    local occText
-    if trigger.type == QRA.Triggers.Types.TIMER.event or trigger.type == QRA.Triggers.Types.UNIT_HEALTH.event then
-        occText = ""
-    else
-        occText = trigger.counterFormula or "*"
-    end
-    local occFS = AF.CreateFontString(row, occText, "gray")
-    AF.SetPoint(occFS, "RIGHT", row, -30, 0)
-    AF.SetWidth(occFS, 40)
-
-    -- Delete icon button
-    local delBtn = CreateFrame("Button", nil, row)
-    delBtn:SetSize(16, 16)
-    AF.SetPoint(delBtn, "RIGHT", row, -5, 0)
-    local delIcon = delBtn:CreateTexture(nil, "ARTWORK")
-    delIcon:SetAllPoints()
-    delIcon:SetTexture("Interface\\Buttons\\UI-StopButton")
-    if trigger.default then
-        delBtn:Disable()
-        delIcon:SetVertexColor(0.5, 0.5, 0.5)
-    else
-        delIcon:SetVertexColor(0.8, 0.3, 0.3)
-        delBtn:SetScript("OnEnter", function() delIcon:SetVertexColor(1, 0.4, 0.4) end)
-        delBtn:SetScript("OnLeave", function() delIcon:SetVertexColor(0.8, 0.3, 0.3) end)
-        delBtn:SetScript("OnClick", function()
-            if onDelete then onDelete(trigger) end
-        end)
-    end
-
-    return row
-end
-
---------------------------------------------------
--- Section Header
---------------------------------------------------
-
---- Create a section header with optional collapse button
----@param parent Frame Parent frame
----@param title string Header title
----@param collapsible boolean|nil Whether the section is collapsible
----@return Frame header
-function QRA.Widgets.CreateSectionHeader(parent, title, collapsible)
-    local header = CreateFrame("Frame", nil, parent)
-    AF.SetHeight(header, 24)
-    AF.SetPoint(header, "LEFT")
-    AF.SetPoint(header, "RIGHT")
-
-    -- Background
-    local bg = AF.CreateGradientTexture(header, "HORIZONTAL", {0.2, 0.2, 0.2, 0.8}, {0.1, 0.1, 0.1, 0.4})
-    AF.SetPoint(bg, "TOPLEFT")
-    AF.SetPoint(bg, "BOTTOMRIGHT")
-
-    -- Title text
-    local titleFS = AF.CreateFontString(header, title, "accent")
-    AF.SetPoint(titleFS, "LEFT", 10, 0)
-
-    -- Collapse button (optional)
-    if collapsible then
-        local collapseBtn = AF.CreateButton(header, "-", "static", 20, 18)
-        AF.SetPoint(collapseBtn, "RIGHT", -5, 0)
-
-        header.collapsed = false
-        header.content = nil  -- Will be set by user
-
-        collapseBtn:SetOnClick(function()
-            header.collapsed = not header.collapsed
-            collapseBtn:SetText(header.collapsed and "+" or "-")
-            if header.content then
-                if header.collapsed then
-                    header.content:Hide()
-                else
-                    header.content:Show()
-                end
-            end
-            if header.OnCollapse then
-                header.OnCollapse(header.collapsed)
-            end
-        end)
-
-        header.collapseBtn = collapseBtn
-    end
-
-    return header
-end
-
-function QRA.Widgets.ShowContextMenu(owner, trigger)
-    MenuUtil.CreateButtonContextMenu(owner, {
-        QRA.L["Export"],
-        function(triggerId)
-            local exportString = QRA.Comm.ExportTrigger(triggerId)
-            QRA.UI.ShowExportFrame(exportString)
-        end,
-        trigger.id
-    }, {
-        QRA.L["Send to Raid"],
-        function(triggerId)
-            local exportString = QRA.Comm.ExportTrigger(triggerId, true)
-            QRA.Comm.SendToRaid(exportString)
-        end,
-        trigger.id
-    })
 end
 
 --------------------------------------------------

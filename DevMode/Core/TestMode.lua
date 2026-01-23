@@ -4,7 +4,7 @@
 ]]
 
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 QRA.DevMode = QRA.DevMode or {}
 
 local DevMode = QRA.DevMode

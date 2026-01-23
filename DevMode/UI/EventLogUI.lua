@@ -4,12 +4,14 @@
 ]]
 
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 QRA.DevMode = QRA.DevMode or {}
 QRA.DevMode.UI = QRA.DevMode.UI or {}
 
 local DevModeUI = QRA.DevMode.UI
 local EventHistory = QRA.DevMode.EventHistory
+
+---@type AbstractFramework
 local AF = _G.AbstractFramework
 
 --------------------------------------------------

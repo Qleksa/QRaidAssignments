@@ -1,5 +1,5 @@
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 
 local function dump(o, indent)
     indent = indent or 0

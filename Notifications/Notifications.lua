@@ -4,14 +4,35 @@
 ]]
 
 ---@class QRA
-local QRA = QRA
-QRA.Notifications = {}
+local QRA = select(2, ...)
 
+QRA.Notifications = QRA.Notifications or {}
+
+---@type AbstractFramework
 local AF = _G.AbstractFramework
 
 --------------------------------------------------
 -- Configuration
 --------------------------------------------------
+
+---@class QRA_CountdownSounds
+---@field [number] string Sound file path
+
+---@class QRA_FramePosition
+---@field point string Anchor point
+---@field xOfs number X offset
+---@field yOfs number Y offset
+
+---@class QRA_NotificationConfig
+---@field ttsEnabled boolean
+---@field soundEnabled boolean
+---@field screenEnabled boolean
+---@field chatEnabled boolean
+---@field screenDuration number
+---@field screenPosition string
+---@field chatChannel string
+---@field countdownSounds QRA_CountdownSounds
+---@field framePosition QRA_FramePosition
 local config = {
     ttsEnabled = true,
     soundEnabled = true,
@@ -34,53 +55,28 @@ local config = {
         [2] = "Interface/AddOns/QRaidAssignments/Media/Sounds/2.ogg",
         [1] = "Interface/AddOns/QRaidAssignments/Media/Sounds/1.ogg",
     },
+
+    framePosition = {
+        point = "TOP",
+        xOfs = 0,
+        yOfs = -200,
+    }
 }
 
---------------------------------------------------
--- Screen Message Frame
---------------------------------------------------
-local screenMessageFrame = nil
+local MOVER_GROUP = "QRA Movers"
 
--- TODO: Use AF framses
+---@type QRA_ScreenMessageFrame
+local notificationFrame = nil
 
---- Create the screen message display frame
-local function CreateScreenMessageFrame()
-    if screenMessageFrame then return end
+---@type TickerCallback
+local countdownTicker = nil
 
-    screenMessageFrame = CreateFrame("Frame", "QRA_ScreenMessage", QRA.UIParent)
-    screenMessageFrame:SetSize(400, 60)
-    screenMessageFrame:SetPoint("CENTER", 0, 150)
-    screenMessageFrame:SetFrameStrata("HIGH")
-    screenMessageFrame:Hide()
+function UpdateFramePosition(point, x, y)
+    config.framePosition.point = point
+    config.framePosition.xOfs = x
+    config.framePosition.yOfs = y
 
-    -- Background
-    local bg = screenMessageFrame:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints()
-    bg:SetColorTexture(0, 0, 0, 0.7)
-
-    -- Message text
-    local text = AF.CreateFontString(screenMessageFrame, "", "yellow")
-    AF.SetPoint(text, "CENTER")
-    text:SetJustifyH("CENTER")
-    screenMessageFrame.text = text
-
-    -- Countdown text (smaller, below main message)
-    local countdown = AF.CreateFontString(screenMessageFrame, "", "white")
-    AF.SetPoint(countdown, "TOP", text, "BOTTOM", 0, -5)
-    screenMessageFrame.countdown = countdown
-
-    -- Animation group for fade out
-    local ag = screenMessageFrame:CreateAnimationGroup()
-    local fade = ag:CreateAnimation("Alpha")
-    fade:SetFromAlpha(1)
-    fade:SetToAlpha(0)
-    fade:SetDuration(0.5)
-    fade:SetStartDelay(4.5)
-    ag:SetScript("OnFinished", function()
-        screenMessageFrame:Hide()
-        screenMessageFrame:SetAlpha(1)
-    end)
-    screenMessageFrame.fadeAnim = ag
+    notificationFrame:UpdatePosition(point, x, y)
 end
 
 ---@param type AlertType Notification type
@@ -109,9 +105,9 @@ function QRA.Notifications.SpeakTTS(message, voice)
     if not config.ttsEnabled then return end
     if not message or message == "" then return end
 
-    -- Use the TextToSpeech API if available (Retail only)
+
     if C_VoiceChat and C_VoiceChat.SpeakText then
-        local voiceId = voice or Enum.TtsVoiceType.Standard
+        local voiceId = voice or Enum.TtsVoiceType.Alternate
         C_VoiceChat.SpeakText(
             voiceId,
             message,
@@ -120,17 +116,8 @@ function QRA.Notifications.SpeakTTS(message, voice)
             100   -- Volume
         )
     else
-        -- Classic fallback: use LibTextToSpeech if available, or print to chat
-        local LibTTS = LibStub and LibStub("LibTextToSpeech", true)
-        if LibTTS then
-            LibTTS:Speak(message)
-        else
-            -- Final fallback: just print it
-            QRA.Print("|cffFFFF00[TTS]|r " .. message)
-        end
+        QRA.Print("Issue with TTS: C_VoiceChat.SpeakText not available")
     end
-
-    QRA.Debug("Notifications: TTS -", message)
 end
 
 --------------------------------------------------
@@ -178,28 +165,17 @@ end
 function QRA.Notifications.ShowOnScreen(message, duration, color)
     if not config.screenEnabled then return end
 
-    if not screenMessageFrame then
-        CreateScreenMessageFrame()
-    end
-
-    screenMessageFrame.text:SetText(message)
+    notificationFrame:SetMessageText(message)
+    notificationFrame.text:SetTextColor(1, 1, 0)
     if color then
-        screenMessageFrame.text:SetTextColor(color[1] or 1, color[2] or 1, color[3] or 0)
-    else
-        screenMessageFrame.text:SetTextColor(1, 1, 0)  -- Yellow default
+        notificationFrame.text:SetTextColor(color[1] or 1, color[2] or 1, color[3] or 0)
     end
-    screenMessageFrame.countdown:SetText("")
+    notificationFrame:SetCountdownText("")
+    notificationFrame:HideBar()
 
-    -- Reset and show
-    screenMessageFrame:SetAlpha(1)
-    screenMessageFrame:Show()
-
-    -- Restart fade animation
-    screenMessageFrame.fadeAnim:Stop()
-    screenMessageFrame.fadeAnim:GetAnimations():SetStartDelay((duration or config.screenDuration) - 0.5)
-    screenMessageFrame.fadeAnim:Play()
-
-    QRA.Debug("Notifications: Screen -", message)
+    notificationFrame:SetAlpha(1)
+    notificationFrame:Show()
+    -- notificationFrame:FadeOut(duration or (config.screenDuration))
 end
 
 --- Show a countdown start notification
@@ -208,53 +184,39 @@ end
 function QRA.Notifications.ShowCountdown(assignment, seconds)
     if not config.screenEnabled then return end
 
-    if not screenMessageFrame then
-        CreateScreenMessageFrame()
-    end
-
     local message = assignment.message
-    if not message and assignment.spellName then
+    if message == "" and assignment.spellName then
         message = string.format("Use %s", assignment.spellName)
+        if assignment.targetPlayer and assignment.targetPlayer ~= "" then
+            message = message .. " on " .. assignment.targetPlayer
+        end
     end
     message = message or "Assignment triggered!"
-    if assignment.targetPlayer then
-        message = string.format("%s on %s", message, assignment.targetPlayer)
-    end
-    screenMessageFrame.text:SetText(message)
-    screenMessageFrame.countdown:SetText(string.format(QRA.L["in %d seconds"], seconds))
 
-    screenMessageFrame:SetAlpha(1)
-    screenMessageFrame:Show()
+    notificationFrame:Init(message, assignment.spellId, seconds)
+    notificationFrame:SetAlpha(1)
+    notificationFrame:Show()
 
     -- Don't auto-hide during countdown
-    screenMessageFrame.fadeAnim:Stop()
+    notificationFrame.fadeAnim:Stop()
+
+    if countdownTicker then
+        countdownTicker:Cancel()
+    end
 
     local remaining = seconds
-    C_Timer.NewTicker(1, function()
-        remaining = remaining - 1
+    local startTime = GetTime()
+    QRA.Notifications.PlayCountdown(seconds)
+    countdownTicker = C_Timer.NewTicker(1, function()
+        local elapsed = GetTime() - startTime
+        remaining = seconds - elapsed
+
         if remaining > 0 then
-            QRA.Notifications.PlayCountdown(remaining)
+            QRA.Notifications.PlayCountdown(math.ceil(remaining))
+            notificationFrame:SetBarValue((remaining / seconds) * 100)
         end
-        QRA.Notifications.UpdateCountdown(remaining)
+        notificationFrame:UpdateCountdown(math.ceil(remaining))
     end, seconds)
-end
-
---- Update the countdown display
----@param seconds number Seconds remaining
-function QRA.Notifications.UpdateCountdown(seconds)
-    if screenMessageFrame and screenMessageFrame:IsShown() then
-        if seconds > 0 then
-            screenMessageFrame.countdown:SetText(string.format(QRA.L["in %d seconds"], seconds))
-        else
-            screenMessageFrame.countdown:SetText(QRA.L["NOW!"])
-            screenMessageFrame.countdown:SetTextColor(1, 0, 0)  -- Red
-
-            -- Start fade out
-            screenMessageFrame.fadeAnim:Stop()
-            screenMessageFrame.fadeAnim:GetAnimations():SetStartDelay(1.5)
-            screenMessageFrame.fadeAnim:Play()
-        end
-    end
 end
 
 --------------------------------------------------
@@ -306,13 +268,13 @@ end
 --------------------------------------------------
 
 --- Get current notification settings
----@return table
+---@return QRA_NotificationConfig
 function QRA.Notifications.GetConfig()
     return config
 end
 
 --- Update notification settings
----@param settings table Settings to update
+---@param settings QRA_NotificationConfig
 function QRA.Notifications.SetConfig(settings)
     for key, value in pairs(settings) do
         if config[key] ~= nil then
@@ -387,6 +349,7 @@ function QRA.Notifications.SaveToDB()
         chatEnabled = config.chatEnabled,
         screenDuration = config.screenDuration,
         chatChannel = config.chatChannel,
+        framePosition = config.framePosition,
     }
 end
 
@@ -395,7 +358,7 @@ function QRA.Notifications.LoadFromDB()
     if not QRA.DB or not QRA.DB.notifications then return end
 
     for key, value in pairs(QRA.DB.notifications) do
-        if config[key] ~= nil then
+        if config[key] then
             config[key] = value
         end
     end
@@ -407,6 +370,7 @@ end
 
 function QRA.Notifications.Initialize()
     QRA.Notifications.LoadFromDB()
-    CreateScreenMessageFrame()
+    notificationFrame = QRA.Notifications.UI.CreateScreenMessageFrame(config.framePosition)
+    AF.CreateMover(notificationFrame, MOVER_GROUP, "Notification Frame", UpdateFramePosition)
     QRA.Debug("Notifications: Module initialized")
 end
