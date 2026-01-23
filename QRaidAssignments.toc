@@ -39,6 +39,11 @@ Assignments/Core/RaidRoster.lua
 Assignments/Core/AssignTarget.lua
 Assignments/UI/AssignTargetMenu.lua
 
+BossMods/Encounter.lua
+BossMods/BigWigs.lua
+BossMods/DBM.lua
+BossMods/BossMods.lua
+
 # DevMode - Testing and Development Tools
 DevMode/Core/TestMode.lua
 DevMode/Core/FakeEncounter.lua

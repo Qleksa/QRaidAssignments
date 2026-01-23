@@ -31,6 +31,12 @@ QRA.RegisterComm = AF.RegisterComm
 QRA.SendCommMessage = AF.SendCommMessage_Group
 QRA.DelayedInvoke = AF.DelayedInvoke
 
+QRA.Event = {
+    SendEvent = AF.Fire,
+    RegisterEvent = AF.RegisterCallback
+}
+
+
 AF.RegisterAddon(QRA.name, "Q's Raid Assignments")
 AF.SetAddonAccentColor(QRA.name, "softlime")
 

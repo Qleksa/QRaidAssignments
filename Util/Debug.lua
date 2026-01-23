@@ -9,7 +9,12 @@ local function dump(o, indent)
     if type(o) == 'table' then
         local s = '{\n'
         for k, v in pairs(o) do
-            if type(k) ~= 'number' then k = '"' .. k .. '"' end
+            if type(k) == "table" then
+                k = dump(k, indent + 1)
+            elseif type(k) ~= 'number' then
+                k = '"' .. k .. '"'
+            end
+
             s = s .. nextIndentStr .. '[' .. k .. '] = ' .. dump(v, indent + 1) .. ',\n'
         end
         return s .. indentStr .. '}'
