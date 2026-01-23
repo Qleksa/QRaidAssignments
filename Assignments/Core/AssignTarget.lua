@@ -9,7 +9,7 @@ local QRA = select(2, ...)
 QRA.AssignTarget = {}
 
 ---@type AbstractFramework
-local AF = QRA.AF
+local AF = _G.AbstractFramework
 
 --------------------------------------------------
 -- Target Types

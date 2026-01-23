@@ -4,9 +4,58 @@ local QRA = select(2, ...)
 QRA.UI.Settings = {}
 
 ---@type AbstractFramework
-local AF = QRA.AF
+local AF = _G.AbstractFramework
 
 local settingsFrame = nil
+
+--- Create a section header with optional collapse button
+---@param parent Frame Parent frame
+---@param title string Header title
+---@param collapsible boolean|nil Whether the section is collapsible
+---@return Frame header
+local function CreateSectionHeader(parent, title, collapsible)
+    local header = CreateFrame("Frame", nil, parent)
+    AF.SetHeight(header, 24)
+    AF.SetPoint(header, "LEFT")
+    AF.SetPoint(header, "RIGHT")
+
+    -- Background
+    local bg = AF.CreateGradientTexture(header, "HORIZONTAL", {0.2, 0.2, 0.2, 0.8}, {0.1, 0.1, 0.1, 0.4})
+    AF.SetPoint(bg, "TOPLEFT")
+    AF.SetPoint(bg, "BOTTOMRIGHT")
+
+    -- Title text
+    local titleFS = AF.CreateFontString(header, title, "softlime")
+    AF.SetPoint(titleFS, "LEFT", 10, 0)
+
+    -- Collapse button (optional)
+    if collapsible then
+        local collapseBtn = AF.CreateButton(header, "-", "static", 20, 18)
+        AF.SetPoint(collapseBtn, "RIGHT", -5, 0)
+
+        header.collapsed = false
+        header.content = nil  -- Will be set by user
+
+        collapseBtn:SetOnClick(function()
+            header.collapsed = not header.collapsed
+            collapseBtn:SetText(header.collapsed and "+" or "-")
+            if header.content then
+                if header.collapsed then
+                    header.content:Hide()
+                else
+                    header.content:Show()
+                end
+            end
+            if header.OnCollapse then
+                header.OnCollapse(header.collapsed)
+            end
+        end)
+
+        header.collapseBtn = collapseBtn
+    end
+
+    return header
+end
 
 function QRA.UI.Settings.ShowSettingsPanel(parent)
     if settingsFrame then
@@ -30,7 +79,7 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     AF.SetPoint(content, "BOTTOMRIGHT", settingsFrame, -10, 40)
 
     -- Notifications section
-    local notifHeader = QRA.Widgets.CreateSectionHeader(content, QRA.L["Notification Settings"])
+    local notifHeader = CreateSectionHeader(content, QRA.L["Notification Settings"])
     AF.SetPoint(notifHeader, "TOPLEFT", content, 0, 0)
     AF.SetPoint(notifHeader, "TOPRIGHT", content, 0, 0)
 
@@ -69,7 +118,7 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     chatCheck:SetChecked(notifConfig.chatEnabled)
 
     -- Test buttons section
-    local testHeader = QRA.Widgets.CreateSectionHeader(content, QRA.L["Test Notifications"])
+    local testHeader = CreateSectionHeader(content, QRA.L["Test Notifications"])
     AF.SetPoint(testHeader, "TOPLEFT", chatCheck, "BOTTOMLEFT", -10, -20)
     AF.SetPoint(testHeader, "TOPRIGHT", content, 0, 0)
 
@@ -90,7 +139,7 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     testCountdownBtn:SetOnClick(QRA.Notifications.TestCountdown)
 
     -- Movers section
-    local moversHeader = QRA.Widgets.CreateSectionHeader(content, QRA.L["Movers"])
+    local moversHeader = CreateSectionHeader(content, QRA.L["Movers"])
     AF.SetPoint(moversHeader, "TOPLEFT", testScreenBtn, "BOTTOMLEFT", -10, -20)
     AF.SetPoint(moversHeader, "TOPRIGHT", content, 0, 0)
 
@@ -107,7 +156,7 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     end)
 
     -- Debug section
-    local debugHeader = QRA.Widgets.CreateSectionHeader(content, QRA.L["Debug"])
+    local debugHeader = CreateSectionHeader(content, QRA.L["Debug"])
     AF.SetPoint(debugHeader, "TOPLEFT", showMoversBtn, "BOTTOMLEFT", 0, -20)
     AF.SetPoint(debugHeader, "TOPRIGHT", content, 0, 0)
 

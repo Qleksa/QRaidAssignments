@@ -13,7 +13,7 @@ local FakeEncounter = QRA.DevMode.FakeEncounter
 local EventFirer = QRA.DevMode.EventFirer
 
 ---@type AbstractFramework
-local AF = QRA.AF
+local AF = _G.AbstractFramework
 
 --------------------------------------------------
 -- Constants

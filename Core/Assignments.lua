@@ -456,7 +456,7 @@ function QRA.Assignments.ExecuteAlert(assignment, eventData)
     if message == "" and assignment.spellName then
         message = string.format("Use %s", assignment.spellName)
         -- Append target if specified
-        if assignment.targetPlayer then
+        if assignment.targetPlayer and assignment.targetPlayer ~= "" then
             message = message .. " on " .. assignment.targetPlayer
         end
     end

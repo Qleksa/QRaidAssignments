@@ -5,14 +5,34 @@
 
 ---@class QRA
 local QRA = select(2, ...)
-QRA.Notifications = {}
+
+QRA.Notifications = QRA.Notifications or {}
 
 ---@type AbstractFramework
-local AF = QRA.AF
+local AF = _G.AbstractFramework
 
 --------------------------------------------------
 -- Configuration
 --------------------------------------------------
+
+---@class QRA_CountdownSounds
+---@field [number] string Sound file path
+
+---@class QRA_FramePosition
+---@field point string Anchor point
+---@field xOfs number X offset
+---@field yOfs number Y offset
+
+---@class QRA_NotificationConfig
+---@field ttsEnabled boolean
+---@field soundEnabled boolean
+---@field screenEnabled boolean
+---@field chatEnabled boolean
+---@field screenDuration number
+---@field screenPosition string
+---@field chatChannel string
+---@field countdownSounds QRA_CountdownSounds
+---@field framePosition QRA_FramePosition
 local config = {
     ttsEnabled = true,
     soundEnabled = true,
@@ -45,95 +65,18 @@ local config = {
 
 local MOVER_GROUP = "QRA Movers"
 
---------------------------------------------------
--- Screen Message Frame
---------------------------------------------------
-
----@class QRA_ScreenMessageFrame : AF_BorderedFrame
----@field icon Texture
----@field text AF_FontString
----@field countText AF_FontString
----@field progressBar AF_BlizzardStatusBar
----@field fadeAnim AnimationGroup
----@field SetBarValue fun(self: QRA_ScreenMessageFrame, value: number)
----@field SetSpell fun(self: QRA_ScreenMessageFrame, spellId: number)
-local screenMessageFrame = nil
+---@type QRA_ScreenMessageFrame
+local notificationFrame = nil
 
 ---@type TickerCallback
 local countdownTicker = nil
 
-local function UpdateFramePosition(point, x, y)
-    if not screenMessageFrame then return end
-
+function UpdateFramePosition(point, x, y)
     config.framePosition.point = point
     config.framePosition.xOfs = x
     config.framePosition.yOfs = y
 
-    AF.SetPoint(screenMessageFrame, point, x, y)
-end
-
-
---- Create the screen message display frame
-local function CreateScreenMessageFrame()
-    if screenMessageFrame then return end
-
-    local progressBarMaxValue = 100
-    local framePosition = config.framePosition
-
-    screenMessageFrame = AF.CreateBorderedFrame(QRA.UIParent, "QRA_ScreenMessageFrame", 250, 80, nil, "softlime")
-    AF.CreateMover(screenMessageFrame, MOVER_GROUP, "Notification Frame", UpdateFramePosition)
-    AF.SetTooltip(screenMessageFrame, "TOPLEFT", 0, 2, "Drag to move the notification frame position")
-    AF.SetPoint(screenMessageFrame, framePosition.point, framePosition.xOfs, framePosition.yOfs)
-    screenMessageFrame:SetFrameLevel(300)
-    screenMessageFrame:Hide()
-
-    -- Spell icon
-    local icon = screenMessageFrame:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(40, 40)
-    AF.SetPoint(icon, "LEFT", screenMessageFrame, 15, 0)
-    screenMessageFrame.icon = icon
-
-    -- Spell name
-    local text = AF.CreateFontString(screenMessageFrame, "", "softlime")
-    AF.SetPoint(text, "LEFT", icon, "RIGHT", 10, 10)
-    screenMessageFrame.text = text
-
-    -- Countdown text
-    local countText = AF.CreateFontString(screenMessageFrame, "", "yellow")
-    AF.SetPoint(countText, "LEFT", icon, "RIGHT", 10, -10)
-    screenMessageFrame.countText = countText
-
-    -- Progress bar
-    local progressBar = AF.CreateBlizzardStatusBar(screenMessageFrame, 0, progressBarMaxValue, 200, 8, "softlime")
-    AF.SetPoint(progressBar, "BOTTOM", screenMessageFrame, 0, 10)
-    screenMessageFrame.progressBar = progressBar
-
-    -- Animation group for fade out
-    local ag = screenMessageFrame:CreateAnimationGroup()
-    local fade = ag:CreateAnimation("Alpha")
-    fade:SetFromAlpha(1)
-    fade:SetToAlpha(0)
-    fade:SetDuration(0.5)
-    fade:SetStartDelay(4.5)
-    ag:SetScript("OnFinished", function()
-        screenMessageFrame:Hide()
-        screenMessageFrame:SetAlpha(1)
-    end)
-    screenMessageFrame.fadeAnim = ag
-
-    -- Public API
-    function screenMessageFrame:SetBarValue(value)
-        self.progressBar:SetBarValue(value)
-    end
-
-    function screenMessageFrame:SetSpell(spellId)
-        if spellId then
-            local spellIcon = C_Spell.GetSpellTexture(spellId)
-            self.icon:SetTexture(spellIcon)
-        else
-            self.icon:SetTexture(134400)
-        end
-    end
+    notificationFrame:UpdatePosition(point, x, y)
 end
 
 ---@param type AlertType Notification type
@@ -222,28 +165,17 @@ end
 function QRA.Notifications.ShowOnScreen(message, duration, color)
     if not config.screenEnabled then return end
 
-    if not screenMessageFrame then
-        CreateScreenMessageFrame()
-    end
-
-    screenMessageFrame.text:SetText(message)
+    notificationFrame:SetMessageText(message)
+    notificationFrame.text:SetTextColor(1, 1, 0)
     if color then
-        screenMessageFrame.text:SetTextColor(color[1] or 1, color[2] or 1, color[3] or 0)
-    else
-        screenMessageFrame.text:SetTextColor(1, 1, 0)  -- Yellow default
+        notificationFrame.text:SetTextColor(color[1] or 1, color[2] or 1, color[3] or 0)
     end
-    screenMessageFrame.countText:SetText("")
+    notificationFrame:SetCountdownText("")
+    notificationFrame:HideBar()
 
-    -- Reset and show
-    screenMessageFrame:SetAlpha(1)
-    screenMessageFrame:Show()
-
-    -- Restart fade animation
-    screenMessageFrame.fadeAnim:Stop()
-    screenMessageFrame.fadeAnim:GetAnimations():SetStartDelay((duration or config.screenDuration) - 0.5)
-    screenMessageFrame.fadeAnim:Play()
-
-    QRA.Debug("Notifications: Screen -", message)
+    notificationFrame:SetAlpha(1)
+    notificationFrame:Show()
+    -- notificationFrame:FadeOut(duration or (config.screenDuration))
 end
 
 --- Show a countdown start notification
@@ -252,29 +184,21 @@ end
 function QRA.Notifications.ShowCountdown(assignment, seconds)
     if not config.screenEnabled then return end
 
-    if not screenMessageFrame then
-        CreateScreenMessageFrame()
-    end
-
     local message = assignment.message
     if message == "" and assignment.spellName then
         message = string.format("Use %s", assignment.spellName)
-        if assignment.targetPlayer then
+        if assignment.targetPlayer and assignment.targetPlayer ~= "" then
             message = message .. " on " .. assignment.targetPlayer
         end
     end
     message = message or "Assignment triggered!"
 
-    screenMessageFrame.text:SetText(message)
-    screenMessageFrame:SetSpell(assignment.spellId)
-    screenMessageFrame.countText:SetText("in " .. seconds)
-    screenMessageFrame:SetBarValue(100)
-
-    screenMessageFrame:SetAlpha(1)
-    screenMessageFrame:Show()
+    notificationFrame:Init(message, assignment.spellId, seconds)
+    notificationFrame:SetAlpha(1)
+    notificationFrame:Show()
 
     -- Don't auto-hide during countdown
-    screenMessageFrame.fadeAnim:Stop()
+    notificationFrame.fadeAnim:Stop()
 
     if countdownTicker then
         countdownTicker:Cancel()
@@ -289,29 +213,10 @@ function QRA.Notifications.ShowCountdown(assignment, seconds)
 
         if remaining > 0 then
             QRA.Notifications.PlayCountdown(math.ceil(remaining))
-            screenMessageFrame.progressBar:SetBarValue((remaining / seconds) * 100)
+            notificationFrame:SetBarValue((remaining / seconds) * 100)
         end
-        QRA.Notifications.UpdateCountdown(math.ceil(remaining))
+        notificationFrame:UpdateCountdown(math.ceil(remaining))
     end, seconds)
-end
-
---- Update the countdown display
----@param seconds number Seconds remaining
-function QRA.Notifications.UpdateCountdown(seconds)
-    if screenMessageFrame and screenMessageFrame:IsShown() then
-        if seconds <= 0 then
-            screenMessageFrame.countText:SetText(AF.WrapTextInColor("NOW!", "red"))
-            screenMessageFrame:SetBarValue(0)
-
-
-            -- Start fade out
-            screenMessageFrame.fadeAnim:Stop()
-            screenMessageFrame.fadeAnim:GetAnimations():SetStartDelay(1.5)
-            screenMessageFrame.fadeAnim:Play()
-        else
-            screenMessageFrame.countText:SetText("in " .. math.ceil(seconds))
-        end
-    end
 end
 
 --------------------------------------------------
@@ -363,13 +268,13 @@ end
 --------------------------------------------------
 
 --- Get current notification settings
----@return table
+---@return QRA_NotificationConfig
 function QRA.Notifications.GetConfig()
     return config
 end
 
 --- Update notification settings
----@param settings table Settings to update
+---@param settings QRA_NotificationConfig
 function QRA.Notifications.SetConfig(settings)
     for key, value in pairs(settings) do
         if config[key] ~= nil then
@@ -453,7 +358,7 @@ function QRA.Notifications.LoadFromDB()
     if not QRA.DB or not QRA.DB.notifications then return end
 
     for key, value in pairs(QRA.DB.notifications) do
-        if config[key] ~= nil then
+        if config[key] then
             config[key] = value
         end
     end
@@ -465,6 +370,7 @@ end
 
 function QRA.Notifications.Initialize()
     QRA.Notifications.LoadFromDB()
-    CreateScreenMessageFrame()
+    notificationFrame = QRA.Notifications.UI.CreateScreenMessageFrame(config.framePosition)
+    AF.CreateMover(notificationFrame, MOVER_GROUP, "Notification Frame", UpdateFramePosition)
     QRA.Debug("Notifications: Module initialized")
 end
