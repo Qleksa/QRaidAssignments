@@ -12,7 +12,7 @@ local DevModeUI = QRA.DevMode.UI
 local EventHistory = QRA.DevMode.EventHistory
 
 ---@type AbstractFramework
-local AF = QRA.AF
+local AF = _G.AbstractFramework
 
 --------------------------------------------------
 -- Constants

@@ -7,11 +7,8 @@
 local QRA = select(2, ...)
 
 ---@type AbstractFramework
-local AF = QRA.AF
+local AF = _G.AbstractFramework
 
---------------------------------------------------
--- Module
---------------------------------------------------
 QRA.Changelog = {}
 
 --------------------------------------------------
@@ -252,20 +249,14 @@ function QRA.Changelog.CheckAndShow()
     local currentVersion = tostring(QRA.version or "0.0.0")
     local hideChangelogUntilNext = QRA.DB.settings.hideChangelogUntilNextVersion or false
 
-    QRA.Debug("Changelog: Last seen version:", lastSeenVersion)
-    QRA.Debug("Changelog: Current version:", currentVersion)
-    QRA.Debug("Changelog: Hide until next:", hideChangelogUntilNext)
 
     -- Skip if user chose to hide until next version
     if hideChangelogUntilNext and lastSeenVersion == currentVersion then
-        QRA.Debug("Changelog: Skipping - user chose to hide")
         return
     end
 
     -- Check if this is a new major or minor version
     if IsNewMajorOrMinorVersion(lastSeenVersion, currentVersion) then
-        QRA.Debug("Changelog: New major/minor version detected, showing changelog")
-
         -- Reset the hide flag for new version
         QRA.DB.settings.hideChangelogUntilNextVersion = false
 
@@ -274,7 +265,6 @@ function QRA.Changelog.CheckAndShow()
             QRA.Changelog.Show()
         end)
     else
-        QRA.Debug("Changelog: No new major/minor version, not showing")
         -- Update last seen version even if not showing
         QRA.DB.settings.lastSeenVersion = currentVersion
     end

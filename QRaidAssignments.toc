@@ -27,9 +27,15 @@ Core/Triggers.lua
 Core/Assignments.lua
 Core/Templates.lua
 
+Notifications/UI.lua
+Notifications/Notifications.lua
+
 UI/Widgets.lua
-UI/Notifications.lua
-UI/Main.lua
+UI/ContextMenus.lua
+UI/Dialogs.lua
+UI/Tree.lua
+UI/Settings.lua
+UI/UI.lua
 
 Comm/Comm.lua
 

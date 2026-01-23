@@ -5,9 +5,10 @@ local AF = _G.AbstractFramework
 ---@class QRA
 local QRA = select(2, ...)
 
+QRA = QRA or {}
+
 QRA.name = "QRaidAssignments"
 QRA.version = "0.11.0"
-QRA.AF = AF
 
 --------------------------------------------------
 -- Pre-initialize module tables

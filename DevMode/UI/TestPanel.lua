@@ -11,7 +11,7 @@ QRA.DevMode.UI = QRA.DevMode.UI or {}
 local DevModeUI = QRA.DevMode.UI
 
 ---@type AbstractFramework
-local AF = QRA.AF
+local AF = _G.AbstractFramework
 
 --------------------------------------------------
 -- Constants

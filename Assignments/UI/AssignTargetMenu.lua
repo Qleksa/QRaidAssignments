@@ -8,7 +8,7 @@
 local QRA = select(2, ...)
 
 ---@type AbstractFramework
-local AF = QRA.AF
+local AF = _G.AbstractFramework
 
 QRA.AssignTargetMenu = {}
 

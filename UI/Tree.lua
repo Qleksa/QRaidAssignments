@@ -2,7 +2,7 @@
 local QRA = select(2, ...)
 
 ---@type AbstractFramework
-local AF = QRA.AF
+local AF = _G.AbstractFramework
 
 QRA.UI.Tree = {}
 
@@ -241,7 +241,7 @@ local function CreateTriggerRow(parent, trigger, indentLevel, onToggle, onEdit, 
         if button == "LeftButton" then
             if onEdit then onEdit(trigger) end
         elseif button == "RightButton" then
-            QRA.UI.ShowTriggerContextMenu(row, trigger, onDelete, onAddAssignment, onToggle)
+            QRA.UI.ContextMenus.ShowTriggerContextMenu(row, trigger, onDelete, onAddAssignment)
         end
     end)
 
@@ -402,7 +402,7 @@ local function CreateAssignmentRow(parent, assignment, triggerId, indentLevel, o
         if button == "LeftButton" then
             if onEdit then onEdit(assignment, triggerId) end
         elseif button == "RightButton" then
-            QRA.UI.ShowAssignmentContextMenu(row, assignment, triggerId, onDelete)
+            QRA.UI.ContextMenus.ShowAssignmentContextMenu(row, assignment, triggerId, onDelete)
         end
     end)
 
@@ -507,7 +507,7 @@ local function CreateOrphanedAssignmentRow(parent, assignment, onEdit, onDelete,
         if button == "LeftButton" then
             if onEdit then onEdit(assignment) end
         elseif button == "RightButton" then
-            QRA.UI.ShowOrphanedAssignmentContextMenu(row, assignment, onDelete, onAdopt)
+            QRA.UI.ContextMenus.ShowOrphanedAssignmentContextMenu(row, assignment, onDelete, onAdopt)
         end
     end)
 
@@ -588,21 +588,21 @@ local function CreateTreeWidgets(parent, listParent, bossName)
     end
 
     local function OnEditTrigger(trigger)
-        QRA.UI.ShowTriggerEditor(trigger, trigger.bossName)
+        QRA.UI.Dialogs.ShowTriggerEditor(trigger, trigger.bossName)
     end
 
     local function OnDeleteTrigger(trigger)
-        QRA.UI.ShowDeleteTriggerDialog(trigger, function()
+        QRA.UI.Dialogs.ShowDeleteTriggerDialog(trigger, function()
             QRA.UI.RefreshTree()
         end)
     end
 
     local function OnAddAssignment(triggerId)
-        QRA.UI.ShowAssignmentEditor(nil, triggerId)
+        QRA.UI.Dialogs.ShowAssignmentEditor(nil, triggerId)
     end
 
     local function OnEditAssignment(assignment, triggerId)
-        QRA.UI.ShowAssignmentEditor(assignment, triggerId)
+        QRA.UI.Dialogs.ShowAssignmentEditor(assignment, triggerId)
     end
 
     local function OnDeleteAssignment(assignment, triggerId)
@@ -611,7 +611,7 @@ local function CreateTreeWidgets(parent, listParent, bossName)
     end
 
     local function OnAddTrigger(bossName)
-        QRA.UI.ShowTriggerEditor(nil, bossName)
+        QRA.UI.Dialogs.ShowTriggerEditor(nil, bossName)
     end
 
     -- If boss filter is set, only show that boss's triggers
@@ -624,7 +624,7 @@ local function CreateTreeWidgets(parent, listParent, bossName)
                 listParent,
                 trigger,
                 0,  -- No indent when showing single boss
-                RefreshTree,
+                QRA.UI.RefreshTree,
                 OnEditTrigger,
                 OnDeleteTrigger,
                 OnAddAssignment
@@ -666,7 +666,7 @@ local function CreateTreeWidgets(parent, listParent, bossName)
 
             if instanceHasTriggers then
                 -- Instance header
-                local instanceRow = CreateInstanceRow(listParent, instanceName, instanceData.tier, RefreshTree)
+                local instanceRow = CreateInstanceRow(listParent, instanceName, instanceData.tier, QRA.UI.RefreshTree)
                 table.insert(widgets, instanceRow)
 
                 -- Bosses (if instance expanded)
@@ -676,7 +676,7 @@ local function CreateTreeWidgets(parent, listParent, bossName)
 
                         if #triggers > 0 then
                             -- Boss header
-                            local bossRow = CreateBossRow(listParent, bossData, 1, RefreshTree, OnAddTrigger)
+                            local bossRow = CreateBossRow(listParent, bossData, 1, QRA.UI.RefreshTree, OnAddTrigger)
                             table.insert(widgets, bossRow)
 
                             -- Triggers (if boss expanded)
@@ -754,13 +754,13 @@ local function CreateTreeWidgets(parent, listParent, bossName)
             local orphanRow = CreateOrphanedAssignmentRow(
                 listParent,
                 assignment,
-                function(a) QRA.UI.ShowAssignmentEditor(a, nil) end,
+                function(a) QRA.UI.Dialogs.ShowAssignmentEditor(a, nil) end,
                 function(a)
                     QRA.Assignments.DeleteOrphan(a.id)
-                    RefreshTree()
+                    QRA.UI.RefreshTree()
                 end,
                 function(a)
-                    QRA.UI.ShowAdoptOrphanDialog(a, RefreshTree)
+                    QRA.UI.Dialogs.ShowAdoptOrphanDialog(a, QRA.UI.RefreshTree)
                 end
             )
             table.insert(widgets, orphanRow)
