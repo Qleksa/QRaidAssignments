@@ -5,15 +5,22 @@
 
 ---@class QRA
 local QRA = select(2, ...)
+
+---@class QRA_DevMode
 QRA.DevMode = QRA.DevMode or {}
+
+---@class QRA_DevMode_EventFirer
 QRA.DevMode.EventFirer = {}
 
+---@class QRA_DevMode_EventFirer
 local EventFirer = QRA.DevMode.EventFirer
 local FakeEncounter = QRA.DevMode.FakeEncounter
 
 --------------------------------------------------
 -- Event Type Definitions
 --------------------------------------------------
+
+---@class QRA_DevMode_EventTypes
 EventFirer.EventTypes = {
     SPELL_CAST_SUCCESS = {
         name = "Spell Cast Success",
@@ -357,6 +364,33 @@ function EventFirer.FireUnitHealthChange(unitId, newHealthPercent, oldHealthPerc
     return true
 end
 
+--- Fire a UNIT_SPELLCAST_SUCCEEDED event
+---@param unitId string Boss unit ID
+---@param spellId number
+---@return boolean success
+function EventFirer.FireUnitSpellcastSucceeded(unitId, spellId)
+    if not FakeEncounter.IsActive() then
+        QRA.Print(QRA.L["DevMode: Start an encounter first"])
+        return false
+    end
+
+    local sourceGUID, sourceName = GetFakeBossInfo(unitId)
+
+    local spellName = C_Spell.GetSpellName(spellId) or "Unknown Spell"
+
+    QRA.DevMode.EventHistory.AddEvent("UNIT_SPELLCAST_SUCCEEDED", {
+        spellId = spellId,
+        spellName = spellName,
+        sourceUnitId = unitId,
+    })
+
+    if QRA.Triggers and QRA.Triggers.ProcessUnitSpellcast(unitId, spellId) then
+        QRA.Debug("EventFirer: Fired SPELL_CAST_SUCCESS via UNIT_SPELLCAST_SUCCEEDED", unitId, spellId)
+    end
+
+    return true
+end
+
 --- Fire a timer trigger manually
 ---@param triggerId string The trigger ID
 ---@return boolean success
@@ -411,6 +445,8 @@ function EventFirer.FireTrigger(trigger)
         return EventFirer.FireAuraRemoved(trigger.spellId, nil, "boss1")
     elseif trigger.type == "UNIT_DIED" then
         return EventFirer.FireNPCDeath(nil, trigger.targetGuid)
+    elseif trigger.type == "UNIT_SPELLCAST_SUCCEEDED" then
+        return EventFirer.FireUnitSpellcastSucceeded("boss1", trigger.spellId)
     elseif trigger.type == "TIMER" then
         return EventFirer.FireTimerTrigger(trigger.id)
     elseif trigger.type == "UNIT_HEALTH" then
