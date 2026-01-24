@@ -289,7 +289,7 @@ function QRA.Triggers.OnUnitHealth(unitId)
         if unitGuid then
             local npcId = GetNpcIdFromGuid(unitGuid)
             if npcId then
-                local npcTriggers = triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event][tostring(npcId)]
+                local npcTriggers = triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event][npcId]
                 if npcTriggers then
                     for _, trigger in ipairs(npcTriggers) do
                         table.insert(triggersToCheck, trigger)
@@ -456,7 +456,8 @@ local function BuildTriggerIndex()
                 trigger.type == QRA.Triggers.Types.UNIT_DIED.event
             then
                 -- For UNIT_HEALTH and UNIT_DIED, index by targetGuid (boss, boss1, or NPC ID)
-                idKey = trigger.targetGuid
+                local npcId = tonumber(trigger.targetGuid)
+                idKey = npcId or trigger.targetGuid
             else
                 -- For other types, use spellId
                 idKey = trigger.spellId
@@ -499,8 +500,6 @@ local function RemoveFromIndex(trigger)
 end
 
 local function ShouldRemoveTrigger(trigger, currentCounter)
-    -- Timer triggers are controlled by their repeatCount and C_Timer.NewTicker
-    -- They should not be removed based on counterFormula exhaustion
     if trigger.type == QRA.Triggers.Types.TIMER.event then
         return false
     end
@@ -589,7 +588,7 @@ function QRA.Triggers.RegisterEncounterTriggers(encounterId)
     QRA.Triggers.UnregisterAll()
 
     for _, trigger in ipairs(QRA.DB.triggers) do
-        if trigger.encounterId == encounterId then
+        if trigger.enabled and trigger.encounterId == encounterId then
             QRA.Triggers.Register(trigger)
         end
     end
@@ -806,13 +805,11 @@ local function StartTimerTriggers()
                     -- repeatCount is total fires, so ticker fires (repeatCount - 1) additional times
                     local repeatCount = trigger.repeatCount
                     if repeatCount and repeatCount > 1 then
-                        -- Subtract 1 because the initial fire already happened
                         handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer, repeatCount - 1)
                     elseif not repeatCount or repeatCount == 0 then
                         -- No limit, repeat indefinitely
                         handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer)
                     end
-                    -- If repeatCount == 1, no ticker needed (only the initial fire)
                 end)
             else
                 -- One-shot timer
@@ -860,7 +857,6 @@ function QRA.Triggers.Fire(trigger, eventData)
     local currentCounter = IncrementOccurrence(counterKey)
     local shouldExecute = trigger.type == QRA.Triggers.Types.TIMER.event or QRA.CounterFormula.Matches(trigger.counterFormula, currentCounter)
 
-    -- Check if this counter matches the trigger's formula
     if shouldExecute then
         QRA.Debug("Triggers: Fired", trigger.id, "counter", currentCounter)
 
@@ -891,7 +887,6 @@ end
 
 --- Process combat log events and check triggers
 function QRA.Triggers.ProcessCombatLogEvent(...)
-    -- QRA.Debug("Triggers: Processing combat log event")
     if not encounterActive then return end
 
     local timestamp, subevent, _, sourceGUID, sourceName, _, _, destGUID, destName = ...
@@ -904,12 +899,17 @@ function QRA.Triggers.ProcessCombatLogEvent(...)
         spellId = select(12, ...)
     end
 
+    ---@type Trigger[]
     local triggersToCheck = {}
     if subevent == QRA.Triggers.Types.UNIT_DIED.event then
-        local npcId = select(6, strsplit("-", destGUID))
+        QRA.Debug("Processing UNIT_DIED for destGUID:", destGUID)
+        local npcId = GetNpcIdFromGuid(destGUID)
+        QRA.Debug("Extracted NPC ID:", npcId)
 
+        QRA.Debug("Checking triggers for UNIT_DIED:", eventBucket)
         -- Check NPC ID triggers
-        local npcTriggers = eventBucket[tonumber(npcId)]
+        local npcTriggers = eventBucket[npcId]
+        QRA.Debug("Found NPC triggers for ID", npcId, ":", npcTriggers)
         if npcTriggers then
             for _, trigger in ipairs(npcTriggers) do
                 table.insert(triggersToCheck, trigger)
@@ -926,7 +926,7 @@ function QRA.Triggers.ProcessCombatLogEvent(...)
 
         -- Check specific unit ID triggers (boss1, boss2, etc.)
         for i = 1, 8 do
-            local unitId = i == 1 and "boss" or "boss" .. i
+            local unitId = "boss" .. i
             if UnitExists(unitId) and UnitGUID(unitId) == destGUID then
                 local unitTriggers = eventBucket[unitId]
                 if unitTriggers then
@@ -946,6 +946,7 @@ function QRA.Triggers.ProcessCombatLogEvent(...)
         end
     end
 
+    QRA.Debug("Triggers: Found", triggersToCheck)
     if #triggersToCheck == 0 then return end
 
     local eventData = {
@@ -963,19 +964,17 @@ function QRA.Triggers.ProcessCombatLogEvent(...)
         if trigger.enabled then
             local shouldFire = false
 
-            -- Check trigger type matches event
-            if subevent == "SPELL_CAST_START" or subevent == "SPELL_CAST_SUCCESS" then
-                QRA.Debug("Checking SPELL_CAST_SUCCESS trigger for spell ID:", spellId)
-                if not trigger.sourceUnit or UnitGUID(trigger.sourceUnit) == sourceGUID then
+            if subevent == QRA.Triggers.Types.UNIT_DIED.event then
+                QRA.Debug("Checking UNIT_DIED trigger for target GUID:", trigger.targetGuid)
+                if trigger.targetGuid then
                     shouldFire = true
                 end
-            elseif subevent == "SPELL_AURA_APPLIED" or subevent == "SPELL_AURA_REMOVED" then
-                if not trigger.targetUnit or UnitGUID(trigger.targetUnit) == destGUID then
-                    shouldFire = true
-                end
-            elseif subevent == "UNIT_DIED" then
-                -- For UNIT_DIED triggers, check if targetGuid matches destGUID
-                if not trigger.targetGuid or UnitGUID(trigger.targetGuid) == destGUID then
+            elseif subevent == QRA.Triggers.Types.SPELL_CAST_SUCCESS.event or
+                subevent == QRA.Triggers.Types.SPELL_CAST_START.event or
+                subevent == QRA.Triggers.Types.SPELL_AURA_APPLIED.event or
+                subevent == QRA.Triggers.Types.SPELL_AURA_REMOVED.event
+            then
+                if spellId == trigger.spellId then
                     shouldFire = true
                 end
             end
