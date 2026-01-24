@@ -6,6 +6,8 @@
 
 ---@class QRA
 local QRA = select(2, ...)
+
+---@class QRA_Triggers
 QRA.Triggers = {}
 
 local frame = CreateFrame("Frame", "QRA_TriggerFrame") -- Event frame for combat log and timers
@@ -23,6 +25,12 @@ frame:RegisterEvent("ENCOUNTER_END")
 function frame:COMBAT_LOG_EVENT_UNFILTERED()
     if QRA.Triggers and QRA.Triggers.ProcessCombatLogEvent then
         QRA.Triggers.ProcessCombatLogEvent(CombatLogGetCurrentEventInfo())
+    end
+end
+
+function frame:UNIT_SPELLCAST_SUCCEEDED(unit, _, spellId)
+    if QRA.Triggers and QRA.Triggers.ProcessUnitSpellcast then
+        QRA.Triggers.ProcessUnitSpellcast(unit, spellId)
     end
 end
 
@@ -66,6 +74,11 @@ QRA.Triggers.Types = {
         event = "SPELL_CAST_START",
         name = "Spell Cast Start",
         abbreviation = "SCS",
+    },
+    UNIT_SPELLCAST_SUCCEEDED = {
+        event = "UNIT_SPELLCAST_SUCCEEDED",
+        name = "Unit Spellcast Succeeded",
+        abbreviation = "USS",
     },
     SPELL_AURA_APPLIED = {
         event = "SPELL_AURA_APPLIED",
@@ -236,163 +249,57 @@ end
 -- Unit Health Handler
 --------------------------------------------------
 
---- Process UNIT_HEALTH events for HP-based triggers
----@param unitId string The unit ID that had a health change
-function QRA.Triggers.OnUnitHealth(unitId)
-    if not encounterActive then return end
-
-    -- Only monitor boss units
-    if not unitId or not unitId:match("^boss%d?$") then return end
-
-    -- Get current HP percentage
-    local currentHP = UnitHealth(unitId)
-    local maxHP = UnitHealthMax(unitId)
-    if not currentHP or not maxHP or maxHP == 0 then return end
-
-    local currentPercent = (currentHP / maxHP) * 100
-    local previousPercent = previousUnitHP[unitId]
-
-    -- First event for this unit - just store and return
-    if not previousPercent then
-        previousUnitHP[unitId] = currentPercent
-        return
-    end
-
-    -- Only proceed if HP decreased
-    if currentPercent >= previousPercent then
-        previousUnitHP[unitId] = currentPercent
-        return
-    end
-
-    -- Get triggers for this unit
+--- Get all health triggers that match a unit
+---@param unitId string The unit ID (e.g., "boss1", "boss2")
+---@param unitGuid string The unit GUID
+---@return table triggersToCheck Array of triggers
+local function GetHealthTriggersForUnit(unitId, unitGuid)
     local triggersToCheck = {}
 
+    if not triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event] then
+        return triggersToCheck
+    end
+
     -- Check specific unit triggers (boss1, boss2, etc.)
-    if triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event] then
-        local specificTriggers = triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event][unitId]
-        if specificTriggers then
-            for _, trigger in ipairs(specificTriggers) do
-                table.insert(triggersToCheck, trigger)
-            end
+    local specificTriggers = triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event][unitId]
+    if specificTriggers then
+        for _, trigger in ipairs(specificTriggers) do
+            table.insert(triggersToCheck, trigger)
         end
+    end
 
-        -- Check generic "boss" triggers
-        local bossTriggers = triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event]["boss"]
-        if bossTriggers then
-            for _, trigger in ipairs(bossTriggers) do
-                table.insert(triggersToCheck, trigger)
-            end
+    -- Check generic "boss" triggers
+    local bossTriggers = triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event]["boss"]
+    if bossTriggers then
+        for _, trigger in ipairs(bossTriggers) do
+            table.insert(triggersToCheck, trigger)
         end
+    end
 
-        -- Check NPC ID triggers
-        local unitGuid = UnitGUID(unitId)
-        if unitGuid then
-            local npcId = GetNpcIdFromGuid(unitGuid)
-            if npcId then
-                local npcTriggers = triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event][npcId]
-                if npcTriggers then
-                    for _, trigger in ipairs(npcTriggers) do
-                        table.insert(triggersToCheck, trigger)
-                    end
+    -- Check NPC ID triggers
+    if unitGuid then
+        local npcId = GetNpcIdFromGuid(unitGuid)
+        if npcId then
+            local npcTriggers = triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event][npcId]
+            if npcTriggers then
+                for _, trigger in ipairs(npcTriggers) do
+                    table.insert(triggersToCheck, trigger)
                 end
             end
         end
     end
 
-    -- Process each trigger
-    for _, trigger in ipairs(triggersToCheck) do
-        if trigger.enabled then
-            local thresholds = ParseHPThresholds(trigger.hpThresholds)
-
-            -- Find the LOWEST crossed threshold
-            local crossedThreshold = nil
-            for _, threshold in ipairs(thresholds) do
-                if previousPercent > threshold and currentPercent <= threshold then
-                    if not crossedThreshold or threshold < crossedThreshold then
-                        crossedThreshold = threshold
-                    end
-                end
-            end
-
-            if crossedThreshold then
-                -- Use counter to ensure fire once per threshold
-                local counterKey = string.format("%s_%s_%d",
-                    trigger.type, trigger.targetGuid, crossedThreshold)
-                local count = IncrementOccurrence(counterKey)
-
-                -- Always fire once for UNIT_HEALTH (no counter formula check needed)
-                if count == 1 then
-                    local eventData = {
-                        unitId = unitId,
-                        unitGuid = UnitGUID(unitId),
-                        threshold = crossedThreshold,
-                        currentPercent = currentPercent,
-                        previousPercent = previousPercent,
-                    }
-
-                    QRA.Debug("Triggers: Fired UNIT_HEALTH", trigger.id, "threshold", crossedThreshold, "%")
-
-                    -- Check if we should delay the activation
-                    if ShouldDelayActivation(trigger) then
-                        QRA.Debug("Triggers: Delaying UNIT_HEALTH activation by", trigger.activateIn, "seconds")
-                        QRA.DelayedInvoke(trigger.activateIn, function()
-                            QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count)
-                        end)
-                    else
-                        QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count)
-                    end
-                end
-            end
-        end
-    end
-
-    previousUnitHP[unitId] = currentPercent
+    return triggersToCheck
 end
 
---- Process UNIT_HEALTH events for fake bosses (DevMode)
---- This version takes fake boss data directly instead of using WoW API
----@param unitId string The fake boss unit ID
----@param unitGuid string The fake boss GUID
+--- Process health threshold triggers for a unit
+---@param unitId string The unit ID
+---@param unitGuid string The unit GUID
 ---@param currentPercent number Current HP percentage (0-100)
 ---@param previousPercent number Previous HP percentage (0-100)
-function QRA.Triggers.ProcessFakeUnitHealth(unitId, unitGuid, currentPercent, previousPercent)
-    if not encounterActive then return end
-
-    -- Get triggers for this unit
-    local triggersToCheck = {}
-
-    -- Check specific unit triggers (boss1, boss2, etc.)
-    if triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event] then
-        local specificTriggers = triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event][unitId]
-        if specificTriggers then
-            for _, trigger in ipairs(specificTriggers) do
-                table.insert(triggersToCheck, trigger)
-            end
-        end
-
-        -- Check generic "boss" triggers
-        local bossTriggers = triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event]["boss"]
-        if bossTriggers then
-            for _, trigger in ipairs(bossTriggers) do
-                table.insert(triggersToCheck, trigger)
-            end
-        end
-
-        -- Check NPC ID triggers
-        if unitGuid then
-            local npcId = GetNpcIdFromGuid(unitGuid)
-            if npcId then
-                local npcTriggers = triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event][tostring(npcId)]
-                if npcTriggers then
-                    for _, trigger in ipairs(npcTriggers) do
-                        table.insert(triggersToCheck, trigger)
-                    end
-                end
-            end
-        end
-    end
-
-    QRA.Debug("Triggers: ProcessFakeUnitHealth", unitId, "checking", #triggersToCheck, "triggers")
+---@param isFake boolean Whether this is from fake boss (for debug messages)
+local function ProcessHealthThresholds(unitId, unitGuid, currentPercent, previousPercent, isFake)
+    local triggersToCheck = GetHealthTriggersForUnit(unitId, unitGuid)
 
     -- Process each trigger
     for _, trigger in ipairs(triggersToCheck) do
@@ -425,11 +332,13 @@ function QRA.Triggers.ProcessFakeUnitHealth(unitId, unitGuid, currentPercent, pr
                         previousPercent = previousPercent,
                     }
 
-                    QRA.Debug("Triggers: Fired UNIT_HEALTH (fake)", trigger.id, "threshold", crossedThreshold, "%")
+                    local debugPrefix = isFake and "Triggers: Fired UNIT_HEALTH (fake)" or "Triggers: Fired UNIT_HEALTH"
+                    QRA.Debug(debugPrefix, trigger.id, "threshold", crossedThreshold, "%")
 
                     -- Check if we should delay the activation
                     if ShouldDelayActivation(trigger) then
-                        QRA.Debug("Triggers: Delaying UNIT_HEALTH (fake) activation by", trigger.activateIn, "seconds")
+                        local delayMsg = isFake and "Triggers: Delaying UNIT_HEALTH (fake) activation by" or "Triggers: Delaying UNIT_HEALTH activation by"
+                        QRA.Debug(delayMsg, trigger.activateIn, "seconds")
                         QRA.DelayedInvoke(trigger.activateIn, function()
                             QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count)
                         end)
@@ -440,6 +349,54 @@ function QRA.Triggers.ProcessFakeUnitHealth(unitId, unitGuid, currentPercent, pr
             end
         end
     end
+end
+
+--- Process UNIT_HEALTH events for HP-based triggers
+---@param unitId string The unit ID that had a health change
+function QRA.Triggers.OnUnitHealth(unitId)
+    if not encounterActive then return end
+
+    -- Only monitor boss units
+    if not unitId or not unitId:match("^boss%d?$") then return end
+
+    -- Get current HP percentage
+    local currentHP = UnitHealth(unitId)
+    local maxHP = UnitHealthMax(unitId)
+    if not currentHP or not maxHP or maxHP == 0 then return end
+
+    local currentPercent = (currentHP / maxHP) * 100
+    local previousPercent = previousUnitHP[unitId]
+
+    -- First event for this unit - just store and return
+    if not previousPercent then
+        previousUnitHP[unitId] = currentPercent
+        return
+    end
+
+    -- Only proceed if HP decreased
+    if currentPercent >= previousPercent then
+        previousUnitHP[unitId] = currentPercent
+        return
+    end
+
+    -- Process thresholds using common logic
+    local unitGuid = UnitGUID(unitId)
+    ProcessHealthThresholds(unitId, unitGuid, currentPercent, previousPercent, false)
+
+    previousUnitHP[unitId] = currentPercent
+end
+
+--- Process UNIT_HEALTH events for fake bosses (DevMode)
+--- This version takes fake boss data directly instead of using WoW API
+---@param unitId string The fake boss unit ID
+---@param unitGuid string The fake boss GUID
+---@param currentPercent number Current HP percentage (0-100)
+---@param previousPercent number Previous HP percentage (0-100)
+function QRA.Triggers.ProcessFakeUnitHealth(unitId, unitGuid, currentPercent, previousPercent)
+    if not encounterActive then return end
+
+    -- Process thresholds using common logic
+    ProcessHealthThresholds(unitId, unitGuid, currentPercent, previousPercent, true)
 end
 
 local function BuildTriggerIndex()
@@ -539,12 +496,11 @@ function QRA.Triggers.Create(triggerType, config, isNew)
 
     -- Type-specific configuration
     if triggerType == QRA.Triggers.Types.SPELL_CAST_SUCCESS.event or
-        triggerType == QRA.Triggers.Types.SPELL_CAST_START.event then
-        trigger.spellId = config.spellId
-        trigger.spellName = config.spellName
-        trigger.activateIn = config.activateIn -- Delay activation (non-Timer triggers only)
-    elseif triggerType == QRA.Triggers.Types.SPELL_AURA_APPLIED.event or
-        triggerType == QRA.Triggers.Types.SPELL_AURA_REMOVED.event then
+        triggerType == QRA.Triggers.Types.SPELL_CAST_START.event or
+        triggerType == QRA.Triggers.Types.SPELL_AURA_APPLIED.event or
+        triggerType == QRA.Triggers.Types.SPELL_AURA_REMOVED.event or
+        triggerType == QRA.Triggers.Types.UNIT_SPELLCAST_SUCCEEDED.event
+    then
         trigger.spellId = config.spellId
         trigger.spellName = config.spellName
         trigger.activateIn = config.activateIn
@@ -986,6 +942,30 @@ function QRA.Triggers.ProcessCombatLogEvent(...)
     end
 end
 
+function QRA.Triggers.ProcessUnitSpellcast(unitId, spellId)
+    QRA.Debug("Triggers: Processing UNIT_SPELLCAST_SUCCEEDED for", unitId, "spellId:", spellId)
+
+    if not encounterActive then return end
+
+    local eventBucket = triggerIndex[QRA.Triggers.Types.UNIT_SPELLCAST_SUCCEEDED.event]
+    if not eventBucket then return end
+
+    local spellTriggers = eventBucket[spellId]
+    if not spellTriggers then return end
+
+    local eventData = {
+        unitId = unitId,
+        spellId = spellId,
+    }
+
+    for _, trigger in ipairs(spellTriggers) do
+        QRA.Debug("Checking trigger:", trigger.id)
+        if trigger.enabled then
+            QRA.Triggers.Fire(trigger, eventData)
+        end
+    end
+end
+
 --------------------------------------------------
 -- Encounter Management
 --------------------------------------------------
@@ -996,6 +976,7 @@ end
 function QRA.Triggers.OnEncounterStart(encounterId, encounterName)
     QRA.Debug("Triggers: Encounter started -", encounterName, "(ID:", encounterId, ")")
     frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     frame:RegisterEvent("UNIT_HEALTH")
 
     encounterActive = true
@@ -1014,6 +995,7 @@ end
 function QRA.Triggers.OnEncounterEnd(encounterId, encounterName, success)
     frame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     frame:UnregisterEvent("UNIT_HEALTH")
+    frame:UnregisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     encounterActive = false
     currentEncounterId = nil -- Clear encounter ID
     wipe(previousUnitHP)   -- Clear HP tracking

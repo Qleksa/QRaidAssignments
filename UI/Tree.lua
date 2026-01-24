@@ -4,6 +4,10 @@ local QRA = select(2, ...)
 ---@type AbstractFramework
 local AF = _G.AbstractFramework
 
+---@class QRA_UI
+QRA.UI = QRA.UI or {}
+
+---@class QRA_UI_Tree
 QRA.UI.Tree = {}
 
 -- Collapse state (reset on each session)

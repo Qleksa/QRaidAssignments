@@ -10,6 +10,9 @@ local QRA = select(2, ...)
 ---@type AbstractFramework
 local AF = _G.AbstractFramework
 
+---@class QRA_UI
+QRA.UI = QRA.UI or {}
+
 --------------------------------------------------
 -- Constants
 --------------------------------------------------
@@ -101,7 +104,7 @@ local function CreateMainFrame()
     local importBtn = AF.CreateButton(topBar, QRA.L["Import"], "softblue", 60, 26)
     AF.SetPoint(importBtn, "LEFT", sep2, "RIGHT", 10, 0)
     importBtn:SetOnClick(function()
-        QRA.UI.ShowImportFrame(function(input)
+        QRA.UI.Dialogs.ShowImportFrame(function(input)
             QRA.Comm.Import(input, false)
             QRA.UI.RefreshTree()
         end)
@@ -160,7 +163,7 @@ local function CreateMainFrame()
     AF.SetPoint(addTriggerBtn, "TOPLEFT", scrollList, "BOTTOMLEFT", 0, -8)
     addTriggerBtn:SetEnabled(false)
     addTriggerBtn:SetOnClick(function()
-        QRA.UI.ShowTriggerEditor(nil, selectedBoss)
+        QRA.UI.Dialogs.ShowTriggerEditor(nil, selectedBoss)
     end)
 
     -- Update button state when boss selected

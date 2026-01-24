@@ -1,16 +1,20 @@
 ---@class QRA
 local QRA = select(2, ...)
 
+---@class QRA_UI
+QRA.UI = QRA.UI or {}
+
+---@class QRA_UI_Dialogs
 QRA.UI.Dialogs = {}
 
 ---@type AbstractFramework
 local AF = _G.AbstractFramework
 
----@type AF_HeaderedFrame
+---@class AF_HeaderedFrame
 local assignmentEditorFrame = nil
----@type AF_HeaderedFrame
+---@class AF_HeaderedFrame
 local triggerEditorFrame = nil
----@type Frame
+---@class Frame
 local mainFrame = nil
 
 --- Show the assignment editor window
@@ -31,16 +35,16 @@ function QRA.UI.Dialogs.ShowAssignmentEditor(assignment, triggerId)
             "QRA_AssignmentEditor",
             QRA.L["Assignment Editor"],
             220,
-            425
+            425,
+            "HIGH",
+            mainFrame:GetFrameLevel() + 10
         )
         AF.SetPoint(assignmentEditorFrame, "CENTER", mainFrame, 0, 0)
-        assignmentEditorFrame:SetFrameStrata("HIGH")
-        assignmentEditorFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 10)
     end
 
     -- Update title based on new/edit
     local title = isNew and QRA.L["New Assignment"] or QRA.L["Edit Assignment"]
-    assignmentEditorFrame:SetTitle(AF.WrapTextInColor(title, "accent"))
+    assignmentEditorFrame:SetTitle(AF.WrapTextInColor(title, "softlime"))
 
     -- Clear previous content
     if assignmentEditorFrame.content then
@@ -246,16 +250,16 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
             "QRA_TriggerEditor",
             QRA.L["Trigger Editor"],
             220,
-            250
+            230,
+            "HIGH",
+            mainFrame:GetFrameLevel() + 10
         )
         AF.SetPoint(triggerEditorFrame, "CENTER", mainFrame, 0, 0)
-        triggerEditorFrame:SetFrameStrata("HIGH")
-        triggerEditorFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 10)
     end
 
     -- Update title based on new/edit
     local title = isNew and QRA.L["New Trigger"] or QRA.L["Edit Trigger"]
-    triggerEditorFrame:SetTitle(AF.WrapTextInColor(title, "accent"))
+    triggerEditorFrame:SetTitle(AF.WrapTextInColor(title, "softlime"))
 
     -- Clear previous content
     if triggerEditorFrame.content then
@@ -289,7 +293,7 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
 
     -- Spell input (shown for spell-related triggers)
     local spellInput = QRA.Widgets.CreateSpellInput(form, QRA.L["Spell ID"], 200, false)
-    AF.SetPoint(spellInput, "TOPLEFT", nameInput, "BOTTOMLEFT", 0, -35)
+    AF.SetPoint(spellInput, "TOPLEFT", nameInput, "BOTTOMLEFT", 0, -10)
     spellInput:Hide()
     if trigger.spellId then
         spellInput:SetSpell(trigger.spellId)
@@ -381,7 +385,8 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
         if triggerType == QRA.Triggers.Types.SPELL_CAST_SUCCESS.event or
            triggerType == QRA.Triggers.Types.SPELL_CAST_START.event or
            triggerType == QRA.Triggers.Types.SPELL_AURA_APPLIED.event or
-           triggerType == QRA.Triggers.Types.SPELL_AURA_REMOVED.event then
+           triggerType == QRA.Triggers.Types.SPELL_AURA_REMOVED.event or
+           triggerType == QRA.Triggers.Types.UNIT_SPELLCAST_SUCCEEDED.event then
             nameInput:Show()
             spellInput:Show()
             occSelector:Show()
@@ -465,7 +470,8 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
         if triggerType == QRA.Triggers.Types.SPELL_CAST_SUCCESS.event or
            triggerType == QRA.Triggers.Types.SPELL_CAST_START.event or
            triggerType == QRA.Triggers.Types.SPELL_AURA_APPLIED.event or
-           triggerType == QRA.Triggers.Types.SPELL_AURA_REMOVED.event then
+           triggerType == QRA.Triggers.Types.SPELL_AURA_REMOVED.event or
+           triggerType == QRA.Triggers.Types.UNIT_SPELLCAST_SUCCEEDED.event then
             local spellData = spellInput:GetSpell()
             QRA.Debug("Selected spell:", spellData)
             config.spellId = spellData.spellId
@@ -555,7 +561,7 @@ function QRA.UI.Dialogs.ShowTemplateNameDialog(onConfirm)
     end)
 end
 
----@type AF_HeaderedFrame
+---@class AF_HeaderedFrame
 local exportFrame = nil
 --- Show export dialog
 ---@param exportString string The export string to show
@@ -604,7 +610,7 @@ function QRA.UI.Dialogs.ShowExportFrame(exportString)
     exportFrame:Show()
 end
 
----@type AF_HeaderedFrame
+---@class AF_HeaderedFrame
 local importFrame = nil
 --- Show import dialog
 ---@param callback function Callback with import string
