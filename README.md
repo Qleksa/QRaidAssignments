@@ -73,35 +73,6 @@ Configure notification preferences in the **Settings** tab:
 
 - **AbstractFramework** (required) - UI framework
 
-## API
-
-The addon exposes several APIs for integration:
-
-```lua
--- Triggers
-QRA.Triggers.Create(type, config)   -- Create a new trigger
-QRA.Triggers.SaveTrigger(trigger)   -- Save a trigger to database
-QRA.Triggers.UpdateTrigger(trigger) -- Update an existing trigger
-QRA.Triggers.DeleteTrigger(id, orphanAssignments) -- Delete a trigger
-QRA.Triggers.GetAll()               -- Get all triggers
-QRA.Triggers.Get(triggerId)         -- Get a specific trigger
-
--- Assignments (embedded in triggers)
-QRA.Assignments.Create(config)              -- Create an assignment
-QRA.Assignments.Add(triggerId, assignment)  -- Add assignment to a trigger
-QRA.Assignments.Remove(triggerId, id)       -- Remove assignment from trigger
-QRA.Assignments.Update(triggerId, id, updates) -- Update assignment in trigger
-QRA.Assignments.GetForTrigger(triggerId)    -- Get assignments for a trigger
-QRA.Assignments.GetAll()                    -- Get all assignments across triggers
-QRA.Assignments.GetOrphaned()               -- Get orphaned assignments
-
--- Notifications
-QRA.Notifications.SpeakTTS(msg)     -- TTS alert
-QRA.Notifications.PlaySound(file)   -- Sound alert
-QRA.Notifications.ShowOnScreen(msg) -- Screen alert
-QRA.Notifications.SendChat(msg)     -- Chat alert
-```
-
 ## Contributing
 
 Contributions are welcome! Please submit issues and pull requests.
