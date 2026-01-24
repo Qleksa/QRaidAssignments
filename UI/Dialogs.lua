@@ -1,6 +1,10 @@
 ---@class QRA
 local QRA = select(2, ...)
 
+---@class QRA_UI | QRA_Module
+QRA.UI = QRA.UI or {}
+
+---@class QRA_UI_Dialogs | QRA_Module
 QRA.UI.Dialogs = {}
 
 ---@type AbstractFramework
@@ -8,7 +12,7 @@ local AF = _G.AbstractFramework
 
 ---@type AF_HeaderedFrame
 local assignmentEditorFrame = nil
----@type AF_HeaderedFrame
+---@class AF_HeaderedFrame
 local triggerEditorFrame = nil
 ---@type Frame
 local mainFrame = nil
@@ -555,7 +559,7 @@ function QRA.UI.Dialogs.ShowTemplateNameDialog(onConfirm)
     end)
 end
 
----@type AF_HeaderedFrame
+---@class AF_HeaderedFrame
 local exportFrame = nil
 --- Show export dialog
 ---@param exportString string The export string to show
@@ -604,7 +608,7 @@ function QRA.UI.Dialogs.ShowExportFrame(exportString)
     exportFrame:Show()
 end
 
----@type AF_HeaderedFrame
+---@class AF_HeaderedFrame
 local importFrame = nil
 --- Show import dialog
 ---@param callback function Callback with import string

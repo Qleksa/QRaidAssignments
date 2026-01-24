@@ -5,8 +5,11 @@
 
 ---@class QRA
 local QRA = select(2, ...)
-QRA.DevMode = QRA.DevMode or {}
 
+---@class QRA_DevMode | QRA_Module
+QRA.DevMode = {}
+
+---@class QRA_DevMode
 local DevMode = QRA.DevMode
 
 --------------------------------------------------
@@ -42,8 +45,6 @@ function DevMode.Initialize()
         testEncounterId = QRA.DB.devMode.lastEncounterId
         QRA.Debug("DevMode: Restored test mode state - Boss:", testBossName)
     end
-
-    QRA.Debug("DevMode: Module initialized")
 end
 
 --------------------------------------------------

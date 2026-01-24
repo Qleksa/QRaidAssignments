@@ -5,6 +5,7 @@ if not QRA.AreLibsOkay() then
     return
 end
 
+---@class QRA_Comm | QRA_Module
 QRA.Comm = {}
 
 local COMM_PREFIX = "QRA_COMM"
@@ -174,6 +175,4 @@ end
 
 function QRA.Comm.Initialize()
     RegisterComm()
-
-    QRA.Debug("Comm: Module Initialized")
 end

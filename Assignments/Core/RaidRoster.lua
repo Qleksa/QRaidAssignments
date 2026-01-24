@@ -6,6 +6,8 @@
 
 ---@class QRA
 local QRA = select(2, ...)
+
+---@class QRA_RaidRoster | QRA_Module
 QRA.RaidRoster = {}
 
 --------------------------------------------------
@@ -433,7 +435,6 @@ function QRA.RaidRoster.LoadFromDB()
     if not QRA.DB then return end
     if QRA.DB.savedRoster then
         savedRoster = QRA.DB.savedRoster
-        QRA.Debug("RaidRoster: Loaded saved roster with", #savedRoster, "members")
     end
 end
 
@@ -443,7 +444,4 @@ end
 
 function QRA.RaidRoster.Initialize()
     QRA.RaidRoster.LoadFromDB()
-    QRA.Debug("RaidRoster: Module initialized")
 end
-
--- QRA.Debug("RaidRoster: Module loaded")

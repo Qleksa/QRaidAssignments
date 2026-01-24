@@ -55,7 +55,8 @@ function QRA.UIParent:PLAYER_LOGIN()
                 debug = false,
                 lastSeenVersion = nil,
                 hideChangelogUntilNextVersion = false,
-            }
+            },
+            orphanedAssignments = {},
         }
     end
     QRA.DB = QRA_DB
@@ -103,6 +104,10 @@ function QRA.InitializeModules()
 
     if QRA.BossMods and QRA.BossMods.Initialize then
         QRA.BossMods.Initialize()
+    end
+
+    if QRA.Encounter and QRA.Encounter.Initialize then
+        QRA.Encounter.Initialize()
     end
 
     if QRA.Triggers and QRA.Triggers.Initialize then

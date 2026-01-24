@@ -1,9 +1,11 @@
 ---@class QRA
-local QRA = QRA
+local QRA = select(2, ...)
 
+---@class QRA_BossMods | QRA_Module
 QRA.BossMods = QRA.BossMods or {}
 
 ---@class QRA_DBM
+---@field private registeredEvents table<string, boolean>
 local dbm = {
     registeredEvents = {},
 
@@ -21,23 +23,27 @@ local dbm = {
         end
     end,
 
-    RegisterCallback = function(self, event)
+    RegisterCallback = function(self, event, callback)
         if self.registeredEvents[event] then
             return
         end
         if DBM then
-            DBM:RegisterCallback(event, function(...) self:EventCallback(event, ...) end)
+            DBM:RegisterCallback(event, function(...)
+                if callback then
+                    callback(...)
+                else
+                    self:EventCallback(event, ...)
+                end
+             end)
             self.registeredEvents[event] = true
             QRA.Debug("BossMods: DBM callback registered for event", event)
         end
     end,
 
-    RegisterStage = function(self)
+    --- Register stage change callbacks
+    RegisterStage = function(self, callback)
         QRA.Debug("BossMods: Registering DBM stage callbacks")
-        self:RegisterCallback("DBM_SetStage")
-        self:RegisterCallback("DBM_Pull")
-        self:RegisterCallback("DBM_Wipe")
-        self:RegisterCallback("DBM_Kill")
+        self:RegisterCallback("DBM_SetStage", callback)
     end,
 }
 

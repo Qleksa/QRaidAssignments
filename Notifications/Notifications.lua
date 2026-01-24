@@ -6,6 +6,7 @@
 ---@class QRA
 local QRA = select(2, ...)
 
+---@class QRA_Notifications | QRA_Module
 QRA.Notifications = QRA.Notifications or {}
 
 ---@type AbstractFramework
@@ -372,5 +373,4 @@ function QRA.Notifications.Initialize()
     QRA.Notifications.LoadFromDB()
     notificationFrame = QRA.Notifications.UI.CreateScreenMessageFrame(config.framePosition)
     AF.CreateMover(notificationFrame, MOVER_GROUP, "Notification Frame", UpdateFramePosition)
-    QRA.Debug("Notifications: Module initialized")
 end

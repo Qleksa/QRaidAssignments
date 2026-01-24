@@ -10,6 +10,8 @@
 
 ---@class QRA
 local QRA = select(2, ...)
+
+---@class QRA_Assignments | QRA_Module
 QRA.Assignments = {}
 
 --------------------------------------------------
@@ -498,10 +500,4 @@ end
 --------------------------------------------------
 
 function QRA.Assignments.Initialize()
-    -- Ensure orphanedAssignments exists
-    if not QRA.DB.orphanedAssignments then
-        QRA.DB.orphanedAssignments = {}
-    end
-
-    QRA.Debug("Assignments: Module initialized")
 end

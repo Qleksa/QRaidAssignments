@@ -5,9 +5,14 @@
 
 ---@class QRA
 local QRA = select(2, ...)
+
+---@class QRA_DevMode | QRA_Module
 QRA.DevMode = QRA.DevMode or {}
+
+---@class QRA_DevMode_EventHistory | QRA_Module
 QRA.DevMode.EventHistory = {}
 
+---@class QRA_DevMode_EventHistory
 local EventHistory = QRA.DevMode.EventHistory
 
 --------------------------------------------------
@@ -47,8 +52,6 @@ function EventHistory.Initialize()
     else
         eventLog = {}
     end
-
-    QRA.Debug("EventHistory: Loaded", #eventLog, "events")
 end
 
 --- Save event history to DB

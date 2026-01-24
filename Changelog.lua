@@ -14,6 +14,7 @@ QRA.Changelog = {}
 --------------------------------------------------
 -- Constants
 --------------------------------------------------
+
 local WINDOW_WIDTH = 600
 local WINDOW_HEIGHT = 400
 
@@ -272,5 +273,4 @@ end
 
 --- Initialize the changelog module
 function QRA.Changelog.Initialize()
-    QRA.Debug("Changelog: Module initialized")
 end

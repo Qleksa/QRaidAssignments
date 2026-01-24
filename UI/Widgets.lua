@@ -5,6 +5,8 @@
 
 ---@class QRA
 local QRA = select(2, ...)
+
+---@class QRA_Widgets | QRA_Module
 QRA.Widgets = {}
 
 ---@type AbstractFramework
@@ -753,5 +755,4 @@ end
 --------------------------------------------------
 
 function QRA.Widgets.Initialize()
-    QRA.Debug("Widgets: Module initialized")
 end

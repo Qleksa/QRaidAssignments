@@ -10,8 +10,6 @@
 
 Init.lua
 
-Changelog.lua
-
 Util/Debug.lua
 Util/CounterFormula.lua
 Util/Table.lua
@@ -60,3 +58,5 @@ DevMode/UI/TestPanel.lua
 DevMode/UI/FakeBossUI.lua
 DevMode/UI/EventLogUI.lua
 DevMode/Data/Presets.lua
+
+Changelog.lua

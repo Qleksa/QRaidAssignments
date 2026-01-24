@@ -5,6 +5,8 @@ local AF = _G.AbstractFramework
 ---@class QRA
 local QRA = select(2, ...)
 
+---@alias QRA_Module table
+
 QRA = QRA or {}
 
 QRA.name = "QRaidAssignments"
@@ -13,14 +15,29 @@ QRA.version = "0.11.0"
 --------------------------------------------------
 -- Pre-initialize module tables
 --------------------------------------------------
+
+---@class QRA_Locale | QRA_Module
 QRA.L = {}
+---@class QRA_UI | QRA_Module
 QRA.UI = {}
+---@class QRA_Triggers | QRA_Module
 QRA.Triggers = {}
+---@class QRA_Assignments | QRA_Module
 QRA.Assignments = {}
-QRA.Templates = {}
+---@class QRA_Widgets | QRA_Module
 QRA.Widgets = {}
+---@class QRA_BossMods | QRA_Module
+QRA.BossMods = {}
+---@class QRA_Bosses | QRA_Module
+QRA.Bosses = {}
+---@class QRA_RaidRoster | QRA_Module
+QRA.RaidRoster = {}
+---@class QRA_Notifications | QRA_Module
 QRA.Notifications = {}
-QRA.Changelog = {}
+---@class QRA_Comm | QRA_Module
+QRA.Comm = {}
+---@class QRA_DevMode | QRA_Module
+QRA.DevMode = {}
 
 --------------------------------------------------
 -- APIs (from AbstractFramework)
@@ -33,9 +50,25 @@ QRA.RegisterComm = AF.RegisterComm
 QRA.SendCommMessage = AF.SendCommMessage_Group
 QRA.DelayedInvoke = AF.DelayedInvoke
 
+
+---@class QRA_Event
+---@field SendEvent fun(self: QRA_Module, event: string, ...: any)
+---@field RegisterEvent fun(self: QRA_Module, event: string, callback: fun(event: string, ...: any), priority?: string, tag?: string)
+---@field UnregisterEvent fun(self: QRA_Module, event: string, tag: string)
+---@field UnregisterAllCallbacks fun(self: QRA_Module, event: string)
 QRA.Event = {
-    SendEvent = AF.Fire,
-    RegisterEvent = AF.RegisterCallback
+    SendEvent = function (_, event, ...)
+        AF.Fire(event, ...)
+    end,
+    RegisterEvent = function(_, event, callback, priority, tag)
+        AF.RegisterCallback(event, callback, priority, tag)
+    end,
+    UnregisterEvent = function(_, event, tag)
+        AF.UnregisterCallback(event, tag)
+    end,
+    UnregisterAllCallbacks = function(_, event)
+        AF.UnregisterAllCallbacks(event)
+    end,
 }
 
 

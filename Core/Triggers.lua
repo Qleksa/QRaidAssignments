@@ -6,6 +6,8 @@
 
 ---@class QRA
 local QRA = select(2, ...)
+
+---@class QRA_Triggers | QRA_Module
 QRA.Triggers = {}
 
 local frame = CreateFrame("Frame", "QRA_TriggerFrame") -- Event frame for combat log and timers
@@ -1017,7 +1019,7 @@ end
 function QRA.Triggers.OnEncounterStart(encounterId, encounterName)
     -- QRA.Debug("Triggers: Encounter started -", encounterName, "(ID:", encounterId, ")")
     frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-    frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+    -- frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     -- frame:RegisterEvent("UNIT_HEALTH")
 
     encounterActive = true
@@ -1093,5 +1095,4 @@ end
 
 function QRA.Triggers.Initialize()
     CreateDefaultBossTriggers()
-    QRA.Debug("Triggers: Module initialized")
 end
