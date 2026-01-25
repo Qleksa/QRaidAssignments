@@ -51,7 +51,7 @@ AF.SetAddonAccentColor(QRA.name, "softlime")
 ---@field encounterId number
 ---@field bossName string
 ---@field counterFormula string
----@field activateIn? number seconds to delay trigger activation (non-Timer triggers only)
+---@field activateIn? string seconds to delay trigger activation with optional interval and repeat count (non-Timer triggers only)
 ---@field time? number seconds after pull
 ---@field repeatInterval? number seconds between repeats (Timer triggers only)
 ---@field repeatCount? number number of repeats (Timer triggers only)
