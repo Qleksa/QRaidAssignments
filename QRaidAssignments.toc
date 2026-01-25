@@ -21,6 +21,7 @@ Locales/enUS.lua
 Data/Bosses.lua
 Data/Cooldowns.lua
 
+Core/TriggerTypeRegistry.lua
 Core/Triggers.lua
 Core/Assignments.lua
 Core/Templates.lua

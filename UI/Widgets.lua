@@ -17,13 +17,14 @@ local AF = _G.AbstractFramework
 --------------------------------------------------
 QRA.Widgets.Colors = {
     triggerType = {
-        SPELL_CAST_SUCCESS = "accent",
+        SPELL_CAST_SUCCESS = "brightgreen",
         SPELL_CAST_START = "yellow",
         SPELL_AURA_APPLIED = "lime",
         SPELL_AURA_REMOVED = "orange",
         TIMER = "skyblue",
         UNIT_DIED = "red",
         UNIT_HEALTH = "purple",
+        UNIT_SPELLCAST_SUCCEEDED = "brightgreen",
     },
 }
 
@@ -237,6 +238,7 @@ end
 ---@param width number Field width
 ---@return QRA_CounterInput container
 function QRA.Widgets.CreateCounterInput(parent, label, width)
+    ---@class QRA_CounterInput : AF_EditBox
     local counterEB = AF.CreateEditBox(parent, label or QRA.L["Counter"], width or 150, 20)
     counterEB:SetText("*")
 
@@ -294,6 +296,7 @@ end
 ---@param width number Field width
 ---@return QRA_AssignTargetInput editBox
 function QRA.Widgets.CreateAssignTargetInput(parent, label, width)
+    ---@class QRA_AssignTargetInput : AF_EditBox
     local editBox = AF.CreateEditBox(parent, label or QRA.L["Assign To"], width or 150, 20)
     editBox:SetText("ALL")
 
@@ -340,6 +343,7 @@ end
 ---@param width number Field width
 ---@return QRA_ActivateInInput editBox
 function QRA.Widgets.CreateActivateInInput(parent, label, width)
+    ---@class QRA_ActivateInInput : AF_EditBox
     local editBox = AF.CreateEditBox(parent, label or QRA.L["Activate In (seconds)"], width or 200, 20, "number")
 
     -- Tooltip
@@ -382,12 +386,16 @@ end
 -- HP Thresholds Input
 --------------------------------------------------
 
+---@class QRA_HPThresholdsInput : AF_EditBox
+---@field IsValid fun(self: QRA_HPThresholdsInput): boolean
+
 --- Create an HP thresholds input field with validation
 ---@param parent Frame Parent frame
 ---@param label string|nil Label text
 ---@param width number Field width
----@return AF_EditBox editBox
+---@return QRA_HPThresholdsInput editBox
 function QRA.Widgets.CreateHPThresholdsInput(parent, label, width)
+    ---@class QRA_HPThresholdsInput : AF_EditBox
     local editBox = AF.CreateEditBox(parent, label or QRA.L["HP Thresholds (%)"], width or 200, 20)
 
     -- Tooltip
@@ -444,12 +452,16 @@ end
 -- Target GUID Input
 --------------------------------------------------
 
+---@class QRA_TargetGuidInput : AF_EditBox
+---@field IsValid fun(self: QRA_TargetGuidInput): boolean
+
 --- Create a target GUID/Unit input field with validation
 ---@param parent Frame Parent frame
 ---@param label string|nil Label text
 ---@param width number Field width
----@return AF_EditBox editBox
+---@return QRA_TargetGuidInput editBox
 function QRA.Widgets.CreateTargetGuidInput(parent, label, width)
+    ---@class QRA_TargetGuidInput : AF_EditBox
     local editBox = AF.CreateEditBox(parent, label or QRA.L["Target Unit/NPC ID"], width or 200, 20)
 
     -- Tooltip
@@ -525,6 +537,7 @@ end
 ---@param onChange? function Callback when value changes
 ---@return QRA_Slider slider
 function QRA.Widgets.CreateCountdownSlider(parent, width, minVal, maxVal, onChange)
+    ---@class QRA_Slider : AF_Slider
     local slider = AF.CreateSlider(parent, QRA.L["Countdown (sec)"], width, minVal or 0, maxVal or 30, 1)
     slider:SetValue(5)
     slider.eb:SetCursorPosition(0)
@@ -708,6 +721,7 @@ end
 function QRA.Widgets.CreateTriggerDropdown(parent, width, onSelect)
     local selectedTriggerId = nil
 
+    ---@class QRA_TriggerDropdown : AF_CascadingMenuButton
     local menu = AF.CreateCascadingMenuButton(parent, width or 200)
     menu:SetLabel(QRA.L["Linked Trigger"])
     menu:SetItems(GetAllTriggersGroupedByBoss(function(triggerId)

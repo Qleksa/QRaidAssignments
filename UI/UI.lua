@@ -13,6 +13,9 @@ QRA.UI = QRA.UI or {}
 ---@type AbstractFramework
 local AF = _G.AbstractFramework
 
+---@class QRA_UI
+QRA.UI = QRA.UI or {}
+
 --------------------------------------------------
 -- Constants
 --------------------------------------------------
