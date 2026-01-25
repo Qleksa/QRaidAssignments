@@ -24,6 +24,7 @@ local AF = _G.AbstractFramework
 local function CreateScreenMessageFrame(framePosition)
     local progressBarMaxValue = 100
 
+    ---@class QRA_ScreenMessageFrame : AF_BorderedFrame
     local screenMessageFrame = AF.CreateBorderedFrame(QRA.UIParent, "QRA_ScreenMessageFrame", 250, 80, nil, "softlime")
     AF.SetPoint(screenMessageFrame, framePosition.point, framePosition.xOfs, framePosition.yOfs)
     screenMessageFrame:SetFrameStrata("DIALOG")
@@ -97,7 +98,6 @@ local function CreateScreenMessageFrame(framePosition)
     end
 
     function screenMessageFrame:FadeOut(delay)
-        QRA.Debug("Notifications: Screen - Fading out in", delay, "seconds")
         self.fadeAnim:Stop()
         self.fadeAnim:GetAnimations():SetStartDelay(delay)
         self.fadeAnim:Play()

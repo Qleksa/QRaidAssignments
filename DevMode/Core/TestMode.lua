@@ -5,8 +5,11 @@
 
 ---@class QRA
 local QRA = select(2, ...)
+
+--@class QRA_DevMode
 QRA.DevMode = QRA.DevMode or {}
 
+---@class QRA_DevMode
 local DevMode = QRA.DevMode
 
 --------------------------------------------------

@@ -5,9 +5,12 @@
 
 ---@class QRA
 local QRA = select(2, ...)
+---@class QRA_DevMode
 QRA.DevMode = QRA.DevMode or {}
+---@class QRA_DevMode_FakeEncounter
 QRA.DevMode.FakeEncounter = {}
 
+---@class QRA_DevMode_FakeEncounter
 local FakeEncounter = QRA.DevMode.FakeEncounter
 
 --------------------------------------------------

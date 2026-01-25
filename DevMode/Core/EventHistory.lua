@@ -5,9 +5,13 @@
 
 ---@class QRA
 local QRA = select(2, ...)
+
+---@class QRA_DevMode
 QRA.DevMode = QRA.DevMode or {}
+---@class QRA_DevMode_EventHistory
 QRA.DevMode.EventHistory = {}
 
+---@class QRA_DevMode_EventHistory
 local EventHistory = QRA.DevMode.EventHistory
 
 --------------------------------------------------
@@ -187,6 +191,8 @@ function EventHistory.ReplayEventData(event)
         return EventFirer.FireAuraRemoved(data.spellId, data.targetName, data.sourceUnitId)
     elseif eventType == "UNIT_DIED" then
         return EventFirer.FireNPCDeath(data.npcId, data.unitId)
+    elseif eventType == "UNIT_SPELLCAST_SUCCEEDED" then
+        return EventFirer.FireUnitSpellcastSucceeded(data.unitId, data.spellId)
     elseif eventType == "TIMER" then
         return EventFirer.FireTimerTrigger(data.triggerId)
     elseif eventType == "UNIT_HEALTH" then
@@ -317,6 +323,8 @@ function EventHistory.FormatEvent(event)
         end
     elseif event.eventType == "SPELL_AURA_APPLIED" or event.eventType == "SPELL_AURA_REMOVED" then
         detailStr = string.format("%s (%d) on %s", data.spellName or "?", data.spellId or 0, data.targetName or "?")
+    elseif event.eventType == "UNIT_SPELLCAST_SUCCEEDED" then
+        detailStr = string.format("%s (%d) by %s", data.spellName or "?", data.spellId or 0, data.unitId or "?")
     elseif event.eventType == "UNIT_DIED" then
         detailStr = data.name or "?"
     elseif event.eventType == "TIMER" then

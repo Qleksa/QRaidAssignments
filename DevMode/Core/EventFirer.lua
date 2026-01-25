@@ -5,15 +5,22 @@
 
 ---@class QRA
 local QRA = select(2, ...)
+
+---@class QRA_DevMode
 QRA.DevMode = QRA.DevMode or {}
+
+---@class QRA_DevMode_EventFirer
 QRA.DevMode.EventFirer = {}
 
+---@class QRA_DevMode_EventFirer
 local EventFirer = QRA.DevMode.EventFirer
 local FakeEncounter = QRA.DevMode.FakeEncounter
 
 --------------------------------------------------
 -- Event Type Definitions
 --------------------------------------------------
+
+---@class QRA_DevMode_EventTypes
 EventFirer.EventTypes = {
     SPELL_CAST_SUCCESS = {
         name = "Spell Cast Success",
@@ -44,6 +51,25 @@ EventFirer.EventTypes = {
         requiresSpell = false,
         requiresSource = false,
         requiresTarget = true,
+    },
+    UNIT_SPELLCAST_SUCCEEDED = {
+        name = "Unit Spellcast Succeeded",
+        requiresSpell = true,
+        requiresSource = true,
+        requiresTarget = false,
+    },
+    TIMER = {
+        name = "Timer",
+        requiresSpell = false,
+        requiresSource = false,
+        requiresTarget = false,
+    },
+    UNIT_HEALTH = {
+        name = "Unit HP %",
+        requiresSpell = false,
+        requiresSource = false,
+        requiresTarget = true,
+        useFakeBossPanel = true,  -- Indicates this type uses the Fake Boss panel
     },
 }
 
@@ -137,6 +163,39 @@ local function FireToTriggerProcessor(eventData)
         QRA.Triggers.ProcessCombatLogEvent(unpack(eventData))
         QRA.Debug("EventFirer: Fired event", eventData[2], eventData[13] and "spell: " .. eventData[13])
     end
+end
+
+--------------------------------------------------
+-- Registry Context
+-- Provides helper functions to registry handlers for firing test events
+--------------------------------------------------
+
+--- Build the context object for registry-based event firing
+---@class QRA_DevMode_EventFirer_RegistryContext
+---@field GetFakeBossInfo fun(unitId: string|nil): string, string, number
+---@field GetPlayerInfo fun(playerName: string|nil): string, string
+---@field BuildCombatLogPayload fun(subEvent: string, sourceGUID: string, sourceName: string, destGUID: string|nil, destName: string|nil, spellId: number|nil, spellName: string|nil): table
+---@field FireToProcessor fun(eventData: table)
+---@field IsEncounterActive fun(): boolean
+---@field LogEvent fun(eventType: string, data: table)
+
+
+---@return QRA_DevMode_EventFirer_RegistryContext
+local function BuildRegistryContext()
+    return {
+        GetFakeBossInfo = GetFakeBossInfo,
+        GetPlayerInfo = GetPlayerInfo,
+        BuildCombatLogPayload = BuildCombatLogPayload,
+        FireToProcessor = FireToTriggerProcessor,
+        IsEncounterActive = function()
+            return FakeEncounter and FakeEncounter.IsActive()
+        end,
+        LogEvent = function(eventType, data)
+            if QRA.DevMode.EventHistory and QRA.DevMode.EventHistory.AddEvent then
+                QRA.DevMode.EventHistory.AddEvent(eventType, data)
+            end
+        end,
+    }
 end
 
 --- Fire a spell cast success event
@@ -357,6 +416,33 @@ function EventFirer.FireUnitHealthChange(unitId, newHealthPercent, oldHealthPerc
     return true
 end
 
+--- Fire a UNIT_SPELLCAST_SUCCEEDED event
+---@param unitId string Boss unit ID
+---@param spellId number
+---@return boolean success
+function EventFirer.FireUnitSpellcastSucceeded(unitId, spellId)
+    if not FakeEncounter.IsActive() then
+        QRA.Print(QRA.L["DevMode: Start an encounter first"])
+        return false
+    end
+
+    local sourceGUID, sourceName = GetFakeBossInfo(unitId)
+
+    local spellName = C_Spell.GetSpellName(spellId) or "Unknown Spell"
+
+    QRA.DevMode.EventHistory.AddEvent("UNIT_SPELLCAST_SUCCEEDED", {
+        spellId = spellId,
+        spellName = spellName,
+        sourceUnitId = unitId,
+    })
+
+    if QRA.Triggers and QRA.Triggers.ProcessUnitSpellcast(unitId, spellId) then
+        QRA.Debug("EventFirer: Fired SPELL_CAST_SUCCESS via UNIT_SPELLCAST_SUCCEEDED", unitId, spellId)
+    end
+
+    return true
+end
+
 --- Fire a timer trigger manually
 ---@param triggerId string The trigger ID
 ---@return boolean success
@@ -395,30 +481,26 @@ end
 -- Generic Trigger Firing
 --------------------------------------------------
 
---- Fire an event for a specific trigger
+--- Fire an event for a specific trigger using the registry
 ---@param trigger Trigger The trigger object
 ---@return boolean success
 function EventFirer.FireTrigger(trigger)
     if not trigger then return false end
 
-    if trigger.type == "SPELL_CAST_SUCCESS" then
-        return EventFirer.FireSpellCastSuccess(trigger.spellId, "boss1")
-    elseif trigger.type == "SPELL_CAST_START" then
-        return EventFirer.FireSpellCastStart(trigger.spellId, "boss1")
-    elseif trigger.type == "SPELL_AURA_APPLIED" then
-        return EventFirer.FireAuraApplied(trigger.spellId, nil, "boss1")
-    elseif trigger.type == "SPELL_AURA_REMOVED" then
-        return EventFirer.FireAuraRemoved(trigger.spellId, nil, "boss1")
-    elseif trigger.type == "UNIT_DIED" then
-        return EventFirer.FireNPCDeath(nil, trigger.targetGuid)
-    elseif trigger.type == "TIMER" then
-        return EventFirer.FireTimerTrigger(trigger.id)
-    elseif trigger.type == "UNIT_HEALTH" then
-        -- For UNIT_HEALTH, we need the user to set the HP threshold
-        -- This is handled through the Fake Boss UI
-        QRA.Print(QRA.L["DevMode: Use the Fake Boss panel to change HP"])
+    -- Check if encounter is active
+    if not FakeEncounter.IsActive() then
+        QRA.Print(QRA.L["DevMode: Start an encounter first"])
         return false
     end
 
+    local context = BuildRegistryContext()
+    local success = QRA.Triggers.TypeRegistry.FireTestEvent(trigger, context)
+
+    if success then
+        QRA.Debug("EventFirer: Fired trigger via registry", trigger.id, trigger.type)
+        return true
+    end
+
+    QRA.Debug("EventFirer: No registry handler for trigger type", trigger.type)
     return false
 end

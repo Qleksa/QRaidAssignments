@@ -1,16 +1,20 @@
 ---@class QRA
 local QRA = select(2, ...)
 
+---@class QRA_UI
+QRA.UI = QRA.UI or {}
+
+---@class QRA_UI_Dialogs
 QRA.UI.Dialogs = {}
 
 ---@type AbstractFramework
 local AF = _G.AbstractFramework
 
----@type AF_HeaderedFrame
+---@class AF_HeaderedFrame
 local assignmentEditorFrame = nil
----@type AF_HeaderedFrame
+---@class AF_HeaderedFrame
 local triggerEditorFrame = nil
----@type Frame
+---@class Frame
 local mainFrame = nil
 
 --- Show the assignment editor window
@@ -31,16 +35,16 @@ function QRA.UI.Dialogs.ShowAssignmentEditor(assignment, triggerId)
             "QRA_AssignmentEditor",
             QRA.L["Assignment Editor"],
             220,
-            425
+            400,
+            "HIGH",
+            mainFrame:GetFrameLevel() + 10
         )
         AF.SetPoint(assignmentEditorFrame, "CENTER", mainFrame, 0, 0)
-        assignmentEditorFrame:SetFrameStrata("HIGH")
-        assignmentEditorFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 10)
     end
 
     -- Update title based on new/edit
     local title = isNew and QRA.L["New Assignment"] or QRA.L["Edit Assignment"]
-    assignmentEditorFrame:SetTitle(AF.WrapTextInColor(title, "accent"))
+    assignmentEditorFrame:SetTitle(AF.WrapTextInColor(title, "softlime"))
 
     -- Clear previous content
     if assignmentEditorFrame.content then
@@ -53,23 +57,28 @@ function QRA.UI.Dialogs.ShowAssignmentEditor(assignment, triggerId)
     AF.SetPoint(form, "BOTTOMRIGHT", assignmentEditorFrame, -10, 50)
     assignmentEditorFrame.content = form
 
+    -- Layout constants
+    local FIELD_SPACING = -10
+    local FIELD_SPACING_LARGE = -25
+    local FORM_WIDTH = 200
+
     -- Trigger dropdown
-    local triggerDropdown = QRA.Widgets.CreateTriggerDropdown(form, 200)
+    local triggerDropdown = QRA.Widgets.CreateTriggerDropdown(form, FORM_WIDTH)
     AF.SetPoint(triggerDropdown, "TOPLEFT", 0, 10)
     if existingTriggerId then
         triggerDropdown:SetSelectedValue(existingTriggerId)
     end
 
     -- Counter formula input
-    local counterInput = QRA.Widgets.CreateCounterInput(form, QRA.L["Counter"], 200)
-    AF.SetPoint(counterInput, "TOPLEFT", triggerDropdown, "BOTTOMLEFT", 0, -10)
+    local counterInput = QRA.Widgets.CreateCounterInput(form, QRA.L["Counter"], FORM_WIDTH)
+    AF.SetPoint(counterInput, "TOPLEFT", triggerDropdown, "BOTTOMLEFT", 0, FIELD_SPACING)
     if assignment.counterFormula then
         counterInput:SetValue(assignment.counterFormula)
     end
 
     -- Assign Target text input
-    local assignTargetInput = QRA.Widgets.CreateAssignTargetInput(form, QRA.L["Assign To"], 200)
-    AF.SetPoint(assignTargetInput, "TOPLEFT", counterInput, "BOTTOMLEFT", 0, -10)
+    local assignTargetInput = QRA.Widgets.CreateAssignTargetInput(form, QRA.L["Assign To"], FORM_WIDTH)
+    AF.SetPoint(assignTargetInput, "TOPLEFT", counterInput, "BOTTOMLEFT", 0, FIELD_SPACING)
     if assignment.assignTarget then
         assignTargetInput:SetValue(assignment.assignTarget)
     else
@@ -77,24 +86,24 @@ function QRA.UI.Dialogs.ShowAssignmentEditor(assignment, triggerId)
     end
 
     -- Spell input
-    local spellInput = QRA.Widgets.CreateSpellInput(form, QRA.L["Spell"], 200)
-    AF.SetPoint(spellInput, "TOPLEFT", assignTargetInput, "BOTTOMLEFT", 0, -25)
+    local spellInput = QRA.Widgets.CreateSpellInput(form, QRA.L["Spell"], FORM_WIDTH)
+    AF.SetPoint(spellInput, "TOPLEFT", assignTargetInput, "BOTTOMLEFT", 0, FIELD_SPACING_LARGE)
     if assignment.spellId then
         spellInput:SetSpell(assignment.spellId, assignment.spellName)
         spellInput:SetCursorPosition(0)
     end
 
     -- Message input
-    local msgInput = AF.CreateEditBox(form, QRA.L["Message (optional)"], 200, 20)
-    AF.SetPoint(msgInput, "TOPLEFT", spellInput, "BOTTOMLEFT", 0, -15)
+    local msgInput = AF.CreateEditBox(form, QRA.L["Message (optional)"], FORM_WIDTH, 20)
+    AF.SetPoint(msgInput, "TOPLEFT", spellInput, "BOTTOMLEFT", 0, FIELD_SPACING)
     if assignment.message then
         msgInput:SetText(assignment.message)
         msgInput:SetCursorPosition(0)
     end
 
     -- Target input
-    local targetInput = AF.CreateEditBox(form, QRA.L["Target (optional)"], 200, 20)
-    AF.SetPoint(targetInput, "TOPLEFT", msgInput, "BOTTOMLEFT", 0, -10)
+    local targetInput = AF.CreateEditBox(form, QRA.L["Target (optional)"], FORM_WIDTH, 20)
+    AF.SetPoint(targetInput, "TOPLEFT", msgInput, "BOTTOMLEFT", 0, FIELD_SPACING)
     if assignment.targetPlayer then
         targetInput:SetText(assignment.targetPlayer)
         targetInput:SetCursorPosition(0)
@@ -102,23 +111,23 @@ function QRA.UI.Dialogs.ShowAssignmentEditor(assignment, triggerId)
     AF.SetTooltip(targetInput, "TOPLEFT", 0, 2, "Specify a target player name for the spell assignment.\nIf message is provided it overrides specified target.")
 
     -- Countdown slider
-    local countdownSlider = QRA.Widgets.CreateCountdownSlider(form, 200, 0, 10)
-    AF.SetPoint(countdownSlider, "TOPLEFT", targetInput, "BOTTOMLEFT", 0, -25)
+    local countdownSlider = QRA.Widgets.CreateCountdownSlider(form, FORM_WIDTH, 0, 10)
+    AF.SetPoint(countdownSlider, "TOPLEFT", targetInput, "BOTTOMLEFT", 0, FIELD_SPACING_LARGE)
     if assignment.countdownTime then
         countdownSlider:SetValue(assignment.countdownTime)
         countdownSlider:SetCursorPosition(0)
     end
 
     -- Alert type dropdown
-    local alertDropdown = QRA.Widgets.CreateAlertTypeDropdown(form, 200)
-    AF.SetPoint(alertDropdown, "TOPLEFT", countdownSlider, "BOTTOMLEFT", 0, -30)
+    local alertDropdown = QRA.Widgets.CreateAlertTypeDropdown(form, FORM_WIDTH)
+    AF.SetPoint(alertDropdown, "TOPLEFT", countdownSlider, "BOTTOMLEFT", 0, FIELD_SPACING_LARGE)
     if assignment.alertType then
         alertDropdown:SetSelectedValue(assignment.alertType)
     end
 
     -- Activate In input
-    local activateInInput = QRA.Widgets.CreateActivateInInput(form, QRA.L["Activate In (seconds)"], 200)
-    AF.SetPoint(activateInInput, "TOPLEFT", alertDropdown, "BOTTOMLEFT", 0, -10)
+    local activateInInput = QRA.Widgets.CreateActivateInInput(form, QRA.L["Activate In (seconds)"], FORM_WIDTH)
+    AF.SetPoint(activateInInput, "TOPLEFT", alertDropdown, "BOTTOMLEFT", 0, FIELD_SPACING)
     if assignment.activateIn then
         activateInInput:SetValue(assignment.activateIn)
     end
@@ -240,22 +249,27 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
     local editable = not isNew and trigger.default ~= true or isNew
     trigger = trigger or {}
 
+    -- Layout constants
+    local FIELD_SPACING = -10
+    local SPELL_FIELD_SPACING = -10
+    local FORM_WIDTH = 200
+
     if not triggerEditorFrame then
         triggerEditorFrame = AF.CreateHeaderedFrame(
             QRA.UIParent,
             "QRA_TriggerEditor",
             QRA.L["Trigger Editor"],
-            220,
-            250
+            FORM_WIDTH + 20,
+            230,
+            "HIGH",
+            mainFrame:GetFrameLevel() + 10
         )
         AF.SetPoint(triggerEditorFrame, "CENTER", mainFrame, 0, 0)
-        triggerEditorFrame:SetFrameStrata("HIGH")
-        triggerEditorFrame:SetFrameLevel(mainFrame:GetFrameLevel() + 10)
     end
 
     -- Update title based on new/edit
     local title = isNew and QRA.L["New Trigger"] or QRA.L["Edit Trigger"]
-    triggerEditorFrame:SetTitle(AF.WrapTextInColor(title, "accent"))
+    triggerEditorFrame:SetTitle(AF.WrapTextInColor(title, "softlime"))
 
     -- Clear previous content
     if triggerEditorFrame.content then
@@ -270,7 +284,7 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
     triggerEditorFrame.content = form
 
     -- Trigger type dropdown
-    local typeDropdown = QRA.Widgets.CreateTriggerTypeDropdown(form, 200)
+    local typeDropdown = QRA.Widgets.CreateTriggerTypeDropdown(form, FORM_WIDTH)
     AF.SetPoint(typeDropdown, "TOPLEFT", 0, 10)
     if trigger.type then
         typeDropdown:SetSelectedValue(trigger.type)
@@ -278,8 +292,7 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
     typeDropdown:SetEnabled(editable)
 
     -- Name field
-    local nameInput = AF.CreateEditBox(form, QRA.L["Name"], 200, 20)
-    AF.SetPoint(nameInput, "TOPLEFT", typeDropdown, "BOTTOMLEFT", 0, -10)
+    local nameInput = AF.CreateEditBox(form, QRA.L["Name"], FORM_WIDTH, 20)
     nameInput:Hide()
     if trigger.name then
         nameInput:SetText(trigger.name)
@@ -288,8 +301,7 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
     nameInput:SetEnabled(editable)
 
     -- Spell input (shown for spell-related triggers)
-    local spellInput = QRA.Widgets.CreateSpellInput(form, QRA.L["Spell ID"], 200, false)
-    AF.SetPoint(spellInput, "TOPLEFT", nameInput, "BOTTOMLEFT", 0, -35)
+    local spellInput = QRA.Widgets.CreateSpellInput(form, QRA.L["Spell ID"], FORM_WIDTH, false)
     spellInput:Hide()
     if trigger.spellId then
         spellInput:SetSpell(trigger.spellId)
@@ -298,8 +310,7 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
     spellInput:SetEnabled(editable)
 
     -- Timer input (shown for timer triggers)
-    local timerInput = AF.CreateEditBox(form, QRA.L["Time (seconds)"], 200, 20, "number")
-    AF.SetPoint(timerInput, "TOPLEFT", typeDropdown, "BOTTOMLEFT", 0, -35)
+    local timerInput = AF.CreateEditBox(form, QRA.L["Time (seconds)"], FORM_WIDTH, 20, "number")
     timerInput:Hide()
     if trigger.time then
         timerInput:SetText(tostring(trigger.time))
@@ -308,8 +319,7 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
     timerInput:SetEnabled(editable)
 
     -- Interval input (shown for timer triggers)
-    local intervalInput = AF.CreateEditBox(form, QRA.L["Interval (seconds)"], 200, 20, "number")
-    AF.SetPoint(intervalInput, "TOPLEFT", timerInput, "BOTTOMLEFT", 0, -10)
+    local intervalInput = AF.CreateEditBox(form, QRA.L["Interval (seconds)"], FORM_WIDTH, 20, "number")
     intervalInput:Hide()
     if trigger.repeatInterval then
         intervalInput:SetText(tostring(trigger.repeatInterval))
@@ -318,8 +328,7 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
     intervalInput:SetEnabled(editable)
 
     -- Repeat Count input (shown for timer triggers)
-    local repeatCountInput = AF.CreateEditBox(form, QRA.L["Repeat Count"], 200, 20, "number")
-    AF.SetPoint(repeatCountInput, "TOPLEFT", intervalInput, "BOTTOMLEFT", 0, -10)
+    local repeatCountInput = AF.CreateEditBox(form, QRA.L["Repeat Count"], FORM_WIDTH, 20, "number")
     repeatCountInput:Hide()
     if trigger.repeatCount then
         repeatCountInput:SetText(tostring(trigger.repeatCount))
@@ -328,8 +337,7 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
     repeatCountInput:SetEnabled(editable)
 
     -- Target GUID input (shown for UNIT_HEALTH and UNIT_DIED triggers)
-    local targetGuidInput = QRA.Widgets.CreateTargetGuidInput(form, QRA.L["Target Unit/NPC ID"], 200)
-    AF.SetPoint(targetGuidInput, "TOPLEFT", typeDropdown, "BOTTOMLEFT", 0, -35)
+    local targetGuidInput = QRA.Widgets.CreateTargetGuidInput(form, QRA.L["Target Unit/NPC ID"], FORM_WIDTH)
     targetGuidInput:Hide()
     if trigger.targetGuid then
         targetGuidInput:SetText(trigger.targetGuid)
@@ -338,8 +346,7 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
     targetGuidInput:SetEnabled(editable)
 
     -- HP Thresholds input (shown for UNIT_HEALTH triggers)
-    local hpThresholdsInput = QRA.Widgets.CreateHPThresholdsInput(form, QRA.L["HP Thresholds (%)"], 200)
-    AF.SetPoint(hpThresholdsInput, "TOPLEFT", targetGuidInput, "BOTTOMLEFT", 0, -10)
+    local hpThresholdsInput = QRA.Widgets.CreateHPThresholdsInput(form, QRA.L["HP Thresholds (%)"], FORM_WIDTH)
     hpThresholdsInput:Hide()
     if trigger.hpThresholds then
         hpThresholdsInput:SetText(trigger.hpThresholds)
@@ -348,8 +355,7 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
     hpThresholdsInput:SetEnabled(editable)
 
     -- Counter formula input
-    local occSelector = QRA.Widgets.CreateCounterInput(form, QRA.L["Counter"], 200)
-    AF.SetPoint(occSelector, "TOPLEFT", spellInput, "BOTTOMLEFT", 0, -5)
+    local occSelector = QRA.Widgets.CreateCounterInput(form, QRA.L["Counter"], FORM_WIDTH)
     QRA.Debug("Setting counter formula to:", trigger.counterFormula, "Type:", type(trigger.counterFormula))
     if trigger.counterFormula then
         occSelector:SetValue(trigger.counterFormula)
@@ -358,50 +364,58 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
     occSelector:SetEnabled(editable)
 
     -- Activate In input
-    local activateInInput = QRA.Widgets.CreateActivateInInput(form, QRA.L["Activate In (seconds)"], 200)
-    AF.SetPoint(activateInInput, "TOPLEFT", occSelector, "BOTTOMLEFT", 0, -5)
+    local activateInInput = QRA.Widgets.CreateActivateInInput(form, QRA.L["Activate In (seconds)"], FORM_WIDTH)
     if trigger.activateIn then
         activateInInput:SetValue(trigger.activateIn)
     end
     activateInInput:Hide()
     activateInInput:SetEnabled(editable)
 
+    -- Map field names to UI widgets for registry-based form generation
+    -- Include spacing hints for different widget types
+    local uiInputs = {
+        name = nameInput,
+        spell = spellInput,
+        time = timerInput,
+        interval = intervalInput,
+        repeatCount = repeatCountInput,
+        targetGuid = targetGuidInput,
+        hpThresholds = hpThresholdsInput,
+        counter = occSelector,
+        activateIn = activateInInput,
+    }
+
+    local widgetSpacing = {
+        spell = SPELL_FIELD_SPACING,
+        default = FIELD_SPACING,
+    }
+
+    local function GetWidgetSpacing(fieldName)
+        return widgetSpacing[fieldName] or widgetSpacing.default
+    end
+
     local function UpdateInputVisibility()
         local triggerType = typeDropdown:GetSelectedValue()
-        nameInput:Hide()
-        spellInput:Hide()
-        timerInput:Hide()
-        intervalInput:Hide()
-        repeatCountInput:Hide()
-        targetGuidInput:Hide()
-        hpThresholdsInput:Hide()
-        occSelector:Hide()
-        activateInInput:Hide()
 
-        if triggerType == QRA.Triggers.Types.SPELL_CAST_SUCCESS.event or
-           triggerType == QRA.Triggers.Types.SPELL_CAST_START.event or
-           triggerType == QRA.Triggers.Types.SPELL_AURA_APPLIED.event or
-           triggerType == QRA.Triggers.Types.SPELL_AURA_REMOVED.event then
-            nameInput:Show()
-            spellInput:Show()
-            occSelector:Show()
-            AF.SetPoint(activateInInput, "TOPLEFT", occSelector, "BOTTOMLEFT", 0, -5)
-            activateInInput:Show()
-        elseif triggerType == QRA.Triggers.Types.TIMER.event then
-            timerInput:Show()
-            intervalInput:Show()
-            repeatCountInput:Show()
-        elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
-            nameInput:Show()
-            targetGuidInput:Show()
-            occSelector:Show()
-            AF.SetPoint(activateInInput, "TOPLEFT", occSelector, "BOTTOMLEFT", 0, -5)
-            activateInInput:Show()
-        elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
-            targetGuidInput:Show()
-            hpThresholdsInput:Show()
-            AF.SetPoint(activateInInput, "TOPLEFT", hpThresholdsInput, "BOTTOMLEFT", 0, -5)
-            activateInInput:Show()
+        for _, widget in pairs(uiInputs) do
+            widget:Hide()
+            widget:ClearAllPoints()
+        end
+
+        local handler = QRA.Triggers.TypeRegistry:GetHandler(triggerType)
+        local uiFields = handler and handler.GetUIFields() or {}
+
+        ---@type Frame
+        local previousWidget = typeDropdown
+
+        for _, fieldDef in ipairs(uiFields) do
+            local widget = uiInputs[fieldDef.name]
+            if widget then
+                local spacing = GetWidgetSpacing(fieldDef.name)
+                AF.SetPoint(widget, "TOPLEFT", previousWidget, "BOTTOMLEFT", 0, spacing)
+                widget:Show()
+                previousWidget = widget
+            end
         end
     end
 
@@ -427,14 +441,13 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
         end)
     end
 
-    -- Store current state on form for save handler to reference
     form.trigger = trigger
     form.isNew = isNew
     form.bossInput = bossInput
     form.editable = editable
+    form.uiInputs = uiInputs
 
     saveBtn:SetOnClick(function()
-        -- Get current state from form (not closure)
         local currentTrigger = form.trigger
         local currentIsNew = form.isNew
         local currentBossInput = form.bossInput
@@ -443,74 +456,39 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
         local triggerType = typeDropdown:GetSelectedValue()
         QRA.Debug("Selected trigger type:", triggerType)
         local bossData = QRA.Bosses.GetBossByName(currentBossInput)
-        local counterFormulaValue = occSelector:GetValue()
-        QRA.Debug("Counter formula from UI:", counterFormulaValue, type(counterFormulaValue))
+
         local config = {
             id = currentTrigger.id,
-            counterFormula = counterFormulaValue or "*",
             bossName = currentBossInput,
             encounterId = bossData and bossData.encounterId or nil,
         }
 
-        -- Only include name for trigger types that show the name input field and should preserve custom names
-        -- Timer and HP% triggers auto-generate names based on their configuration
-        if triggerType ~= QRA.Triggers.Types.TIMER.event and
-           triggerType ~= QRA.Triggers.Types.UNIT_HEALTH.event then
-            local customName = strtrim(nameInput:GetText())
-            if customName ~= "" then
-                config.name = customName
-            end
+        local typeConfig = QRA.Triggers.TypeRegistry.GetConfigFromUI(triggerType, form.uiInputs)
+        for key, value in pairs(typeConfig) do
+            config[key] = value
         end
 
-        if triggerType == QRA.Triggers.Types.SPELL_CAST_SUCCESS.event or
-           triggerType == QRA.Triggers.Types.SPELL_CAST_START.event or
-           triggerType == QRA.Triggers.Types.SPELL_AURA_APPLIED.event or
-           triggerType == QRA.Triggers.Types.SPELL_AURA_REMOVED.event then
-            local spellData = spellInput:GetSpell()
-            QRA.Debug("Selected spell:", spellData)
-            config.spellId = spellData.spellId
-            config.spellName = spellData.spellName
-            config.activateIn = activateInInput:GetValue()
-        elseif triggerType == QRA.Triggers.Types.TIMER.event then
-            config.time = tonumber(timerInput:GetText()) or 0
-            local intervalValue = tonumber(intervalInput:GetText())
-            config.repeatInterval = (intervalValue and intervalValue > 0) and intervalValue or nil
-            local repeatCountValue = tonumber(repeatCountInput:GetText())
-            config.repeatCount = (repeatCountValue and repeatCountValue > 0) and math.floor(repeatCountValue) or nil
-            config.counterFormula = "1"
-        elseif triggerType == QRA.Triggers.Types.UNIT_DIED.event then
-            config.targetGuid = strtrim(targetGuidInput:GetText())
-            config.activateIn = activateInInput:GetValue()
-        elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
-            config.targetGuid = strtrim(targetGuidInput:GetText())
-            config.hpThresholds = strtrim(hpThresholdsInput:GetText())
-            config.activateIn = activateInInput:GetValue()
+        if not config.counterFormula then
+            local counterFormulaValue = occSelector:GetValue()
+            config.counterFormula = counterFormulaValue or "*"
         end
 
         QRA.Debug("Trigger config to save:", config)
 
-        -- Validation
-        local isValid = true
-        if triggerType == QRA.Triggers.Types.TIMER.event then
-            local hasValidTime = config.time and config.time > 0
-            local hasValidInterval = config.repeatInterval and config.repeatInterval > 0
-            if not hasValidTime and not hasValidInterval then
-                isValid = false
-            end
-        elseif triggerType == QRA.Triggers.Types.UNIT_HEALTH.event then
-            if not targetGuidInput:IsValid() or not hpThresholdsInput:IsValid() then
-                isValid = false
-            end
-        end
-
+        local isValid, errorMessage = QRA.Triggers.TypeRegistry.ValidateConfig(triggerType, config)
         if not isValid then
-            QRA.Debug("Invalid trigger configuration, aborting save")
+            QRA.Debug("Invalid trigger configuration:", errorMessage)
+            QRA.Print("Validation error: " .. (errorMessage or "Unknown error"))
             return
         end
 
         local newTrigger = QRA.Triggers.Create(triggerType, config, currentIsNew)
 
-        -- Preserve existing assignments when updating
+        if not newTrigger then
+            QRA.Print("Failed to create trigger")
+            return
+        end
+
         if not currentIsNew and currentTrigger.assignments then
             newTrigger.assignments = currentTrigger.assignments
         end
@@ -555,7 +533,7 @@ function QRA.UI.Dialogs.ShowTemplateNameDialog(onConfirm)
     end)
 end
 
----@type AF_HeaderedFrame
+---@class AF_HeaderedFrame
 local exportFrame = nil
 --- Show export dialog
 ---@param exportString string The export string to show
@@ -604,7 +582,7 @@ function QRA.UI.Dialogs.ShowExportFrame(exportString)
     exportFrame:Show()
 end
 
----@type AF_HeaderedFrame
+---@class AF_HeaderedFrame
 local importFrame = nil
 --- Show import dialog
 ---@param callback function Callback with import string
