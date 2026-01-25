@@ -78,6 +78,19 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
+        version = "1.0.0",
+        changes = {
+            "First full release"
+        }
+    },
+    {
+        version = "0.11.0",
+        changes = {
+            "Added UNIT_SPELLCAST_SUCCEEDED trigger type",
+            "Fixed UNIT_DIED triggers and improve trigger handling",
+        }
+    },
+    {
         version = "0.10.0",
         changes = {
             "Remove old assignment migration code",
