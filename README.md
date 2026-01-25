@@ -79,7 +79,7 @@ Contributions are welcome! Please submit issues and pull requests.
 
 ## License
 
-This addon is released under the MIT License.
+This addon is released under the GPL 3 License.
 
 ## Author
 

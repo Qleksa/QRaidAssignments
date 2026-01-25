@@ -334,7 +334,7 @@ end
 --------------------------------------------------
 
 ---@class QRA_ActivateInInput : AF_EditBox
----@field GetValue fun(self: QRA_ActivateInInput): number|nil
+---@field GetValue fun(self: QRA_ActivateInInput): string|nil
 ---@field SetValue fun(self: QRA_ActivateInInput, value: number|nil)
 
 --- Create an activateIn input field (delay trigger or assignment activation)
@@ -344,18 +344,50 @@ end
 ---@return QRA_ActivateInInput editBox
 function QRA.Widgets.CreateActivateInInput(parent, label, width)
     ---@class QRA_ActivateInInput : AF_EditBox
-    local editBox = AF.CreateEditBox(parent, label or QRA.L["Activate In (seconds)"], width or 200, 20, "number")
+    local editBox = AF.CreateEditBox(parent, label or QRA.L["Activate In (seconds)"], width or 200, 20)
 
     -- Tooltip
     AF.SetTooltip(editBox, "TOPLEFT", 0, 2,
         QRA.L["Activate In (seconds)"],
         "Delay the activation after the event fires",
-        "Example: 3 means activate 3 seconds after the event",
+        " ",
+        "|cffffd100Simple delay:|r",
+        "  |cff00ff003|r = Activate 3 seconds after event",
+        " ",
+        "|cffffd100Repeating activation:|r",
+        "  |cff00ff003,5|r = First at 3s, then every 5s (infinite)",
+        "  |cff00ff003,5,4|r = First at 3s, then 3 more times every 5s (total 4)",
+        " ",
         "Leave empty for immediate activation")
 
     -- Helper function to validate activateIn value
     local function IsValidActivateInValue(value)
-        return value and value >= 0
+        local num = tonumber(value)
+        if num then return num >= 0 end
+
+        local parts = {}
+        for part in string.gmatch(value, "[^,]+") do
+            table.insert(parts, strtrim(part))
+        end
+
+        if #parts < 1 or #parts > 3 then
+            return false
+        end
+
+        local delay = tonumber(parts[1])
+        if not delay or delay < 0 then return false end
+
+        if #parts >= 2 then
+            local interval = tonumber(parts[2])
+            if not interval or interval < 0 then return false end
+        end
+
+        if #parts == 3 then
+            local repeatCount = tonumber(parts[3])
+            if not repeatCount or repeatCount < 0 or repeatCount ~= math.floor(repeatCount) then return false end
+        end
+
+        return true
     end
 
     -- Public API
@@ -364,9 +396,8 @@ function QRA.Widgets.CreateActivateInInput(parent, label, width)
         if text == "" or text == nil then
             return nil
         end
-        local value = tonumber(text)
-        if IsValidActivateInValue(value) then
-            return value
+        if IsValidActivateInValue(text) then
+            return text
         end
         return nil
     end

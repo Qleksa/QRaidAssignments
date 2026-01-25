@@ -132,11 +132,25 @@ local currentEncounterId = nil -- Current encounter ID for re-registration
 -- Helper Functions
 --------------------------------------------------
 
+local function ParseDelay(delayStr)
+    -- Handle x,y,z format: x=initial delay, y=interval, z=repeat count
+    local parts = {}
+    for part in string.gmatch(delayStr, "[^,]+") do
+        table.insert(parts, tonumber(strtrim(part)))
+    end
+
+    return parts[1] or 0, parts[2], parts[3]
+end
+
 --- Check if a trigger should delay its activation
 ---@param trigger Trigger The trigger to check
 ---@return boolean shouldDelay True if the trigger should delay activation
 local function ShouldDelayActivation(trigger)
-    return trigger.activateIn and trigger.activateIn > 0
+    if not trigger.activateIn then
+        return false
+    end
+
+    return ParseDelay(trigger.activateIn) > 0
 end
 
 --- Generate a unique ID for a trigger
@@ -747,6 +761,17 @@ end
 -- Trigger Firing
 --------------------------------------------------
 
+local delayedTriggerHandles = {}
+
+local function ClearDelayedTriggerHandles()
+    for _, handle in ipairs(delayedTriggerHandles) do
+        if handle and handle.Cancel then
+            handle:Cancel()
+        end
+    end
+    wipe(delayedTriggerHandles)
+end
+
 --- Fire a trigger, checking occurrence count
 ---@param trigger Trigger The trigger that fired
 ---@param eventData table|nil Additional data from the event
@@ -767,10 +792,20 @@ function QRA.Triggers.Fire(trigger, eventData)
 
         -- Check if we should delay the activation
         if ShouldDelayActivation(trigger) then
-            QRA.Debug("Triggers: Delaying activation by", trigger.activateIn, "seconds")
-            QRA.DelayedInvoke(trigger.activateIn, function()
-                -- Execute linked assignments after delay
+            local initialDelay, interval, repeatCount = ParseDelay(trigger.activateIn)
+
+            QRA.Debug("Triggers: Delaying activation by", initialDelay, "seconds")
+
+            QRA.DelayedInvoke(initialDelay, function()
                 QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, currentCounter)
+
+                if interval then
+                    QRA.Debug("Triggers: Repeating delayed activation for", trigger.id, "every", interval, "seconds", repeatCount and ("for " .. repeatCount .. " times") or "indefinitely")
+                    local ticker = C_Timer.NewTicker(interval, function()
+                        QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, IncrementOccurrence(counterKey))
+                    end, repeatCount and (repeatCount - 1) or 0) -- Subtract 1 for the initial execution
+                    table.insert(delayedTriggerHandles, ticker)
+                end
             end)
         else
             -- Execute linked assignments immediately
@@ -936,6 +971,7 @@ function QRA.Triggers.OnEncounterEnd(encounterId, encounterName, success)
     wipe(previousUnitHP)   -- Clear HP tracking
     CancelTimerTriggers()
     ResetOccurrenceCounts()
+    ClearDelayedTriggerHandles()
 
     if QRA.Assignments and QRA.Assignments.CancelAllCountdowns then
         QRA.Assignments.CancelAllCountdowns()
