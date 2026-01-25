@@ -93,6 +93,15 @@ QRA.Bosses = {
                     name = "Iron Qon",
                     encounterId = 1559,
                     zoneName = "Grand Courtyard",
+                    triggers = {
+                        {
+                            name = "Fist Smash",
+                            type = "UNIT_SPELLCAST_SUCCEEDED",
+                            spellId = 50630,
+                            counterFormula = "3",
+                            activateIn = "60, 30",
+                        }
+                    }
                 },
                 {
                     name = "Twin Empyreans",
