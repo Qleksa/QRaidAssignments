@@ -26,6 +26,12 @@ Data/Cooldowns.lua
 Triggers/TriggerTypeRegistry.lua
 Triggers/Triggers.lua
 
+Triggers/TriggersV2.lua
+Triggers/TimeTrigger.lua
+Triggers/SpellTrigger.lua
+Triggers/UnitTrigger.lua
+Triggers/TriggerFactory.lua
+
 Core/Assignments.lua
 
 Notifications/UI.lua

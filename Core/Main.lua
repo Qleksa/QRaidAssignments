@@ -105,6 +105,10 @@ function QRA.InitializeModules()
         QRA.Triggers.Initialize()
     end
 
+    if QRA.Triggers.Factory and QRA.Triggers.Factory.Initialize then
+        QRA.Triggers.Factory.Initialize()
+    end
+
     if QRA.Assignments and QRA.Assignments.Initialize then
         QRA.Assignments.Initialize()
     end

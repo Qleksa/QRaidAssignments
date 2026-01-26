@@ -143,14 +143,15 @@ local function ParseDelay(delayStr)
 end
 
 --- Check if a trigger should delay its activation
----@param trigger Trigger The trigger to check
+---@param trigger TimeTrigger | Trigger The trigger to check
 ---@return boolean shouldDelay True if the trigger should delay activation
 local function ShouldDelayActivation(trigger)
-    if not trigger.activateIn then
-        return false
-    end
+    -- if not trigger.activateIn then
+    --     return false
+    -- end
 
-    return ParseDelay(trigger.activateIn) > 0
+    -- return ParseDelay(trigger.activateIn) > 0
+    return trigger:ShouldDelayActivation()
 end
 
 --- Generate a unique ID for a trigger

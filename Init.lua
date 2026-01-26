@@ -41,26 +41,26 @@ AF.SetAddonAccentColor(QRA.name, "softlime")
 ---@field SerializeEx fun(self: LibSerialize, options: table, input: any): string
 ---@field Deserialize fun(self: LibSerialize, input: string): boolean, table
 
----@class Trigger
----@field id string
----@field type string
----@field version number default 1
----@field name string
----@field enabled boolean default true
----@field default boolean is trigger default for boss, false by default
----@field encounterId number
----@field bossName string
----@field counterFormula string
----@field activateIn? string seconds to delay trigger activation with optional interval and repeat count (non-Timer triggers only)
----@field time? number seconds after pull
----@field repeatInterval? number seconds between repeats (Timer triggers only)
----@field repeatCount? number number of repeats (Timer triggers only)
----@field spellId? number
----@field spellName? string
----@field targetGuid? string
----@field hpThresholds? string comma separated list of hp thresholds
----@field assignments Assignment[]
----@field createdAt integer
+-- -@class Trigger
+-- -@field id string
+-- -@field type string
+-- -@field version number default 1
+-- -@field name string
+-- -@field enabled boolean default true
+-- -@field default boolean is trigger default for boss, false by default
+-- -@field encounterId number
+-- -@field bossName string
+-- -@field counterFormula string
+-- -@field activateIn? string seconds to delay trigger activation with optional interval and repeat count (non-Timer triggers only)
+-- -@field time? number seconds after pull
+-- -@field repeatInterval? number seconds between repeats (Timer triggers only)
+-- -@field repeatCount? number number of repeats (Timer triggers only)
+-- -@field spellId? number
+-- -@field spellName? string
+-- -@field targetGuid? string
+-- -@field hpThresholds? string comma separated list of hp thresholds
+-- -@field assignments Assignment[]
+-- -@field createdAt integer
 
 ---@alias AlertType
 ---| 'TTS'
