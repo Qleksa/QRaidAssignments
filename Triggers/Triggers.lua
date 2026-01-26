@@ -7,7 +7,7 @@
 ---@class QRA
 local QRA = select(2, ...)
 
----@class QRA_Triggers
+---@class QRA_Triggers | QRA_Module
 QRA.Triggers = QRA.Triggers or {}
 
 local frame = CreateFrame("Frame", "QRA_TriggerFrame") -- Event frame for combat log and timers
@@ -20,8 +20,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
     end
 end)
 
-frame:RegisterEvent("ENCOUNTER_START")
-frame:RegisterEvent("ENCOUNTER_END")
+-- frame:RegisterEvent("ENCOUNTER_START")
+-- frame:RegisterEvent("ENCOUNTER_END")
 function frame:COMBAT_LOG_EVENT_UNFILTERED()
     if QRA.Triggers and QRA.Triggers.ProcessCombatLogEvent then
         QRA.Triggers.ProcessCombatLogEvent(CombatLogGetCurrentEventInfo())
@@ -38,24 +38,24 @@ end
 -- Encounter Events
 --------------------------------------------------
 
-function frame:ENCOUNTER_START(encounterId, encounterName, difficultyId, groupSize)
-    QRA.Debug("ENCOUNTER_START:", encounterId, encounterName, difficultyId, groupSize)
-    if QRA.Triggers and QRA.Triggers.OnEncounterStart then
-        QRA.Triggers.OnEncounterStart(encounterId, encounterName)
-    end
-end
+-- function frame:ENCOUNTER_START(encounterId, encounterName, difficultyId, groupSize)
+--     -- QRA.Debug("ENCOUNTER_START:", encounterId, encounterName, difficultyId, groupSize)
+--     if QRA.Triggers and QRA.Triggers.OnEncounterStart then
+--         QRA.Triggers.OnEncounterStart(encounterId, encounterName)
+--     end
+-- end
 
-function frame:ENCOUNTER_END(encounterId, encounterName, difficultyId, groupSize, success)
-    QRA.Debug("ENCOUNTER_END:", encounterId, encounterName, difficultyId, groupSize, success)
-    if QRA.Triggers and QRA.Triggers.OnEncounterEnd then
-        QRA.Triggers.OnEncounterEnd(encounterId, encounterName, success == 1)
-    end
+-- function frame:ENCOUNTER_END(encounterId, encounterName, difficultyId, groupSize, success)
+--     -- QRA.Debug("ENCOUNTER_END:", encounterId, encounterName, difficultyId, groupSize, success)
+--     if QRA.Triggers and QRA.Triggers.OnEncounterEnd then
+--         QRA.Triggers.OnEncounterEnd(encounterId, encounterName, success == 1)
+--     end
 
-    -- Cancel any pending countdowns
-    if QRA.Assignments and QRA.Assignments.CancelAllCountdowns then
-        QRA.Assignments.CancelAllCountdowns()
-    end
-end
+--     -- Cancel any pending countdowns
+--     if QRA.Assignments and QRA.Assignments.CancelAllCountdowns then
+--         QRA.Assignments.CancelAllCountdowns()
+--     end
+-- end
 
 function frame:UNIT_HEALTH(unitId)
     QRA.Triggers.OnUnitHealth(unitId)
@@ -943,7 +943,7 @@ end
 ---@param encounterId number The encounter ID
 ---@param encounterName string The encounter name
 function QRA.Triggers.OnEncounterStart(encounterId, encounterName)
-    QRA.Debug("Triggers: Encounter started -", encounterName, "(ID:", encounterId, ")")
+    -- QRA.Debug("Triggers: Encounter started -", encounterName, "(ID:", encounterId, ")")
     frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     frame:RegisterEvent("UNIT_HEALTH")
@@ -963,6 +963,7 @@ end
 ---@param success boolean Whether the encounter was successful
 function QRA.Triggers.OnEncounterEnd(encounterId, encounterName, success)
     frame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    frame:UnregisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     frame:UnregisterEvent("UNIT_HEALTH")
     frame:UnregisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     encounterActive = false
@@ -972,7 +973,11 @@ function QRA.Triggers.OnEncounterEnd(encounterId, encounterName, success)
     ResetOccurrenceCounts()
     ClearDelayedTriggerHandles()
 
-    QRA.Debug("Triggers: Encounter ended -", encounterName, success and "(Success)" or "(Wipe)")
+    if QRA.Assignments and QRA.Assignments.CancelAllCountdowns then
+        QRA.Assignments.CancelAllCountdowns()
+    end
+
+    -- QRA.Debug("Triggers: Encounter ended -", encounterName, success and "(Success)" or "(Wipe)")
 end
 
 --- Get current encounter time

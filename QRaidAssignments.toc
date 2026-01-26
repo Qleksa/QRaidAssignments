@@ -23,10 +23,10 @@ Locales/enUS.lua
 Data/Bosses.lua
 Data/Cooldowns.lua
 
-Core/TriggerTypeRegistry.lua
-Core/Triggers.lua
+Triggers/TriggerTypeRegistry.lua
+Triggers/Triggers.lua
+
 Core/Assignments.lua
-Core/Templates.lua
 
 Notifications/UI.lua
 Notifications/Notifications.lua
