@@ -116,7 +116,7 @@ QRA.Bosses = {
                 },
                 {
                     name = "Ra-den",
-                    encounterId = 1580,
+                    encounterId = 1581,
                     zoneName = "Hidden Cell",
                 },
             }
