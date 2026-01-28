@@ -20,8 +20,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
     end
 end)
 
--- frame:RegisterEvent("ENCOUNTER_START")
--- frame:RegisterEvent("ENCOUNTER_END")
+frame:RegisterEvent("ENCOUNTER_START")
+frame:RegisterEvent("ENCOUNTER_END")
 function frame:COMBAT_LOG_EVENT_UNFILTERED()
     if QRA.Triggers and QRA.Triggers.ProcessCombatLogEvent then
         QRA.Triggers.ProcessCombatLogEvent(CombatLogGetCurrentEventInfo())
@@ -38,24 +38,24 @@ end
 -- Encounter Events
 --------------------------------------------------
 
--- function frame:ENCOUNTER_START(encounterId, encounterName, difficultyId, groupSize)
---     -- QRA.Debug("ENCOUNTER_START:", encounterId, encounterName, difficultyId, groupSize)
---     if QRA.Triggers and QRA.Triggers.OnEncounterStart then
---         QRA.Triggers.OnEncounterStart(encounterId, encounterName)
---     end
--- end
+function frame:ENCOUNTER_START(encounterId, encounterName, difficultyId, groupSize)
+    -- QRA.Debug("ENCOUNTER_START:", encounterId, encounterName, difficultyId, groupSize)
+    if QRA.Triggers and QRA.Triggers.OnEncounterStart then
+        QRA.Triggers.OnEncounterStart(encounterId, encounterName)
+    end
+end
 
--- function frame:ENCOUNTER_END(encounterId, encounterName, difficultyId, groupSize, success)
---     -- QRA.Debug("ENCOUNTER_END:", encounterId, encounterName, difficultyId, groupSize, success)
---     if QRA.Triggers and QRA.Triggers.OnEncounterEnd then
---         QRA.Triggers.OnEncounterEnd(encounterId, encounterName, success == 1)
---     end
+function frame:ENCOUNTER_END(encounterId, encounterName, difficultyId, groupSize, success)
+    -- QRA.Debug("ENCOUNTER_END:", encounterId, encounterName, difficultyId, groupSize, success)
+    if QRA.Triggers and QRA.Triggers.OnEncounterEnd then
+        QRA.Triggers.OnEncounterEnd(encounterId, encounterName, success == 1)
+    end
 
---     -- Cancel any pending countdowns
---     if QRA.Assignments and QRA.Assignments.CancelAllCountdowns then
---         QRA.Assignments.CancelAllCountdowns()
---     end
--- end
+    -- Cancel any pending countdowns
+    if QRA.Assignments and QRA.Assignments.CancelAllCountdowns then
+        QRA.Assignments.CancelAllCountdowns()
+    end
+end
 
 function frame:UNIT_HEALTH(unitId)
     QRA.Triggers.OnUnitHealth(unitId)
@@ -912,7 +912,7 @@ function QRA.Triggers.ProcessCombatLogEvent(...)
 end
 
 function QRA.Triggers.ProcessUnitSpellcast(unitId, spellId)
-    QRA.Debug("Triggers: Processing UNIT_SPELLCAST_SUCCEEDED for", unitId, "spellId:", spellId)
+    -- QRA.Debug("Triggers: Processing UNIT_SPELLCAST_SUCCEEDED for", unitId, "spellId:", spellId)
 
     if not encounterActive then return end
 
