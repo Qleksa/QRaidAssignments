@@ -16,6 +16,7 @@ Util/Debug.lua
 Util/CounterFormula.lua
 Util/Table.lua
 
+Core/DB.lua
 Core/Main.lua
 
 Locales/enUS.lua
@@ -23,14 +24,14 @@ Locales/enUS.lua
 Data/Bosses.lua
 Data/Cooldowns.lua
 
-Triggers/TriggerTypeRegistry.lua
-Triggers/Triggers.lua
+# Triggers/TriggerTypeRegistry.lua
+# Triggers/Triggers.lua
 
-Triggers/TriggersV2.lua
 Triggers/TimeTrigger.lua
 Triggers/SpellTrigger.lua
 Triggers/UnitTrigger.lua
 Triggers/TriggerFactory.lua
+Triggers/TriggersV2.lua
 
 Core/Assignments.lua
 

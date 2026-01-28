@@ -48,12 +48,10 @@ function QRA.UIParent:PLAYER_LOGIN()
     if not QRA_DB then
         QRA_DB = {
             assignments = {},
-            templates = {},
             triggers = {},
             notifications = {},
             settings = {
                 debug = false,
-                lastSeenVersion = nil,
                 hideChangelogUntilNextVersion = false,
             }
         }
@@ -61,19 +59,13 @@ function QRA.UIParent:PLAYER_LOGIN()
     QRA.DB = QRA_DB
     QRA.Settings = QRA.DB.settings
 
-    -- Ensure new settings fields exist in existing saves (with proper defaults)
-    if QRA.Settings.hideChangelogUntilNextVersion == nil then
+    if not QRA.Settings.hideChangelogUntilNextVersion then
         QRA.Settings.hideChangelogUntilNextVersion = false
     end
-    -- lastSeenVersion is intentionally left nil for first-time users
 
-    -- AFConfig.debug[QRA.name] = QRA.Settings.debug
-
-    -- Initialize all modules
     QRA.InitializeModules()
     QRA.Debug("All modules initialized")
 
-    -- Check and show changelog if needed (after all modules are ready)
     if QRA.Changelog and QRA.Changelog.CheckAndShow then
         QRA.Changelog.CheckAndShow()
     end
@@ -83,61 +75,50 @@ end
 -- Module Initialization
 --------------------------------------------------
 function QRA.InitializeModules()
-    -- Initialize in dependency order
-    if QRA.Widgets and QRA.Widgets.Initialize then
-        QRA.Widgets.Initialize()
-    end
+    -- if QRA.Widgets and QRA.Widgets.Initialize then
+    --     QRA.Widgets.Initialize()
+    -- end
 
-    if QRA.Notifications and QRA.Notifications.Initialize then
-        QRA.Notifications.Initialize()
-    end
+    -- if QRA.Notifications and QRA.Notifications.Initialize then
+    --     QRA.Notifications.Initialize()
+    -- end
 
-    -- Initialize Raid Roster (for assignment targets)
-    if QRA.RaidRoster and QRA.RaidRoster.Initialize then
-        QRA.RaidRoster.Initialize()
-    end
+    -- -- Initialize Raid Roster (for assignment targets)
+    -- if QRA.RaidRoster and QRA.RaidRoster.Initialize then
+    --     QRA.RaidRoster.Initialize()
+    -- end
 
-    if QRA.Bosses and QRA.Bosses.Initialize then
-        QRA.Bosses.Initialize()
-    end
+    -- if QRA.Bosses and QRA.Bosses.Initialize then
+    --     QRA.Bosses.Initialize()
+    -- end
 
     if QRA.Triggers and QRA.Triggers.Initialize then
         QRA.Triggers.Initialize()
     end
 
-    if QRA.Triggers.Factory and QRA.Triggers.Factory.Initialize then
-        QRA.Triggers.Factory.Initialize()
-    end
-
-    if QRA.Assignments and QRA.Assignments.Initialize then
-        QRA.Assignments.Initialize()
-    end
-
-    -- if QRA.Templates and QRA.Templates.Initialize then
-    --     QRA.Templates.Initialize()
+    -- if QRA.Assignments and QRA.Assignments.Initialize then
+    --     QRA.Assignments.Initialize()
     -- end
 
-    if QRA.UI and QRA.UI.Initialize then
-        QRA.UI.Initialize()
-    end
+    -- if QRA.UI and QRA.UI.Initialize then
+    --     QRA.UI.Initialize()
+    -- end
 
-    if QRA.Changelog and QRA.Changelog.Initialize then
-        QRA.Changelog.Initialize()
-    end
+    -- if QRA.Changelog and QRA.Changelog.Initialize then
+    --     QRA.Changelog.Initialize()
+    -- end
 
-    if QRA.Comm and QRA.Comm.Initialize then
-        QRA.Comm.Initialize()
-    end
+    -- if QRA.Comm and QRA.Comm.Initialize then
+    --     QRA.Comm.Initialize()
+    -- end
 
-    -- Initialize DevMode
-    if QRA.DevMode and QRA.DevMode.Initialize then
-        QRA.DevMode.Initialize()
-    end
+    -- if QRA.DevMode and QRA.DevMode.Initialize then
+    --     QRA.DevMode.Initialize()
+    -- end
 
-    -- Initialize DevMode EventHistory
-    if QRA.DevMode and QRA.DevMode.EventHistory and QRA.DevMode.EventHistory.Initialize then
-        QRA.DevMode.EventHistory.Initialize()
-    end
+    -- if QRA.DevMode and QRA.DevMode.EventHistory and QRA.DevMode.EventHistory.Initialize then
+    --     QRA.DevMode.EventHistory.Initialize()
+    -- end
 end
 
 ---------------------------------------------------

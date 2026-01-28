@@ -3,114 +3,133 @@
 ---@class QRA
 local QRA = select(2, ...)
 
----@class TriggerFactory
-QRA.Triggers.Factory = {}
+---@class QRA_Triggers
+QRA.Triggers = QRA.Triggers or {}
 
-local function ParseDelay(delayStr)
-    -- Handle x,y,z format: x=initial delay, y=interval, z=repeat count
-    local parts = {}
-    for part in string.gmatch(delayStr, "[^,]+") do
-        table.insert(parts, tonumber(strtrim(part)))
-    end
+---@type table<string, Trigger>
+local DB = {}
 
-    return parts[1] or 0, parts[2], parts[3]
+do
+
 end
 
-local function GetFields(trigger)
-    local t = {}
-    for k, v in pairs(trigger) do
-        if type(v) ~= "function" then
-            QRA.Debug("Getting field:", k, v)
-            t[k] = v
+--- Locals
+
+---@type table<string|number, Trigger[]>
+local triggerMap = {}
+
+local tinsert = table.insert
+local tmerge = QRA.Table.Merge
+
+--- Helpers
+
+--- Get all triggers for a specific boss encounter
+--- @param encounterId number
+--- @return Trigger[] triggers
+local function GetBossTriggers(encounterId)
+    local triggers = {}
+    for _, trigger in pairs(DB) do
+        if trigger.encounterId == encounterId then
+            tinsert(triggers, trigger)
         end
     end
-    return t
+    return triggers
 end
 
----@class Trigger
----@field id string
----@field type string
----@field version number default 1
----@field name string
----@field enabled boolean default true
----@field default boolean is trigger default for boss, false by default
----@field encounterId number
----@field bossName string
----@field counterFormula string
----@field assignments Assignment[]
----@field createdAt integer
----@field GetIndexKey fun(self: Trigger): string|number|nil
----@field Validate fun(self: Trigger): boolean, string?
----@field GenerateName fun(self: Trigger): string
----@field GetUIFields fun(self: Trigger): table[]
-QRA.Triggers.Factory.BaseTrigger = {
-
-    --- Determines if the trigger activation should be delayed
-    ---@param self Trigger
-    ---@return boolean
-    ShouldDelayActivation = function(self)
-        if not self.activateIn then
-            return false
-        end
-
-        return ParseDelay(self.activateIn) > 0
-    end,
-
-    --- Finds the trigger in the database
-    ---@param self Trigger
-    ---@return Trigger?, integer? index
-    Find = function (self)
-        for i, trigger in ipairs(QRA.DB.triggers) do
-            if trigger.id == self.id then
-                return trigger, i
+local function CreateDefaultTriggers()
+    local instances = QRA.Bosses.GetAllBosses()
+    for _, instance in pairs(instances) do
+        local bosses = instance.bosses
+        for _, boss in pairs(bosses) do
+            local triggers = boss.triggers or {}
+            for _, trigger in ipairs(triggers) do
+                local triggerId = boss.name .. "_" .. trigger.type .. "_" .. (trigger.spellId or trigger.targetGuid or trigger.time or "generic")
+                local existingTrigger = DB[triggerId]
+                if not existingTrigger then
+                    local t = QRA.Triggers.Factory.Create(tmerge(trigger, {
+                        id = triggerId,
+                        default = true,
+                        encounterId = boss.encounterId,
+                        bossName = boss.name,
+                    }))
+                    if t then
+                        QRA.Debug("Creating default trigger: ", t.id)
+                        t:Save()
+                        DB[t.id] = t
+                    end
+                end
             end
         end
-        return nil
-    end,
+    end
+end
 
-    --- Saves the trigger to the database
-    ---@param self Trigger
-    Save = function(self)
-        table.insert(QRA.DB.triggers, GetFields(self))
-        QRA.Debug("Trigger saved:", self.id)
-    end,
 
-    --- Updates the trigger in the database
-    ---@param self Trigger
-    ---@return boolean success
-    Update = function (self)
-        local t, i = self:Find()
-        if t then
-            QRA.DB.triggers[i] = GetFields(self)
-            QRA.Debug("Trigger updated:", self.id)
-            return true
-        end
-        return false
-    end,
-
-    --- Deletes the trigger from the database
-    ---@param self Trigger
-    ---@param orphanAssignments boolean? if true, orphan assignments instead of deleting them
-    ---@return boolean success
-    Delete = function(self, orphanAssignments)
-        local t, i = self:Find()
-        if not t then
-            QRA.Debug("Trigger not found for deletion:", self.id)
-            return false
-        end
-        
-        if orphanAssignments ~= nil and orphanAssignments and #self.assignments > 0 then
-            QRA.Assignments.OrphanAssignments(self.id, self.assignments)
-            QRA.Debug("Assignments orphaned for trigger:", self.id)
-            return true
-        end
-
-        table.remove(QRA.DB.triggers, i)
-        QRA.Debug("Trigger deleted:", self.id)
-        return true
-    end,
+QRA.Triggers.Types = {
+    SPELL_CAST_SUCCESS = {
+        event = "SPELL_CAST_SUCCESS",
+        name = "Spell Cast Success",
+        abbreviation = "SCC",
+    },
+    SPELL_CAST_START = {
+        event = "SPELL_CAST_START",
+        name = "Spell Cast Start",
+        abbreviation = "SCS",
+    },
+    UNIT_SPELLCAST_SUCCEEDED = {
+        event = "UNIT_SPELLCAST_SUCCEEDED",
+        name = "Unit Spellcast Succeeded",
+        abbreviation = "USS",
+    },
+    SPELL_AURA_APPLIED = {
+        event = "SPELL_AURA_APPLIED",
+        name = "Aura Applied",
+        abbreviation = "SAA",
+    },
+    SPELL_AURA_REMOVED = {
+        event = "SPELL_AURA_REMOVED",
+        name = "Aura Removed",
+        abbreviation = "SAR",
+    },
+    UNIT_DIED = {
+        event = "UNIT_DIED",
+        name = "NPC Death",
+        abbreviation = "NPCD",
+    },
+    TIMER = {
+        event = "TIMER",
+        name = "Timer",
+        abbreviation = "TMR",
+    },
+    UNIT_HEALTH = {
+        event = "UNIT_HEALTH",
+        name = "Unit HP %",
+        abbreviation = "UHP",
+    },
 }
-QRA.Triggers.Factory.BaseTrigger.__index = QRA.Triggers.Factory.BaseTrigger
+
+--- Register a trigger
+--- @param trigger Trigger
+function QRA.Triggers.Register(trigger)
+    QRA.Debug("Registering trigger: ", trigger.id)
+    local indexKey = trigger:GetIndexKey()
+    if indexKey then
+        if not triggerMap[indexKey] then
+            triggerMap[indexKey] = {}
+        end
+        tinsert(triggerMap[indexKey], trigger)
+    end
+end
+
+--- Register encounter triggers
+--- @param encounterId number
+function QRA.Triggers.RegisterEncounterTriggers(encounterId)
+    local triggers = GetBossTriggers(encounterId)
+    for _, triggerData in ipairs(triggers) do
+        QRA.Debug("Restoring trigger from DB:", triggerData.id)
+        local trigger = DB[triggerData.id]
+        QRA.Triggers.Register(trigger)
+    end
+end
 
 local function TestTriggerCreation()
     local t, err = QRA.Triggers.Factory.Create{
@@ -121,7 +140,6 @@ local function TestTriggerCreation()
         bossName = "Test Boss",
     }
     QRA.Debug("Creating test trigger...")
-    DevTools_Dump(t)
     if not t then
         QRA.Debug("Error creating test trigger: " .. err)
     else
@@ -135,22 +153,25 @@ local function TestTriggerCreation()
     end
 end
 
-local function TestTriggerRestoration()
-    local t = QRA.Triggers.GetTriggersByEncounterId(1577)
+local function TestTriggerRegistration()
+    QRA.Debug("Testing trigger registration for encounter 1559...")
+    local t = GetBossTriggers(1559)
+    QRA.Debug("Found triggers for encounter 1559:", t)
     for _, trigger in ipairs(t) do
-        local restoredTrigger, err = QRA.Triggers.Factory.Restore(trigger)
-        if not restoredTrigger then
-            QRA.Debug("Error restoring trigger:", err)
-        else
-            QRA.Debug("Restored trigger:", restoredTrigger)
-            QRA.Debug(restoredTrigger:GetIndexKey())
-        end
+        QRA.Triggers.Register(trigger)
     end
 end
 
-function QRA.Triggers.Factory.Initialize()
-    QRA.Debug("Triggers V2 module initialized.")
+function QRA.Triggers.Initialize()
+    -- TestTriggerCreation()
+    for _, trigger in pairs(QRA.DB.triggers) do
+        QRA.Debug("Restoring trigger from DB:", trigger.id)
+        local clone = QRA.DeepCopy(trigger)
+        local restoredTrigger = QRA.Triggers.Factory.Restore(clone)
+        DB[restoredTrigger.id] = clone
+    end
 
-    TestTriggerCreation()
-    -- TestTriggerRestoration()
+    CreateDefaultTriggers()
+    TestTriggerRegistration()
+    QRA.Debug("Triggers V2 module initialized.")
 end
