@@ -374,7 +374,7 @@ local function RegisterSpellTypes()
                     })
 
                     if QRA.Triggers and QRA.Triggers.ProcessUnitSpellcast(unitId, spellId) then
-                        QRA.Debug("EventFirer: Fired SPELL_CAST_SUCCESS via UNIT_SPELLCAST_SUCCEEDED", unitId, spellId)
+                        QRA.Debug("EventFirer: Fired UNIT_SPELLCAST_SUCCEEDED", unitId, spellId)
                     end
 
                     return true
@@ -615,7 +615,6 @@ end
 local function RegisterUnitDiedType()
     QRA.Triggers.TypeRegistry:RegisterType(QRA.Triggers.Types.UNIT_DIED.event, {
         GetIndexKey = function(trigger)
-            -- Index by NPC ID (numeric) or unit string (boss, boss1, etc.)
             local npcId = tonumber(trigger.targetGuid)
             return npcId or trigger.targetGuid
         end,

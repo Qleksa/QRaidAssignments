@@ -124,6 +124,7 @@ local occurrenceCounts = {}    -- Track occurrences per trigger ID
 local timerHandles = {}        -- Store timer handles for cleanup
 local encounterActive = false  -- Is an encounter currently active?
 local encounterStartTime = 0   -- When did the encounter start?
+local bossNpcIds = {}          -- NPC IDs of bosses in the current encounter
 local triggerIndex = {}        -- Index of triggers by type and spellId/npcId
 local previousUnitHP = {}      -- Track previous HP percentage per unit for UNIT_HEALTH triggers
 local currentEncounterId = nil -- Current encounter ID for re-registration
@@ -131,6 +132,19 @@ local currentEncounterId = nil -- Current encounter ID for re-registration
 --------------------------------------------------
 -- Helper Functions
 --------------------------------------------------
+
+local function GetBossNpcIds(encounterId)
+    wipe(bossNpcIds)
+
+    local bossData = QRA.Bosses.GetBossByEncounterId(encounterId)
+    if bossData and bossData.npcIds then
+        for _, npcId in ipairs(bossData.npcIds) do
+            bossNpcIds[npcId] = true
+        end
+    end
+
+    QRA.Debug("Triggers: Retrieved boss NPC IDs for encounter", encounterId, bossNpcIds)
+end
 
 local function ParseDelay(delayStr)
     -- Handle x,y,z format: x=initial delay, y=interval, z=repeat count
@@ -507,7 +521,7 @@ function QRA.Triggers.RegisterEncounterTriggers(encounterId)
     QRA.Triggers.UnregisterAll()
 
     for _, trigger in ipairs(QRA.DB.triggers) do
-        if trigger.enabled and trigger.encounterId == encounterId then
+        if trigger.enabled and trigger.encounterId == encounterId and #trigger.assignments > 0 then
             QRA.Triggers.Register(trigger)
         end
     end
@@ -842,32 +856,34 @@ end
 ---@param destGUID string The GUID of the unit that died
 ---@return Trigger[] triggers Array of matching triggers
 local function GetUnitDiedEventTriggers(destGUID)
-    local triggers = {}
     local eventBucket = triggerIndex[QRA.Triggers.Types.UNIT_DIED.event]
 
     QRA.Debug("Processing UNIT_DIED for destGUID:", destGUID)
-    local npcId = GetNpcIdFromGuid(destGUID)
-    QRA.Debug("Extracted NPC ID:", npcId)
-
     QRA.Debug("Checking triggers for UNIT_DIED:", eventBucket)
+    local npcId = GetNpcIdFromGuid(destGUID)
+    if npcId then
+        QRA.Debug("Extracted NPC ID:", npcId)
+        QRA.Logger.Log("UNIT_DIED detected for NPC ID: " .. npcId)
 
-    -- Check NPC ID triggers
-    QRA.Debug("Found NPC triggers for ID", npcId, ":", eventBucket[npcId])
-    AddTriggersToTable(triggers, eventBucket[npcId])
-
-    -- Check generic "boss" triggers
-    AddTriggersToTable(triggers, eventBucket["boss"])
-
-    -- Check specific unit ID triggers (boss1, boss2, etc.)
-    for i = 1, 8 do
-        local unitId = "boss" .. i
-        if UnitExists(unitId) and UnitGUID(unitId) == destGUID then
-            AddTriggersToTable(triggers, eventBucket[unitId])
-            break
+        if eventBucket[npcId] then
+            QRA.Debug("Found NPC triggers for ID", npcId, ":", eventBucket[npcId])
+            QRA.Logger.Log("Found NPC-specific triggers for NPC ID: " .. npcId)
+            return eventBucket[npcId]
         end
     end
 
-    return triggers
+    QRA.Debug("Checking generic 'boss' triggers for UNIT_DIED")
+    if eventBucket["boss"] then
+        for bossNpcId in pairs(bossNpcIds) do
+            if npcId == bossNpcId then
+                QRA.Debug("Found boss NPC triggers for ID", npcId, ":", eventBucket["boss"])
+                QRA.Logger.Log("Found boss-specific triggers for NPC ID: " .. npcId)
+                return eventBucket["boss"]
+            end
+        end
+    end
+
+    return {}
 end
 
 --- Process combat log events and check triggers
@@ -913,14 +929,23 @@ end
 
 function QRA.Triggers.ProcessUnitSpellcast(unitId, spellId)
     -- QRA.Debug("Triggers: Processing UNIT_SPELLCAST_SUCCEEDED for", unitId, "spellId:", spellId)
-
+    if unitId ~= "boss1" and unitId ~= "boss2" and unitId ~= "boss3" and unitId ~= "boss4" then
+        return
+    end
+    QRA.Logger.Log("UNIT_SPELLCAST_SUCCEEDED detected for " .. unitId .. " Spell ID: " .. spellId)
     if not encounterActive then return end
 
     local eventBucket = triggerIndex[QRA.Triggers.Types.UNIT_SPELLCAST_SUCCEEDED.event]
-    if not eventBucket then return end
+    if not eventBucket then
+        QRA.Logger.Log("No triggers registered for UNIT_SPELLCAST_SUCCEEDED")
+        return
+    end
 
     local spellTriggers = eventBucket[spellId]
-    if not spellTriggers then return end
+    if not spellTriggers then
+        QRA.Logger.Log("No USS triggers found for Spell ID: " .. spellId)
+        return
+    end
 
     local eventData = {
         unitId = unitId,
@@ -929,9 +954,7 @@ function QRA.Triggers.ProcessUnitSpellcast(unitId, spellId)
 
     for _, trigger in ipairs(spellTriggers) do
         QRA.Debug("Checking trigger:", trigger.id)
-        if trigger.enabled then
-            QRA.Triggers.Fire(trigger, eventData)
-        end
+        QRA.Triggers.Fire(trigger, eventData)
     end
 end
 
@@ -950,11 +973,15 @@ function QRA.Triggers.OnEncounterStart(encounterId, encounterName)
 
     encounterActive = true
     encounterStartTime = GetTime()
-    currentEncounterId = encounterId -- Store for potential re-registration
-    wipe(previousUnitHP)           -- Reset HP tracking
+    currentEncounterId = encounterId
+    wipe(previousUnitHP)
     RegisterEncounterTriggers(encounterId)
+    GetBossNpcIds(encounterId)
     ResetOccurrenceCounts()
     StartTimerTriggers()
+
+    QRA.Logger.Log("---- New Encounter ----")
+    QRA.Logger.Log("Encounter started: " .. encounterName .. " (ID: " .. encounterId .. ")")
 end
 
 --- Called when an encounter ends
@@ -978,6 +1005,8 @@ function QRA.Triggers.OnEncounterEnd(encounterId, encounterName, success)
     end
 
     -- QRA.Debug("Triggers: Encounter ended -", encounterName, success and "(Success)" or "(Wipe)")
+    QRA.Logger.Log("Encounter ended: " .. encounterName .. " (ID: " .. encounterId .. ") " .. (success and "Success" or "Wipe"))
+    QRA.Logger.Log("-----------------------\n")
 end
 
 --- Get current encounter time
