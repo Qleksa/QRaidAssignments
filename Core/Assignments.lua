@@ -210,10 +210,7 @@ end
 ---@return Assignment[]
 function QRA.Assignments.GetForTrigger(triggerId)
     local trigger = QRA.Triggers.Get(triggerId)
-    if trigger and trigger.assignments then
-        return trigger.assignments
-    end
-    return {}
+    return (trigger and trigger.assignments) or {}
 end
 
 --- Get all assignments across all triggers
@@ -359,8 +356,7 @@ end
 ---@param assignment table The assignment
 ---@param eventData table|nil Event data from trigger
 local function StartCountdown(assignment, eventData)
-    if assignment.countdownTime <= 0 then
-        -- Execute immediately
+    if assignment.countdownTime == 0 then
         QRA.Assignments.ExecuteAlert(assignment, eventData)
         return
     end
@@ -415,6 +411,8 @@ end
 function QRA.Assignments.ExecuteForTrigger(triggerId, eventData, counter)
     local triggerAssignments = QRA.Assignments.GetForTrigger(triggerId)
 
+    QRA.Debug("Assignments: Found assignments", triggerAssignments)
+
     for _, assignment in ipairs(triggerAssignments) do
         if assignment.enabled then
             -- Check if this counter matches assignment's formula
@@ -448,31 +446,20 @@ end
 ---@param assignment table The assignment
 ---@param eventData table|nil Event data
 function QRA.Assignments.ExecuteAlert(assignment, eventData)
-    -- QRA.Debug("Assignments: Executing alert for assignment", assignment)
     assignment.lastExecuted = time()
 
-    -- Build the alert message
     local message = assignment.message
     if message == "" and assignment.spellName then
         message = string.format("Use %s", assignment.spellName)
-        -- Append target if specified
         if assignment.targetPlayer and assignment.targetPlayer ~= "" then
             message = message .. " on " .. assignment.targetPlayer
         end
     end
     message = message or "Assignment triggered!"
 
-
-
-    -- Execute based on alert type
-    QRA.Notifications.Notify(assignment.alertType, message, assignment.soundFile)
-
-    -- Also show on screen for most alert types
-    -- if assignment.alertType ~= QRA.Assignments.AlertTypes.SCREEN then
-    --     QRA.Notifications.ShowOnScreen(message, 3)  -- Brief on-screen display
-    -- end
-
     QRA.Debug("Assignments: Alert executed -", message)
+    QRA.Logger.Log("Executing Assignment Alert[" .. assignment.alertType .. "]: " .. message)
+    QRA.Notifications.Notify(assignment.alertType, message, assignment.soundFile)
 end
 
 --------------------------------------------------

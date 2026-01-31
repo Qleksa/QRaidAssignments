@@ -362,7 +362,7 @@ local function RegisterSpellTypes()
                     end
 
                     local spellId = trigger.spellId
-                    local unitId = trigger.targetGuid or "boss1"
+                    local unitId = trigger.targetGuid or "boss"
                     local sourceGUID, sourceName = context.GetFakeBossInfo(unitId)
 
                     local spellName = C_Spell.GetSpellName(spellId) or "Unknown Spell"
@@ -499,7 +499,7 @@ end
 local function RegisterUnitHealthType()
     QRA.Triggers.TypeRegistry:RegisterType(QRA.Triggers.Types.UNIT_HEALTH.event, {
         GetIndexKey = function(trigger)
-            -- Index by NPC ID (numeric) or unit string (boss, boss1, etc.)
+            -- Index by NPC ID (numeric) or "boss"
             local npcId = tonumber(trigger.targetGuid)
             return npcId or trigger.targetGuid
         end,
@@ -517,10 +517,10 @@ local function RegisterUnitHealthType()
 
             -- Validate target format
             local target = config.targetGuid
-            if target ~= "boss" and not target:match("^boss[1-8]$") then
+            if target ~= "boss" then
                 local npcId = tonumber(target)
                 if not npcId or npcId <= 0 then
-                    return false, "Target must be 'boss', 'boss1-8', or numeric NPC ID"
+                    return false, "Target must be 'boss' or numeric NPC ID"
                 end
             end
 

@@ -525,11 +525,6 @@ function QRA.Widgets.CreateTargetGuidInput(parent, label, width, bossName)
             return true
         end
 
-        -- Check if it's boss1-boss8
-        if trimmed:match("^boss[1-8]$") then
-            return true
-        end
-
         -- Check if it's a numeric NPC ID
         local num = tonumber(trimmed)
         if num and num > 0 and num == math.floor(num) then

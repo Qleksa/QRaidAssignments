@@ -257,14 +257,6 @@ local function GetHealthTriggersForUnit(unitId, unitGuid)
         return triggersToCheck
     end
 
-    -- Check specific unit triggers (boss1, boss2, etc.)
-    local specificTriggers = triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event][unitId]
-    if specificTriggers then
-        for _, trigger in ipairs(specificTriggers) do
-            table.insert(triggersToCheck, trigger)
-        end
-    end
-
     -- Check generic "boss" triggers
     local bossTriggers = triggerIndex[QRA.Triggers.Types.UNIT_HEALTH.event]["boss"]
     if bossTriggers then
@@ -792,7 +784,6 @@ end
 function QRA.Triggers.Fire(trigger, eventData)
     if not trigger or not trigger.enabled then return end
 
-    -- Generate key for counter tracking (based on type and identifier)
     local counterKey = string.format("%s_%s",
         trigger.type,
         trigger.spellId or trigger.targetGuid or trigger.time or "generic"
@@ -802,13 +793,18 @@ function QRA.Triggers.Fire(trigger, eventData)
     local shouldExecute = trigger.type == QRA.Triggers.Types.TIMER.event or QRA.CounterFormula.Matches(trigger.counterFormula, currentCounter)
 
     if shouldExecute then
-        QRA.Debug("Triggers: Fired", trigger.id, "counter", currentCounter)
+        QRA.Debug("Triggers: Fired", trigger.name, "counter", currentCounter)
+        QRA.Logger.Log(string.format("Trigger Fired: [%s] %s (Count: %d)",
+            GetTriggerTypeAbbreviation(trigger.type),
+            trigger.name,
+            currentCounter
+        ))
 
-        -- Check if we should delay the activation
         if ShouldDelayActivation(trigger) then
             local initialDelay, interval, repeatCount = ParseDelay(trigger.activateIn)
 
             QRA.Debug("Triggers: Delaying activation by", initialDelay, "seconds")
+            QRA.Logger.Log("  delayed by " .. initialDelay .. " seconds" .. (interval and (", then every " .. interval .. " seconds") or "") .. (repeatCount and (", for " .. repeatCount .. " times") or ""))
 
             QRA.DelayedInvoke(initialDelay, function()
                 QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, currentCounter)
@@ -817,21 +813,20 @@ function QRA.Triggers.Fire(trigger, eventData)
                     QRA.Debug("Triggers: Repeating delayed activation for", trigger.id, "every", interval, "seconds", repeatCount and ("for " .. repeatCount .. " times") or "indefinitely")
                     local ticker = C_Timer.NewTicker(interval, function()
                         QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, IncrementOccurrence(counterKey))
-                    end, repeatCount and (repeatCount - 1) or 0) -- Subtract 1 for the initial execution
+                    end, repeatCount and (repeatCount - 1) or 0)
                     table.insert(delayedTriggerHandles, ticker)
                 end
             end)
         else
-            -- Execute linked assignments immediately
             QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, currentCounter)
         end
     end
 
-    -- Check if trigger is exhausted and should be removed
     if ShouldRemoveTrigger(trigger, currentCounter) then
         QRA.Triggers.Unregister(trigger.id)
         RemoveFromIndex(trigger)
         QRA.Debug("Triggers: Unregistered exhausted trigger", trigger.id)
+        QRA.Logger.Log("Trigger Exhausted and Unregistered: [" .. GetTriggerTypeAbbreviation(trigger.type) .. "] " .. trigger.name)
     end
 end
 
