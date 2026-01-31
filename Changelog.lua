@@ -78,6 +78,21 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
+        version = "1.2.0",
+        changes = {
+            "Enabled 'Enable' checkbox for default triggers",
+            "Aded logging for better debugging and tracking of trigger and assignment executions",
+            "Unit Target input now only supports 'boss' or numeric NPC IDs",
+        }
+    },
+    {
+        version = "1.1.0",
+        changes = {
+            "Added Iron Qon Fist Smash default trigger",
+            "Added ability to add optional interval and repeat count to triggers to repeat trigger invoking",
+        }
+    },
+    {
         version = "1.0.0",
         changes = {
             "First full release"
