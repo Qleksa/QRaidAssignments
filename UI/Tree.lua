@@ -276,7 +276,6 @@ local function CreateTriggerRow(parent, trigger, indentLevel, onToggle, onEdit, 
     end)
     AF.SetPoint(enableCheck, "LEFT", startOffset, 0)
     enableCheck:SetChecked(trigger.enabled)
-    enableCheck:SetEnabled(not trigger.default)
 
     -- Type indicator border
     local typeBorder = row:CreateTexture(nil, "ARTWORK", nil, -1)
