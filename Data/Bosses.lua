@@ -15,7 +15,7 @@ local QRA = select(2, ...)
 ---@field name string Boss name
 ---@field abbreviation? string Optional abbreviation for the boss
 ---@field encounterId number Encounter ID of the boss
----@field npcId? number NPC ID of the boss
+---@field npcIds? number[] NPC ID of the boss(es)
 ---@field zoneName string Zone name where the boss is located
 ---@field triggers? BossTrigger[] Optional triggers for the boss encounter
 
@@ -37,34 +37,49 @@ QRA.Bosses = {
                     abbreviation = "Jin'rokh",
                     encounterId = 1577,
                     zoneName = "Overgrown Statuary",
+                    npcIds = { 69465 },
                 },
                 {
                     name = "Horridon",
                     encounterId = 1575,
                     zoneName = "Royal Amphitheater",
+                    npcIds = { 68476 },
                 },
                 {
                     name = "Council of Elders",
                     abbreviation = "Council",
                     encounterId = 1570,
                     zoneName = "Lightning Promenade",
+                    npcIds = {
+                        69131, -- Frost King Malakk,
+                        69132, -- High Priestess Mar'li,
+                        69134, -- Kazra'jin,
+                        69078, -- Sul the Sandcrawler
+                    }
                 },
                 {
                     name = "Tortos",
                     encounterId = 1565,
                     zoneName = "Lair of Tortos",
+                    npcIds = { 67977 },
                 },
                 {
                     name = "Megaera",
                     encounterId = 1578,
                     zoneName = "Forgotten Depths",
+                    npcIds = {
+                        70248, -- Arcane Head
+                        70212, -- Flaming Head
+                        70235, -- Frozen Head
+                        70247, -- Venomous Head
+                    },
                     triggers = {
                         {
                             name = "Rampage",
                             type = "UNIT_DIED",
                             targetGuid = "boss",
                             counterFormula = "<= 6",
-                            activateIn = 6,
+                            activateIn = '6',
                         }
                     }
                 },
@@ -72,27 +87,37 @@ QRA.Bosses = {
                     name = "Ji-Kun",
                     encounterId = 1573,
                     zoneName = "Roost of Ji-Kun",
+                    npcIds = { 69712 },
                 },
                 {
                     name = "Durumu the Forgotten",
                     abbreviation = "Durumu",
                     encounterId = 1572,
                     zoneName = "Watcher's Sanctum",
+                    npcIds = { 68036 },
                 },
                 {
                     name = "Primordius",
                     encounterId = 1574,
                     zoneName = "Saurok Creation Pit",
+                    npcIds = { 69017 },
                 },
                 {
                     name = "Dark Animus",
                     encounterId = 1576,
                     zoneName = "Halls of Flesh-Shaping",
+                    npcIds = { 69427 },
                 },
                 {
                     name = "Iron Qon",
                     encounterId = 1559,
                     zoneName = "Grand Courtyard",
+                    npcIds = {
+                        68078, -- Iron Qon,
+                        68081, -- Dam'ren,
+                        68080, -- Quet'zal,
+                        68079, -- Ro'shak,
+                    },
                     triggers = {
                         {
                             name = "Fist Smash",
@@ -108,16 +133,22 @@ QRA.Bosses = {
                     abbreviation = "Twins",
                     encounterId = 1560,
                     zoneName = "Celestial Enclave",
+                    npcIds = {
+                        68905, -- Lu'lin
+                        68904, -- Suen
+                    },
                 },
                 {
                     name = "Lei Shen",
                     encounterId = 1579,
                     zoneName = "Pinnacle of Storms",
+                    npcIds = { 68397 },
                 },
                 {
                     name = "Ra-den",
                     encounterId = 1581,
                     zoneName = "Hidden Cell",
+                    npcIds = { 69473 },
                 },
             }
         },

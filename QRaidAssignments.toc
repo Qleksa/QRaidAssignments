@@ -18,6 +18,9 @@ Util/Table.lua
 
 Core/Main.lua
 
+Logger/Logger.lua
+Logger/LogViewer.lua
+
 Locales/enUS.lua
 
 Data/Bosses.lua

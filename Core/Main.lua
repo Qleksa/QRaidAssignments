@@ -70,6 +70,7 @@ function QRA.UIParent:PLAYER_LOGIN()
     -- AFConfig.debug[QRA.name] = QRA.Settings.debug
 
     -- Initialize all modules
+
     QRA.InitializeModules()
     QRA.Debug("All modules initialized")
 
@@ -83,7 +84,10 @@ end
 -- Module Initialization
 --------------------------------------------------
 function QRA.InitializeModules()
-    -- Initialize in dependency order
+    if QRA.Logger and QRA.Logger.LoadLogs then
+        QRA.Logger.LoadLogs()
+    end
+
     if QRA.Widgets and QRA.Widgets.Initialize then
         QRA.Widgets.Initialize()
     end
@@ -92,7 +96,6 @@ function QRA.InitializeModules()
         QRA.Notifications.Initialize()
     end
 
-    -- Initialize Raid Roster (for assignment targets)
     if QRA.RaidRoster and QRA.RaidRoster.Initialize then
         QRA.RaidRoster.Initialize()
     end
@@ -108,10 +111,6 @@ function QRA.InitializeModules()
     if QRA.Assignments and QRA.Assignments.Initialize then
         QRA.Assignments.Initialize()
     end
-
-    -- if QRA.Templates and QRA.Templates.Initialize then
-    --     QRA.Templates.Initialize()
-    -- end
 
     if QRA.UI and QRA.UI.Initialize then
         QRA.UI.Initialize()
@@ -154,13 +153,13 @@ end
 
 QRA.UIParent:RegisterEvent("PLAYER_LOGOUT")
 function QRA.UIParent:PLAYER_LOGOUT()
-    -- Ensure all data is saved
+    if QRA.Logger and QRA.Logger.SaveLogs then
+        QRA.Debug("Saving logs to DB")
+        QRA.Logger.SaveLogs()
+    end
     if QRA.Assignments and QRA.Assignments.SaveToDB then
         QRA.Assignments.SaveToDB()
     end
-    -- if QRA.Templates and QRA.Templates.SaveToDB then
-    --     QRA.Templates.SaveToDB()
-    -- end
     if QRA.Notifications and QRA.Notifications.SaveToDB then
         QRA.Notifications.SaveToDB()
     end
@@ -194,6 +193,7 @@ SlashCmdList.QRAASSIGNMENTS = function(msg)
         QRA.Print("  /qra test - Test notifications")
         QRA.Print("  /qra devmode - Toggle dev/test mode")
         QRA.Print("  /qra debug - Toggle debug mode")
+        QRA.Print("  /qra logs - Toggle log viewer")
     elseif msg == "hide" then
         QRA.UI.HideMainFrame()
     elseif msg == "test" then
@@ -214,6 +214,10 @@ SlashCmdList.QRAASSIGNMENTS = function(msg)
     elseif msg == "debug" then
         QRA.Settings.debug = not QRA.Settings.debug
         QRA.Print("Debug mode:", QRA.Settings.debug and "ON" or "OFF")
+    elseif msg == "logs" then
+        if QRA.Logger and QRA.Logger.ToggleLogFrame then
+            QRA.Logger.ToggleLogFrame()
+        end
     else
         QRA.Print("Unknown command. Use /qra help for available commands.")
     end
