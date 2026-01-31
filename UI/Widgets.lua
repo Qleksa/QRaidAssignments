@@ -488,18 +488,26 @@ end
 ---@param parent Frame Parent frame
 ---@param label string|nil Label text
 ---@param width number Field width
+---@param bossName string|nil Boss name for tooltip context
 ---@return QRA_TargetGuidInput editBox
-function QRA.Widgets.CreateTargetGuidInput(parent, label, width)
+function QRA.Widgets.CreateTargetGuidInput(parent, label, width, bossName)
     ---@class QRA_TargetGuidInput : AF_EditBox
     local editBox = AF.CreateEditBox(parent, label or QRA.L["Target Unit/NPC ID"], width or 200, 20)
 
-    -- Tooltip
-    AF.SetTooltip(editBox, "TOPLEFT", 0, 2,
+    local tips = {
         QRA.L["Target Unit/NPC ID"],
         "Enter target unit or NPC ID",
-        "boss - Any boss reaching threshold",
-        "boss1, boss2...boss8 - Specific boss",
-        "12345 - NPC ID")
+        "boss - Any boss %s",
+        "12345 - NPC ID"
+    }
+
+    if bossName then
+        local bossNpcIds = QRA.Bosses.GetBossNpcIds(bossName)
+        tips[3] = string.format(tips[3], bossNpcIds and ("(will match: " .. table.concat(bossNpcIds, ", ") .. ")") or "")
+    end
+
+    -- Tooltip
+    AF.SetTooltip(editBox, "TOPLEFT", 0, 2, unpack(tips))
 
     -- Validation state
     local isValid = false

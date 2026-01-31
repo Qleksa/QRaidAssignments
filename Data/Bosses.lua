@@ -254,3 +254,11 @@ function QRA.Bosses.GetInstanceNameForBoss(bossName)
     end
     return nil
 end
+
+--- Get NPC IDs for a boss by encounter ID
+--- @param bossName string Encounter ID of the boss
+--- @return number[]|nil List of NPC IDs or nil if not found
+function QRA.Bosses.GetBossNpcIds(bossName)
+    local bossData = QRA.Bosses.GetBossByName(bossName)
+    return bossData and bossData.npcIds or nil
+end

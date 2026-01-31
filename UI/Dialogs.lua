@@ -337,7 +337,7 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
     repeatCountInput:SetEnabled(editable)
 
     -- Target GUID input (shown for UNIT_HEALTH and UNIT_DIED triggers)
-    local targetGuidInput = QRA.Widgets.CreateTargetGuidInput(form, QRA.L["Target Unit/NPC ID"], FORM_WIDTH)
+    local targetGuidInput = QRA.Widgets.CreateTargetGuidInput(form, QRA.L["Target Unit/NPC ID"], FORM_WIDTH, bossInput)
     targetGuidInput:Hide()
     if trigger.targetGuid then
         targetGuidInput:SetText(trigger.targetGuid)
