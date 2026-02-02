@@ -707,6 +707,26 @@ end
 -- Timer Trigger Handling
 --------------------------------------------------
 
+--- Get the earliest assignment countdown for a trigger
+--- @param trigger Trigger
+--- @return number earliestCountdown
+local function GetEarliestAssignmentCountdown(trigger)
+    if not trigger.assignments or #trigger.assignments == 0 then
+        return 0
+    end
+
+    local earliest = 0
+    for _, assignment in ipairs(trigger.assignments) do
+        if assignment.enabled and assignment.countdownTime then
+            if earliest == 0 or assignment.countdownTime < earliest then
+                earliest = assignment.countdownTime
+            end
+        end
+    end
+
+    return earliest
+end
+
 --- Start all timer-based triggers
 local function StartTimerTriggers()
     for id, trigger in pairs(activeTriggers) do
@@ -716,18 +736,16 @@ local function StartTimerTriggers()
                 QRA.Triggers.Fire(trigger)
             end
 
+            local earliestCountdown = GetEarliestAssignmentCountdown(trigger)
+            local adjustedTime = math.max(0, (trigger.time or 0) - earliestCountdown)
+
             if trigger.repeatInterval and trigger.repeatInterval > 0 then
-                -- Repeating timer: fire at initial time, then every interval after that
-                local initialTime = trigger.time or 0
-                -- Store handles in a table so we can cancel both initial and ticker
                 timerHandles[id] = { initial = nil, ticker = nil }
                 local handleEntry = timerHandles[id]
 
-                handleEntry.initial = C_Timer.NewTimer(initialTime, function()
+                handleEntry.initial = C_Timer.NewTimer(adjustedTime, function()
                     if not encounterActive then return end
                     QRA.Triggers.Fire(trigger)
-                    -- Start the repeating ticker after the first fire
-                    -- repeatCount is total fires, so ticker fires (repeatCount - 1) additional times
                     local repeatCount = trigger.repeatCount
                     if repeatCount and repeatCount > 1 then
                         handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer, repeatCount - 1)
@@ -737,8 +755,8 @@ local function StartTimerTriggers()
                     end
                 end)
             else
-                -- One-shot timer
-                C_Timer.After(trigger.time or 0, FireTimer)
+                -- One-shot timer: use adjusted time
+                C_Timer.After(adjustedTime, FireTimer)
             end
         end
     end
@@ -932,7 +950,7 @@ function QRA.Triggers.ProcessUnitSpellcast(unitId, spellId)
 
     local eventBucket = triggerIndex[QRA.Triggers.Types.UNIT_SPELLCAST_SUCCEEDED.event]
     if not eventBucket then
-        QRA.Logger.Log("No triggers registered for UNIT_SPELLCAST_SUCCEEDED")
+        -- QRA.Logger.Log("No triggers registered for UNIT_SPELLCAST_SUCCEEDED")
         return
     end
 
