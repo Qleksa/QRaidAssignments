@@ -339,24 +339,32 @@ end
 ---@param parent Frame Parent frame
 ---@param label string|nil Label text
 ---@param width number Field width
+---@param isForTrigger boolean Whether this input is for a trigger (true) or assignment (false)
 ---@return QRA_ActivateInInput editBox
-function QRA.Widgets.CreateActivateInInput(parent, label, width)
+function QRA.Widgets.CreateActivateInInput(parent, label, width, isForTrigger)
     ---@class QRA_ActivateInInput : AF_EditBox
-    local editBox = AF.CreateEditBox(parent, label or QRA.L["Activate In (seconds)"], width or 200, 20)
+    local editBox = AF.CreateEditBox(parent, label or QRA.L["Activate In (seconds)"], width or 200, 20, not isForTrigger and "number")
+
+    local tooltip = {QRA.L["Activate In (seconds)"]}
+    if isForTrigger then
+        table.insert(tooltip, "Delay the trigger activation after the event fires")
+        QRA.TableMerge(tooltip, {
+            " ",
+            "|cffffd100Simple delay:|r",
+            "  |cff00ff003|r = Activate 3 seconds after event",
+            " ",
+            "|cffffd100Repeating activation:|r",
+            "  |cff00ff003,5|r = First at 3s, then every 5s (infinite)",
+            "  |cff00ff003,5,4|r = First at 3s, then 3 more times every 5s (total 4)",
+        })
+    else
+        table.insert(tooltip, "Delay the assignment activation after the trigger fires")
+    end
+    table.insert(tooltip, " ")
+    table.insert(tooltip, "Leave empty for immediate activation")
 
     -- Tooltip
-    AF.SetTooltip(editBox, "TOPLEFT", 0, 2,
-        QRA.L["Activate In (seconds)"],
-        "Delay the activation after the event fires",
-        " ",
-        "|cffffd100Simple delay:|r",
-        "  |cff00ff003|r = Activate 3 seconds after event",
-        " ",
-        "|cffffd100Repeating activation:|r",
-        "  |cff00ff003,5|r = First at 3s, then every 5s (infinite)",
-        "  |cff00ff003,5,4|r = First at 3s, then 3 more times every 5s (total 4)",
-        " ",
-        "Leave empty for immediate activation")
+    AF.SetTooltip(editBox, "TOPLEFT", 0, 2, unpack(tooltip))
 
     -- Helper function to validate activateIn value
     local function IsValidActivateInValue(value)
