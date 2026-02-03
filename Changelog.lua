@@ -78,6 +78,14 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
+        version = "1.3.0",
+        changes = {
+            "Supports stacking notifications for multiple assignments triggered simultaneously",
+            "Timer triggers are fully fixed to work as intended with intervals and repeat counts",
+            "Fixed assignment delay to work correctly in regards to countdown",
+        }
+    },
+    {
         version = "1.2.0",
         changes = {
             "Enabled 'Enable' checkbox for default triggers",

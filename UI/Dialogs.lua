@@ -40,6 +40,7 @@ function QRA.UI.Dialogs.ShowAssignmentEditor(assignment, triggerId)
             mainFrame:GetFrameLevel() + 10
         )
         AF.SetPoint(assignmentEditorFrame, "CENTER", mainFrame, 0, 0)
+        table.insert(UISpecialFrames, assignmentEditorFrame:GetName())
     end
 
     -- Update title based on new/edit
@@ -126,7 +127,7 @@ function QRA.UI.Dialogs.ShowAssignmentEditor(assignment, triggerId)
     end
 
     -- Activate In input
-    local activateInInput = QRA.Widgets.CreateActivateInInput(form, QRA.L["Activate In (seconds)"], FORM_WIDTH)
+    local activateInInput = QRA.Widgets.CreateActivateInInput(form, QRA.L["Activate In (seconds)"], FORM_WIDTH, false)
     AF.SetPoint(activateInInput, "TOPLEFT", alertDropdown, "BOTTOMLEFT", 0, FIELD_SPACING)
     if assignment.activateIn then
         activateInInput:SetValue(assignment.activateIn)
@@ -174,7 +175,7 @@ function QRA.UI.Dialogs.ShowAssignmentEditor(assignment, triggerId)
             targetPlayer = targetPlayer,
             countdownTime = countdownSlider:GetValue(),
             alertType = alertDropdown:GetSelectedValue(),
-            activateIn = activateInInput:GetValue(),
+            activateIn = tonumber(activateInInput:GetValue()),
         })
 
         if currentIsNew then
@@ -230,13 +231,6 @@ function QRA.UI.Dialogs.ShowAssignmentEditor(assignment, triggerId)
         assignmentEditorFrame:Hide()
     end)
 
-    -- ESC key handler
-    assignmentEditorFrame:SetScript("OnKeyDown", function(self, key)
-        if key == "ESCAPE" then
-            self:Hide()
-        end
-    end)
-
     assignmentEditorFrame:Show()
 end
 
@@ -265,6 +259,7 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
             mainFrame:GetFrameLevel() + 10
         )
         AF.SetPoint(triggerEditorFrame, "CENTER", mainFrame, 0, 0)
+        table.insert(UISpecialFrames, triggerEditorFrame:GetName())
     end
 
     -- Update title based on new/edit
@@ -364,7 +359,7 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
     occSelector:SetEnabled(editable)
 
     -- Activate In input
-    local activateInInput = QRA.Widgets.CreateActivateInInput(form, QRA.L["Activate In (seconds)"], FORM_WIDTH)
+    local activateInInput = QRA.Widgets.CreateActivateInInput(form, QRA.L["Activate In (seconds)"], FORM_WIDTH, true)
     if trigger.activateIn then
         activateInInput:SetValue(trigger.activateIn)
     end
@@ -501,13 +496,6 @@ function QRA.UI.Dialogs.ShowTriggerEditor(trigger, bossInput)
 
         QRA.UI.RefreshAll()
         triggerEditorFrame:Hide()
-    end)
-
-    -- ESC key handler
-    triggerEditorFrame:SetScript("OnKeyDown", function(self, key)
-        if key == "ESCAPE" then
-            self:Hide()
-        end
     end)
 
     triggerEditorFrame:Show()
