@@ -398,6 +398,10 @@ function QRA.Assignments.CancelAllCountdowns()
         end
     end
     wipe(activeCountdowns)
+
+    if QRA.Notifications and QRA.Notifications.CancelAllCountdowns then
+        QRA.Notifications.CancelAllCountdowns()
+    end
 end
 
 --------------------------------------------------
