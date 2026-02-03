@@ -23,22 +23,28 @@ QRA.Cooldowns = {
         {
             class = "Warrior",
             spells = {
-                { name = "Rallying Cry",     id = 97462,  icon = 463829 },
-                { name = "Vigilance",        id = 114030, icon = 236318 },
-                { name = "Shield Wall",      id = 871,    icon = 132362 },
-                { name = "Last Stand",       id = 12975,  icon = 135871 },
-                { name = "Die by the Sword", id = 118038, icon = 132336 },
+                { name = "Rallying Cry",        id = 97462,  icon = 463829 },
+                { name = "Vigilance",           id = 114030, icon = 236318 },
+                { name = "Shield Wall",         id = 871,    icon = 132362 },
+                { name = "Last Stand",          id = 12975,  icon = 135871 },
+                { name = "Die by the Sword",    id = 118038, icon = 132336 },
+                { name = "Skull Banner",        id = 114207, icon = 603532 },
+                { name = "Demoralizing Banner", id = 114203, icon = 604449 },
             }
         },
         {
             class = "Paladin",
             spells = {
-                { name = "Devotion Aura",             id = 31821, icon = 135872 },
-                { name = "Hand of Sacrifice",         id = 6940,  icon = 135966 },
-                { name = "Divine Protection",         id = 498,   icon = 524353 },
-                { name = "Divine Shield",             id = 642,   icon = 524354 },
-                { name = "Guardian of Ancient Kings", id = 86659, icon = 135919 },
-                { name = "Ardent Defender",           id = 31850, icon = 135870 },
+                { name = "Devotion Aura",             id = 31821,  icon = 135872 },
+                { name = "Hand of Sacrifice",         id = 6940,   icon = 135966 },
+                { name = "Divine Protection",         id = 498,    icon = 524353 },
+                { name = "Light's Hammer",            id = 114158, icon = 613955 },
+                { name = "Execution Sentence",        id = 114157, icon = 613954 },
+                { name = "Divine Shield",             id = 642,    icon = 524354 },
+                { name = "Holy Avenger",              id = 105809, icon = 571555 },
+                { name = "Guardian of Ancient Kings", id = 86659,  icon = 135919 },
+                { name = "Ardent Defender",           id = 31850,  icon = 135870 },
+
             }
         },
         {
@@ -63,6 +69,7 @@ QRA.Cooldowns = {
                 { name = "Spirit Shell",        id = 109964, icon = 538565 },
                 { name = "Guardian Spirit",     id = 47788,  icon = 237542 },
                 { name = "Divine Hymn",         id = 64843,  icon = 237540 },
+                { name = "Vampiric Embrace",    id = 15290,  icon = 136230 },
             }
         },
         {

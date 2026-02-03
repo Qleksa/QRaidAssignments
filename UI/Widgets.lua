@@ -96,7 +96,7 @@ end
 -- TODO: Refactor to create a editBox that when clicked opens the menu
 -- so we dont have two separate inputs for spell selection
 local function CreateSpellMenu(parent, width, onClick)
-    local spellMenu = AF.CreateCascadingMenuButton(parent, width - 46)
+    local spellMenu = AF.CreateCascadingMenuButton(parent, width - 46, 11)
     spellMenu:SetLabel(QRA.L["Select spell"])
     spellMenu:SetItems(GetAllSpells(onClick))
 
