@@ -707,56 +707,77 @@ end
 -- Timer Trigger Handling
 --------------------------------------------------
 
---- Get the earliest assignment countdown for a trigger
---- @param trigger Trigger
---- @return number earliestCountdown
-local function GetEarliestAssignmentCountdown(trigger)
-    if not trigger.assignments or #trigger.assignments == 0 then
-        return 0
+--- Schedule a single assignment for a timer trigger occurrence
+--- @param trigger Trigger The parent trigger
+--- @param assignment Assignment The assignment to schedule
+--- @param triggerTime number The time when the trigger fires (seconds from encounter start)
+--- @param counter number The occurrence counter for this trigger
+local function ScheduleTimerAssignment(trigger, assignment, triggerTime, counter)
+    if not assignment.enabled then return end
+
+    if not QRA.CounterFormula.Matches(assignment.counterFormula, counter) then
+        return
     end
 
-    local earliest = 0
+    local countdownTime = assignment.countdownTime or 0
+    local absoluteScheduleTime = triggerTime - countdownTime -- Time from encounter start when assignment should start countdown
+    local currentEncounterTime = QRA.Triggers.GetEncounterTime()
+    local scheduleDelay = math.max(0, absoluteScheduleTime - currentEncounterTime) -- Delay from NOW
+
+    local eventData = {
+        triggerId = trigger.id,
+        triggerTime = triggerTime,
+        counter = counter,
+    }
+
+    QRA.Debug("Triggers: Scheduling assignment", assignment.id, "in", scheduleDelay, "seconds (encounter time:", currentEncounterTime, "target:", absoluteScheduleTime, ")")
+
+    C_Timer.After(scheduleDelay, function()
+        if not encounterActive then return end
+        QRA.Assignments.ExecuteAssignment(assignment, eventData)
+    end)
+end
+
+--- Schedule all assignments for a timer trigger occurrence
+--- @param trigger Trigger The trigger
+--- @param triggerTime number The time when the trigger fires
+--- @param counter number The occurrence counter
+local function ScheduleTimerTriggerOccurrence(trigger, triggerTime, counter)
+    if not trigger.assignments or #trigger.assignments == 0 then return end
+
+    QRA.Debug("Triggers: Scheduling occurrence", counter, "for timer trigger", trigger.id, "at", triggerTime, "seconds")
+
     for _, assignment in ipairs(trigger.assignments) do
-        if assignment.enabled and assignment.countdownTime then
-            if earliest == 0 or assignment.countdownTime < earliest then
-                earliest = assignment.countdownTime
-            end
-        end
+        ScheduleTimerAssignment(trigger, assignment, triggerTime, counter)
     end
-
-    return earliest
 end
 
 --- Start all timer-based triggers
+--- Each assignment is scheduled independently based on its own countdown time
+--- This ensures all assignments alert at the correct trigger time regardless of their countdown duration
 local function StartTimerTriggers()
     for id, trigger in pairs(activeTriggers) do
         if trigger.type == QRA.Triggers.Types.TIMER.event and trigger.enabled then
-            local function FireTimer()
-                if not encounterActive then return end
-                QRA.Triggers.Fire(trigger)
-            end
+            local triggerTime = trigger.time or 0
+            local repeatInterval = trigger.repeatInterval
+            local repeatCount = trigger.repeatCount
 
-            local earliestCountdown = GetEarliestAssignmentCountdown(trigger)
-            local adjustedTime = math.max(0, (trigger.time or 0) - earliestCountdown)
+            timerHandles[id] = { tickers = {} }
+            local handleEntry = timerHandles[id]
 
-            if trigger.repeatInterval and trigger.repeatInterval > 0 then
-                timerHandles[id] = { initial = nil, ticker = nil }
-                local handleEntry = timerHandles[id]
+            ScheduleTimerTriggerOccurrence(trigger, triggerTime, 1)
 
-                handleEntry.initial = C_Timer.NewTimer(adjustedTime, function()
+            if repeatInterval and repeatInterval > 0 then
+                local maxRepeats = (repeatCount and repeatCount > 0) and (repeatCount - 1) or nil
+                local currentOccurrence = 1
+                local ticker = C_Timer.NewTicker(repeatInterval, function()
                     if not encounterActive then return end
-                    QRA.Triggers.Fire(trigger)
-                    local repeatCount = trigger.repeatCount
-                    if repeatCount and repeatCount > 1 then
-                        handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer, repeatCount - 1)
-                    elseif not repeatCount or repeatCount == 0 then
-                        -- No limit, repeat indefinitely
-                        handleEntry.ticker = C_Timer.NewTicker(trigger.repeatInterval, FireTimer)
-                    end
-                end)
-            else
-                -- One-shot timer: use adjusted time
-                C_Timer.After(adjustedTime, FireTimer)
+                    currentOccurrence = currentOccurrence + 1
+                    local occurrenceTime = triggerTime + (currentOccurrence - 1) * repeatInterval
+                    ScheduleTimerTriggerOccurrence(trigger, occurrenceTime, currentOccurrence)
+                end, maxRepeats)
+
+                table.insert(handleEntry.tickers, ticker)
             end
         end
     end
@@ -766,7 +787,13 @@ end
 local function CancelTimerTriggers()
     for id, handle in pairs(timerHandles) do
         if type(handle) == "table" then
-            -- New format: table with initial and ticker
+            if handle.tickers then
+                for _, ticker in ipairs(handle.tickers) do
+                    if ticker and ticker.Cancel then
+                        ticker:Cancel()
+                    end
+                end
+            end
             if handle.initial and handle.initial.Cancel then
                 handle.initial:Cancel()
             end
@@ -774,7 +801,6 @@ local function CancelTimerTriggers()
                 handle.ticker:Cancel()
             end
         elseif handle and handle.Cancel then
-            -- Legacy format: single handle
             handle:Cancel()
         end
     end

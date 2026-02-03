@@ -408,6 +408,35 @@ end
 -- Assignment Execution
 --------------------------------------------------
 
+--- Execute a single assignment.
+--- Used by timer triggers which schedule each assignment independently
+---@param assignment Assignment The assignment to execute
+---@param eventData table|nil Data from the triggering event
+function QRA.Assignments.ExecuteAssignment(assignment, eventData)
+    if not assignment or not assignment.enabled then return end
+
+    local assignTarget = assignment.assignTarget or "ALL"
+    local isTarget = QRA.AssignTarget.IsCurrentPlayerTarget(assignTarget)
+
+    if not isTarget then
+        QRA.Debug("Assignments: Skipping", assignment.id, "- current player not in target", assignTarget)
+        return
+    end
+
+    if assignment.activateIn and assignment.activateIn > 0 then
+        QRA.Debug("Assignments: Delaying assignment activation by", assignment.activateIn, "seconds")
+        local delayTime = assignment.activateIn - assignment.countdownTime
+        if delayTime < 0 then
+            delayTime = 0
+        end
+        QRA.DelayedInvoke(delayTime, function()
+            StartCountdown(assignment, eventData)
+        end)
+    else
+        StartCountdown(assignment, eventData)
+    end
+end
+
 --- Execute assignments for a specific trigger
 ---@param triggerId string The trigger that fired
 ---@param eventData table|nil Data from the triggering event
@@ -431,7 +460,11 @@ function QRA.Assignments.ExecuteForTrigger(triggerId, eventData, counter)
                     -- Check if we should delay the assignment activation
                     if assignment.activateIn and assignment.activateIn > 0 then
                         QRA.Debug("Assignments: Delaying assignment activation by", assignment.activateIn, "seconds")
-                        QRA.DelayedInvoke(assignment.activateIn, function()
+                        local delayTime = assignment.activateIn - assignment.countdownTime
+                        if delayTime < 0 then
+                            delayTime = 0
+                        end
+                        QRA.DelayedInvoke(delayTime, function()
                             StartCountdown(assignment, eventData)
                         end)
                     else

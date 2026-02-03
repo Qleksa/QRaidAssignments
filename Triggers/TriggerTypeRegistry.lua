@@ -422,7 +422,7 @@ local function RegisterTimerType()
                 if config.repeatCount and config.repeatCount > 0 then
                     return string.format("%s / %ds x%d", timeDisplay, config.repeatInterval, config.repeatCount)
                 end
-                return string.format("%s / %ds (∞)", timeDisplay, config.repeatInterval)
+                return string.format("%s / %ds", timeDisplay, config.repeatInterval)
             end
             return timeDisplay
         end,
