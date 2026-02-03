@@ -26,15 +26,10 @@ local function CreateFrame()
     local scrollFrame = AF.CreateScrollFrame(frame, "QRA_LogUIScrollFrame", 590, 365)
     scrollFrame:SetPoint("TOPLEFT", 5, -5)
 
-    local logFS = AF.CreateFontString(scrollFrame.scrollContent, unpack(QRA.Logger.GetLogs()), "white")
-    logFS:SetPoint("TOPLEFT", scrollFrame.scrollContent, "TOPLEFT", 5, -5)
-    logFS:SetPoint("TOPRIGHT", scrollFrame.scrollContent, "TOPRIGHT", -5, -5)
-    logFS:SetJustifyH("LEFT")
-    logFS:SetJustifyV("TOP")
-    logFS:SetSpacing(3)
-    logFS:SetNonSpaceWrap(true)
-
-    scrollFrame:SetContentHeight(logFS:GetStringHeight() + 10)
+    local logEditBox = AF.CreateScrollEditBox(scrollFrame.scrollContent, "QRA_LogUIEditBox", nil, 580, 355)
+    logEditBox:SetPoint("TOPLEFT", scrollFrame.scrollContent, "TOPLEFT", 5, -5)
+    logEditBox:SetPoint("TOPRIGHT", scrollFrame.scrollContent, "TOPRIGHT", -5, -5)
+    logEditBox:SetText(unpack(QRA.Logger.GetLogs()))
 
     local clearBtn = AF.CreateButton(frame, "Clear logs", "white", 100, 25)
     clearBtn:SetPoint("BOTTOMRIGHT", -6, 4)
@@ -44,8 +39,7 @@ local function CreateFrame()
     end)
 
     function frame:UpdateLogText()
-        logFS:SetText(table.concat(QRA.Logger.GetLogs(), "\n"))
-        scrollFrame:SetContentHeight(logFS:GetStringHeight() + 10)
+        logEditBox:SetText(table.concat(QRA.Logger.GetLogs(), "\n"))
     end
 end
 
