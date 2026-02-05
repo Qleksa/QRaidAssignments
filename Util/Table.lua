@@ -1,10 +1,13 @@
 ---@class QRA
 local QRA = select(2, ...)
 
+---@class Table
+QRA.Table = {}
+
 --- Count table entries
 ---@param tbl table
 ---@return number
-function QRA.TableCount(tbl)
+function QRA.Table.Count(tbl)
     local count = 0
     for _ in pairs(tbl) do
         count = count + 1
@@ -16,7 +19,7 @@ end
 ---@param dest table
 ---@param src table
 ---@return table
-function QRA.TableMerge(dest, src)
+function QRA.Table.Merge(dest, src)
     for k, v in pairs(src) do
         dest[k] = v
     end

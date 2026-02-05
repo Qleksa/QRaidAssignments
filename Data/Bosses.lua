@@ -7,17 +7,13 @@ local QRA = select(2, ...)
   Contains data about raid bosses and encounters
 ]]
 
----@class BossTrigger: Trigger
----@field name string Name of the trigger
----@field type string Type of trigger
-
 ---@class BossData
 ---@field name string Boss name
 ---@field abbreviation? string Optional abbreviation for the boss
 ---@field encounterId number Encounter ID of the boss
 ---@field npcId? number NPC ID of the boss
 ---@field zoneName string Zone name where the boss is located
----@field triggers? BossTrigger[] Optional triggers for the boss encounter
+---@field triggers? Trigger[] Optional triggers for the boss encounter
 
 ---@class InstanceData
 ---@field instanceId number instance ID

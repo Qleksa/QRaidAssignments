@@ -4,28 +4,13 @@ local QRA = select(2, ...)
 ---@class TriggerFactory
 QRA.Triggers.Factory = QRA.Triggers.Factory or {}
 
----@class SpellTrigger
-QRA.Triggers.Factory.SpellTrigger = {}
----@class UnitSpellcastTrigger
-QRA.Triggers.Factory.UnitSpellcastTrigger = {}
+local SpellTriggerMixin = {}
 
----@class SpellTrigger : Trigger
----@field spellId number 
----@field spellName string
----@field counter string
----@field activateIn? string seconds to delay trigger activation with optional interval and repeat count
-local SpellTrigger = QRA.Triggers.Factory.SpellTrigger
-setmetatable(SpellTrigger, QRA.Triggers.Factory.BaseTrigger)
-SpellTrigger.__index = SpellTrigger
-
-
-function SpellTrigger:GetIndexKey()
+function SpellTriggerMixin:GetIndexKey()
     return self.spellId
 end
 
-function SpellTrigger:Validate()
-    QRA.Debug("Validating SpellTrigger:", self)
-
+function SpellTriggerMixin:Validate()
     if not self.spellId or self.spellId <= 0 then
         return false, "Spell ID must be a positive number."
     end
@@ -38,13 +23,13 @@ function SpellTrigger:Validate()
     return true
 end
 
-function SpellTrigger:GenerateName()
+function SpellTriggerMixin:GenerateName()
     local typeInfo = QRA.Triggers.Types[self.type]
     local abbrev = typeInfo and typeInfo.abbreviation or "SPL"
     return string.format("%s %s", abbrev, self.spellName or "Unknown")
 end
 
-function SpellTrigger:GetUIFields()
+function SpellTriggerMixin:GetUIFields()
     return {
         { name = "name", type = "text", label = "Name", required = false },
         { name = "spell", type = "spell", label = "Spell ID", required = true },
@@ -53,23 +38,23 @@ function SpellTrigger:GetUIFields()
     }
 end
 
----@class UnitSpellcastTrigger : SpellTrigger
-local UnitSpellcastTrigger = QRA.Triggers.Factory.UnitSpellcastTrigger
-setmetatable(UnitSpellcastTrigger, QRA.Triggers.Factory.BaseTrigger)
-UnitSpellcastTrigger.__index = UnitSpellcastTrigger
+local UnitSpellcastTriggerMixin = {}
 
-function UnitSpellcastTrigger:GetIndexKey()
-    return QRA.Triggers.Factory.SpellTrigger.GetIndexKey(self)
+function UnitSpellcastTriggerMixin:GetIndexKey()
+    return SpellTriggerMixin.GetIndexKey(self)
 end
 
-function UnitSpellcastTrigger:Validate()
-    return QRA.Triggers.Factory.SpellTrigger.Validate(self)
+function UnitSpellcastTriggerMixin:Validate()
+    return SpellTriggerMixin.Validate(self)
 end
 
-function UnitSpellcastTrigger:GenerateName()
-    return QRA.Triggers.Factory.SpellTrigger.GenerateName(self)
+function UnitSpellcastTriggerMixin:GenerateName()
+    return SpellTriggerMixin.GenerateName(self)
 end
 
-function UnitSpellcastTrigger:GetUIFields()
-    return QRA.Triggers.Factory.SpellTrigger.GetUIFields(self)
+function UnitSpellcastTriggerMixin:GetUIFields()
+    return SpellTriggerMixin.GetUIFields(self)
 end
+
+QRA.Triggers.Factory.SpellTrigger = SpellTriggerMixin
+QRA.Triggers.Factory.UnitSpellcastTrigger = UnitSpellcastTriggerMixin
