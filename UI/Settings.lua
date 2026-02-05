@@ -67,8 +67,8 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
         QRA.UIParent,
         "QRA_SettingsPanel",
         QRA.L["Settings"],
-        300,
-        430
+        310,
+        550
     )
     AF.SetPoint(settingsFrame, "CENTER", QRA.UIParent, 0, 0)
     settingsFrame:SetFrameStrata("DIALOG")
@@ -118,9 +118,23 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     AF.SetPoint(chatCheck, "TOPLEFT", screenCheck, "BOTTOMLEFT", 0, -10)
     chatCheck:SetChecked(notifConfig.chatEnabled)
 
+    -- Assignment Display section
+    local assignDisplayHeader = CreateSectionHeader(content, "Assignment Display")
+    AF.SetPoint(assignDisplayHeader, "TOPLEFT", chatCheck, "BOTTOMLEFT", -10, -20)
+    AF.SetPoint(assignDisplayHeader, "TOPRIGHT", content, 0, 0)
+
+    local assignDisplayCheck = AF.CreateCheckButton(content, "Show Assignment Display on Zone Entry", function(checked)
+        QRA.Settings.assignmentDisplay.enabled = checked
+        if not checked and QRA.AssignmentDisplay then
+            QRA.AssignmentDisplay.Hide()
+        end
+    end)
+    AF.SetPoint(assignDisplayCheck, "TOPLEFT", assignDisplayHeader, "BOTTOMLEFT", 10, -10)
+    assignDisplayCheck:SetChecked(QRA.Settings.assignmentDisplay.enabled)
+
     -- Test buttons section
     local testHeader = CreateSectionHeader(content, QRA.L["Test Notifications"])
-    AF.SetPoint(testHeader, "TOPLEFT", chatCheck, "BOTTOMLEFT", -10, -20)
+    AF.SetPoint(testHeader, "TOPLEFT", assignDisplayCheck, "BOTTOMLEFT", -10, -20)
     AF.SetPoint(testHeader, "TOPRIGHT", content, 0, 0)
 
     local testTTSBtn = AF.CreateButton(content, QRA.L["Test TTS"], "static", 80, 22)
@@ -135,17 +149,17 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     AF.SetPoint(testScreenBtn, "TOPLEFT", testTTSBtn, "BOTTOMLEFT", 0, -8)
     testScreenBtn:SetOnClick(QRA.Notifications.TestScreen)
 
-    local testCountdownBtn = AF.CreateButton(content, QRA.L["Test Countdown"], "static", 110, 22)
+    local testCountdownBtn = AF.CreateButton(content, QRA.L["Test Countdown"], "static", 120, 22)
     AF.SetPoint(testCountdownBtn, "LEFT", testScreenBtn, "RIGHT", 8, 0)
     testCountdownBtn:SetOnClick(QRA.Notifications.TestCountdown)
 
-    local testMultipleCountdowns = AF.CreateButton(content, "Test Multiple Countdowns", "static", 170, 22)
+    local testMultipleCountdowns = AF.CreateButton(content, "Test Multiple Countdowns", "static", 185, 22)
     AF.SetPoint(testMultipleCountdowns, "TOPLEFT", testScreenBtn, "BOTTOMLEFT", 0, -8)
     testMultipleCountdowns:SetOnClick(QRA.Notifications.TestMultipleCountdowns)
 
     -- Movers section
     local moversHeader = CreateSectionHeader(content, QRA.L["Movers"])
-    AF.SetPoint(moversHeader, "TOPLEFT", testScreenBtn, "BOTTOMLEFT", 0, -40)
+    AF.SetPoint(moversHeader, "TOPLEFT", testMultipleCountdowns, "BOTTOMLEFT", 0, -20)
     AF.SetPoint(moversHeader, "TOPRIGHT", content, 0, 0)
 
     local showMoversBtn = AF.CreateButton(content, QRA.L["Show Movers"], "static", 115, 26)

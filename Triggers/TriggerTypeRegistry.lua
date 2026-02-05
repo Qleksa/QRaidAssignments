@@ -440,11 +440,12 @@ local function RegisterTimerType()
         end,
 
         SupportsCustomName = function()
-            return false -- Timer names are auto-generated from time config
+            return true -- Allow custom names for timer triggers
         end,
 
         GetUIFields = function()
             return {
+                { name = "name", type = "text", label = "Name", required = false, configKey = "name" },
                 { name = "time", type = "number", label = "Time (seconds)", required = true, configKey = "time" },
                 { name = "interval", type = "number", label = "Interval (seconds)", required = false, configKey = "repeatInterval" },
                 { name = "repeatCount", type = "number", label = "Repeat Count", required = false, configKey = "repeatCount" },
@@ -453,6 +454,10 @@ local function RegisterTimerType()
 
         GetConfigFromUI = function(inputs)
             local config = {}
+            if inputs.name then
+                local name = strtrim(inputs.name:GetText())
+                if name ~= "" then config.name = name end
+            end
             if inputs.time then
                 config.time = tonumber(inputs.time:GetText()) or 0
             end
@@ -572,6 +577,7 @@ local function RegisterUnitHealthType()
 
         GetUIFields = function()
             return {
+                { name = "name", type = "text", label = "Name", required = false, configKey = "name" },
                 { name = "targetGuid", type = "targetGuid", label = "Target Unit/NPC ID", required = true, configKey = "targetGuid" },
                 { name = "hpThresholds", type = "hpThresholds", label = "HP Thresholds (%)", required = true, configKey = "hpThresholds" },
                 { name = "activateIn", type = "number", label = "Activate In (seconds)", required = false, configKey = "activateIn" },
@@ -580,6 +586,10 @@ local function RegisterUnitHealthType()
 
         GetConfigFromUI = function(inputs)
             local config = {}
+            if inputs.name then
+                local name = strtrim(inputs.name:GetText())
+                if name ~= "" then config.name = name end
+            end
             if inputs.targetGuid then
                 config.targetGuid = strtrim(inputs.targetGuid:GetText())
             end

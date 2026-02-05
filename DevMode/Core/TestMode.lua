@@ -44,6 +44,16 @@ function DevMode.Initialize()
         testBossName = QRA.DB.devMode.lastBossName
         testEncounterId = QRA.DB.devMode.lastEncounterId
         QRA.Debug("DevMode: Restored test mode state - Boss:", testBossName)
+
+        -- Show note and assignment display for the restored boss (delayed to ensure all modules ready)
+        if testBossName and testEncounterId then
+            C_Timer.After(0.1, function()
+                local bossData = QRA.Bosses.GetBossByName(testBossName)
+                if bossData then
+                    QRA.CheckBossZone(bossData)
+                end
+            end)
+        end
     end
 
     QRA.Debug("DevMode: Module initialized")
@@ -105,6 +115,14 @@ function DevMode.Enable(bossName, encounterId)
 
     QRA.Debug("DevMode: Enabled for boss:", bossName, "encounter:", encounterId)
 
+    -- Show note and assignment display for testing
+    if bossName and encounterId then
+        local bossData = QRA.Bosses.GetBossByName(bossName)
+        if bossData then
+            QRA.CheckBossZone(bossData)
+        end
+    end
+
     -- Notify UI to update
     if DevMode.OnStateChanged then
         DevMode.OnStateChanged(true)
@@ -127,6 +145,14 @@ function DevMode.Disable()
     QRA.DB.devMode.encounterActive = false
 
     QRA.Debug("DevMode: Disabled")
+
+    -- Hide note and assignment display
+    if QRA.Notes then
+        QRA.Notes.Hide()
+    end
+    if QRA.AssignmentDisplay then
+        QRA.AssignmentDisplay.Hide()
+    end
 
     -- Notify UI to update
     if DevMode.OnStateChanged then
@@ -163,6 +189,14 @@ function DevMode.SetTestBoss(bossName, encounterId)
     QRA.DB.devMode.lastEncounterId = encounterId
 
     QRA.Debug("DevMode: Set test boss to:", bossName, "encounter:", encounterId)
+
+    -- Update note and assignment display if DevMode is active
+    if isTestModeActive and bossName and encounterId then
+        local bossData = QRA.Bosses.GetBossByName(bossName)
+        if bossData then
+            QRA.CheckBossZone(bossData)
+        end
+    end
 end
 
 --------------------------------------------------

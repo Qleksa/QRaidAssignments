@@ -12,7 +12,18 @@ local COMM_PREFIX = "QRA_COMM"
 local function RegisterComm()
     QRA.RegisterComm(COMM_PREFIX, function (data, sender, channel)
         QRA.Debug("Comm: Received data from", sender, "on channel", channel)
-        QRA.Comm.ImportDesirialized(data, true)
+
+        -- Handle wrapped messages with type field
+        if type(data) == "table" and data.type then
+            if data.type == "TRIGGERS" then
+                QRA.Comm.ImportDesirialized(data.data, true)
+            elseif data.type == "NOTE" then
+                QRA.Comm.HandleIncomingNote(data.data, sender)
+            end
+        else
+            -- Legacy support: unwrapped data assumed to be triggers
+            QRA.Comm.ImportDesirialized(data, true)
+        end
     end)
 end
 
@@ -38,7 +49,15 @@ function QRA.Comm.Export(isForAddonChannel)
     end
 
     local exportData = CopyTriggersAndAssignments(triggers)
-    local exportString = QRA.Serialize(exportData, isForAddonChannel or false)
+
+    -- Wrap with message type
+    local wrappedData = {
+        type = "TRIGGERS",
+        data = exportData,
+        timestamp = time(),
+    }
+
+    local exportString = QRA.Serialize(wrappedData, isForAddonChannel or false)
     QRA.Debug("Comm: Export String Generated")
     return exportString
 end
@@ -168,6 +187,76 @@ function QRA.Comm.SendToRaid(data)
             elseif sentBytes ~= totalBytes then
                 QRA.Print("Comm: Failed to send all data to raid (only sent " .. sentBytes .. " of " .. totalBytes .. " bytes).")
             end
+        end
+    end, nil, true)
+end
+
+-- Handle incoming note from another player
+---@param noteData table Note data with encounterId, text, timestamp, author
+---@param sender string Player name who sent the note
+function QRA.Comm.HandleIncomingNote(noteData, sender)
+    if not noteData or not noteData.encounterId then
+        QRA.Debug("Comm: Invalid note data received")
+        return
+    end
+
+    local encounterId = noteData.encounterId
+    local existingNote = QRA.DB.notes[encounterId]
+
+    -- Use last-write-wins based on timestamp
+    if not existingNote or (noteData.timestamp and noteData.timestamp > (existingNote.timestamp or 0)) then
+        QRA.DB.notes[encounterId] = {
+            text = noteData.text or "",
+            timestamp = noteData.timestamp or time(),
+            author = noteData.author or sender,
+        }
+        QRA.Debug("Comm: Note updated for encounter", encounterId, "from", sender)
+
+        -- Refresh note UI if visible for this encounter
+        if QRA.Notes and QRA.Notes.RefreshNote then
+            QRA.Notes.RefreshNote(encounterId)
+        end
+    else
+        QRA.Debug("Comm: Ignored older note for encounter", encounterId)
+    end
+end
+
+-- Send note to raid group
+---@param encounterId number Encounter ID
+---@param noteText string Note text content
+function QRA.Comm.SendNote(encounterId, noteText)
+    QRA.Debug("Comm: Sending Note for encounter", encounterId)
+
+    if not IsInRaid() then
+        QRA.Print("You must be in a raid group to send notes.")
+        return
+    end
+
+    local canSend = UnitIsGroupLeader("player") or UnitIsGroupAssistant("player")
+    if not canSend then
+        QRA.Print("You must be the raid leader or an assistant to send notes.")
+        return
+    end
+
+    local noteData = {
+        type = "NOTE",
+        data = {
+            encounterId = encounterId,
+            text = noteText,
+            timestamp = time(),
+            author = UnitName("player"),
+        },
+        timestamp = time(),
+    }
+
+    local serialized = QRA.Serialize(noteData, true)
+
+    QRA.SendCommMessage(COMM_PREFIX, serialized, "BULK", function (callbackArg, sentBytes, totalBytes, didSend)
+        QRA.Debug("Comm: Note sent", sentBytes, "of", totalBytes, "bytes")
+        if didSend and sentBytes == totalBytes then
+            QRA.Print("Note successfully sent to raid.")
+        else
+            QRA.Print("Failed to send note to raid.")
         end
     end, nil, true)
 end

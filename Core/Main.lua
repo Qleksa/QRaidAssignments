@@ -51,15 +51,55 @@ function QRA.UIParent:PLAYER_LOGIN()
             templates = {},
             triggers = {},
             notifications = {},
+            notes = {},
             settings = {
                 debug = false,
                 lastSeenVersion = nil,
                 hideChangelogUntilNextVersion = false,
+                assignmentDisplay = {
+                    enabled = true,
+                    position = {
+                        point = "CENTER",
+                        xOfs = 0,
+                        yOfs = 0,
+                    }
+                },
+                noteFrame = {
+                    position = {
+                        point = "CENTER",
+                        xOfs = -300,
+                        yOfs = 0,
+                    }
+                }
             }
         }
     end
     QRA.DB = QRA_DB
     QRA.Settings = QRA.DB.settings
+
+    -- Ensure new fields exist in existing saves
+    if not QRA.DB.notes then
+        QRA.DB.notes = {}
+    end
+    if not QRA.Settings.assignmentDisplay then
+        QRA.Settings.assignmentDisplay = {
+            enabled = true,
+            position = {
+                point = "CENTER",
+                xOfs = 0,
+                yOfs = 0,
+            }
+        }
+    end
+    if not QRA.Settings.noteFrame then
+        QRA.Settings.noteFrame = {
+            position = {
+                point = "CENTER",
+                xOfs = -300,
+                yOfs = 0,
+            }
+        }
+    end
 
     -- Ensure new settings fields exist in existing saves (with proper defaults)
     if QRA.Settings.hideChangelogUntilNextVersion == nil then
@@ -124,6 +164,14 @@ function QRA.InitializeModules()
         QRA.Comm.Initialize()
     end
 
+    if QRA.Notes and QRA.Notes.Initialize then
+        QRA.Notes.Initialize()
+    end
+
+    if QRA.AssignmentDisplay and QRA.AssignmentDisplay.Initialize then
+        QRA.AssignmentDisplay.Initialize()
+    end
+
     -- Initialize DevMode
     if QRA.DevMode and QRA.DevMode.Initialize then
         QRA.DevMode.Initialize()
@@ -133,6 +181,10 @@ function QRA.InitializeModules()
     if QRA.DevMode and QRA.DevMode.EventHistory and QRA.DevMode.EventHistory.Initialize then
         QRA.DevMode.EventHistory.Initialize()
     end
+
+    -- Register zone change events
+    QRA.UIParent:RegisterEvent("ZONE_CHANGED_INDOORS")
+    QRA.UIParent:RegisterEvent("ZONE_CHANGED")
 end
 
 ---------------------------------------------------
@@ -140,11 +192,65 @@ end
 ---------------------------------------------------
 
 function QRA.UIParent:ZONE_CHANGED()
-    QRA.Debug("ZONE_CHANGED: " .. (GetZoneText() or "Unknown") .. " - " .. (GetSubZoneText() or "Unknown"))
+    local zoneName = GetZoneText() or ""
+    local subZone = GetSubZoneText() or ""
+    QRA.Debug("ZONE_CHANGED:", zoneName, "-", subZone)
+
+    -- Check if we're in a boss zone
+    QRA.CheckBossZone()
 end
 
 function QRA.UIParent:ZONE_CHANGED_INDOORS()
-    QRA.Debug("ZONE_CHANGED_INDOORS: " .. (GetZoneText() or "Unknown") .. " - " .. (GetSubZoneText() or "Unknown"))
+    local zoneName = GetZoneText() or ""
+    local subZone = GetSubZoneText() or ""
+    QRA.Debug("ZONE_CHANGED_INDOORS:", zoneName, "-", subZone)
+
+    -- Check if we're in a boss zone
+    QRA.CheckBossZone()
+end
+
+--- Check if player is in a boss zone and show/hide UI accordingly
+---@param forcedBossData? table Optional boss data to use (for DevMode)
+function QRA.CheckBossZone(forcedBossData)
+    local bossData = forcedBossData
+
+    -- If not forced (DevMode), check actual zone
+    if not bossData then
+        local zoneName = GetZoneText()
+        local subZone = GetSubZoneText()
+
+        -- Try both zone and subzone
+        if subZone and subZone ~= "" then
+            bossData = QRA.Bosses.GetBossByZoneName(subZone)
+        end
+        if not bossData and zoneName and zoneName ~= "" then
+            bossData = QRA.Bosses.GetBossByZoneName(zoneName)
+        end
+    end
+
+    if bossData then
+        QRA.Debug("Entered boss zone:", bossData.name)
+
+        -- Show note frame
+        if QRA.Notes then
+            QRA.Notes.ShowForEncounter(bossData.encounterId, bossData.name)
+        end
+
+        -- Show assignment display if enabled
+        if QRA.AssignmentDisplay and QRA.Settings.assignmentDisplay.enabled then
+            QRA.AssignmentDisplay.ShowForEncounter(bossData.encounterId, bossData.name)
+        end
+    else
+        QRA.Debug("Left boss zone")
+
+        -- Hide both frames
+        if QRA.Notes then
+            QRA.Notes.Hide()
+        end
+        if QRA.AssignmentDisplay then
+            QRA.AssignmentDisplay.Hide()
+        end
+    end
 end
 
 --------------------------------------------------

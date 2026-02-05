@@ -56,15 +56,15 @@ local function InitializeFakeBosses(encounterId, bossName)
     wipe(fakeBosses)
 
     -- Get boss data from Bosses.lua
-    local _, _, bossData = QRA.Bosses.GetBossByName(bossName)
+    local bossData = QRA.Bosses.GetBossByName(bossName)
 
     if bossData then
         -- For now, create a single boss. Could be extended for multi-boss fights
         fakeBosses[1] = {
             unitId = "boss1",
-            npcId = bossData.npcId,
+            npcId = bossData.npcIds[0],
             name = bossName,
-            guid = GenerateFakeGuid(bossData.npcId or encounterId, 1),
+            guid = GenerateFakeGuid(bossData.npcIds[0] or encounterId, 1),
             maxHealth = 100,
             currentHealth = 100,
             debuffs = {},
@@ -109,7 +109,7 @@ function FakeEncounter.Start(bossName, encounterId)
 
     -- Look up encounter ID if not provided
     if not encounterId and bossName then
-        local _, _, bossData = QRA.Bosses.GetBossByName(bossName)
+        local bossData = QRA.Bosses.GetBossByName(bossName)
         if bossData then
             encounterId = bossData.encounterId
         end
