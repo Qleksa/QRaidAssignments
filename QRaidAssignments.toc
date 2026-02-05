@@ -38,6 +38,8 @@ Core/Assignments.lua
 Notifications/UI.lua
 Notifications/Notifications.lua
 
+Core/Encounter.lua
+
 UI/Widgets.lua
 UI/ContextMenus.lua
 UI/Dialogs.lua

@@ -37,6 +37,8 @@ QRA.Triggers.Factory = QRA.Triggers.Factory or {}
 ---@field Validate fun(self: Trigger): boolean, string?
 ---@field GenerateName fun(self: Trigger): string
 ---@field GetUIFields fun(self: Trigger): table[]
+---@field GetDelay fun(self: Trigger): number, number?, number?
+---@field Fire fun(self: Trigger)
 
 ---@type table<string, Trigger>
 local TriggerMap = {
@@ -72,6 +74,9 @@ local function ApplyData(trigger, data)
     end
 end
 
+--- Parse delay string in format "x,y,z" where x=initial delay, y=interval, z=repeat count
+--- @param delayStr string
+--- @return number initialDelay, number? interval, number? repeatCount
 local function ParseDelay(delayStr)
     -- Handle x,y,z format: x=initial delay, y=interval, z=repeat count
     local parts = {}
@@ -103,6 +108,20 @@ function BaseTriggerMixin:ShouldDelayActivation()
     end
 
     return ParseDelay(self.activateIn) > 0
+end
+
+function BaseTriggerMixin:GetDelay()
+    if not self.activateIn then
+        return 0, nil, nil
+    end
+
+    return ParseDelay(self.activateIn)
+end
+
+function BaseTriggerMixin:Fire()
+    for _, assignment in pairs(self.assignments) do
+        QRA.Debug("Firing trigger:", self.id, "for assignment:", assignment.id)
+    end
 end
 
 --- Finds the trigger in the database
@@ -158,15 +177,13 @@ function BaseTriggerMixin:Delete(orphanAssignments)
     return true
 end
 
-QRA.Triggers.Factory.BaseTriggerMixin = BaseTriggerMixin
-
 --- Restores a trigger from saved data
 ---@param trigger Trigger
 ---@return Trigger
 function QRA.Triggers.Factory.Restore(trigger)
     local triggerClass = TriggerMap[trigger.type]
 
-    Mixin(trigger, QRA.Triggers.Factory.BaseTriggerMixin)
+    Mixin(trigger, BaseTriggerMixin)
     if triggerClass then
         Mixin(trigger, triggerClass)
     end
@@ -199,7 +216,7 @@ function QRA.Triggers.Factory.Create(data)
         assignments = {},
         createdAt = time()
     }
-    Mixin(trigger, QRA.Triggers.Factory.BaseTriggerMixin)
+    Mixin(trigger, BaseTriggerMixin)
     Mixin(trigger, triggerClass)
 
     ApplyData(trigger, data)

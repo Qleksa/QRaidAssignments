@@ -162,6 +162,21 @@ local function TestTriggerRegistration()
     end
 end
 
+--- Public API
+
+--- Get all triggers for a boss
+--- @param bossName string
+--- @return Trigger[] triggers
+function QRA.Triggers.GetBossTriggers(bossName)
+    local result = {}
+    for _, trigger in pairs(DB) do
+        if trigger.bossName == bossName then
+            tinsert(result, trigger)
+        end
+    end
+    return result
+end
+
 function QRA.Triggers.Initialize()
     -- TestTriggerCreation()
     for _, trigger in pairs(QRA.DB.triggers) do
@@ -172,6 +187,5 @@ function QRA.Triggers.Initialize()
     end
 
     CreateDefaultTriggers()
-    TestTriggerRegistration()
     QRA.Debug("Triggers V2 module initialized.")
 end

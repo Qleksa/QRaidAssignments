@@ -41,19 +41,19 @@ end
 local UnitSpellcastTriggerMixin = {}
 
 function UnitSpellcastTriggerMixin:GetIndexKey()
-    return QRA.Triggers.Factory.SpellTrigger.GetIndexKey(self)
+    return SpellTriggerMixin.GetIndexKey(self)
 end
 
 function UnitSpellcastTriggerMixin:Validate()
-    return QRA.Triggers.Factory.SpellTrigger.Validate(self)
+    return SpellTriggerMixin.Validate(self)
 end
 
 function UnitSpellcastTriggerMixin:GenerateName()
-    return QRA.Triggers.Factory.SpellTrigger.GenerateName(self)
+    return SpellTriggerMixin.GenerateName(self)
 end
 
 function UnitSpellcastTriggerMixin:GetUIFields()
-    return QRA.Triggers.Factory.SpellTrigger.GetUIFields(self)
+    return SpellTriggerMixin.GetUIFields(self)
 end
 
 QRA.Triggers.Factory.SpellTrigger = SpellTriggerMixin
