@@ -1001,14 +1001,23 @@ end
 -- Encounter Management
 --------------------------------------------------
 
+function frame:PLAYER_REGEN_ENABLED()
+    if encounterActive then
+        -- Sometimes encounter end event can be missed, if we leave combat but we are in encounter we probably should reset everything
+        encounterActive = false
+        QRA.Triggers.UnregisterAll()
+    end
+end
+
 --- Called when an encounter starts
 ---@param encounterId number The encounter ID
 ---@param encounterName string The encounter name
 function QRA.Triggers.OnEncounterStart(encounterId, encounterName)
-    -- QRA.Debug("Triggers: Encounter started -", encounterName, "(ID:", encounterId, ")")
+    QRA.Debug("Triggers: Encounter started -", encounterName, "(ID:", encounterId, ")")
     frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     frame:RegisterEvent("UNIT_HEALTH")
+    frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
     encounterActive = true
     encounterStartTime = GetTime()
@@ -1031,7 +1040,7 @@ function QRA.Triggers.OnEncounterEnd(encounterId, encounterName, success)
     frame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     frame:UnregisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     frame:UnregisterEvent("UNIT_HEALTH")
-    frame:UnregisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+    frame:UnregisterEvent("PLAYER_REGEN_ENABLED")
     encounterActive = false
     currentEncounterId = nil -- Clear encounter ID
     wipe(previousUnitHP)   -- Clear HP tracking
@@ -1043,7 +1052,7 @@ function QRA.Triggers.OnEncounterEnd(encounterId, encounterName, success)
         QRA.Assignments.CancelAllCountdowns()
     end
 
-    -- QRA.Debug("Triggers: Encounter ended -", encounterName, success and "(Success)" or "(Wipe)")
+    QRA.Debug("Triggers: Encounter ended -", encounterName, success and "(Success)" or "(Wipe)")
     QRA.Logger.Log("Encounter ended: " .. encounterName .. " (ID: " .. encounterId .. ") " .. (success and "Success" or "Wipe"))
     QRA.Logger.Log("-----------------------\n")
 end
