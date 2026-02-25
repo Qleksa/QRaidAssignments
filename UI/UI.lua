@@ -119,6 +119,15 @@ local function CreateMainFrame()
         end
     end)
 
+    local deleteAllBtn = AF.CreateButton(topBar, QRA.L["Delete All Data"], "red", 128, 26)
+    AF.SetPoint(deleteAllBtn, "LEFT", exportBtn, "RIGHT", 5, 0)
+    AF.SetTooltip(deleteAllBtn, "ANCHOR_BOTTOM", 0, 0, QRA.L["Delete All Data"])
+    deleteAllBtn:SetOnClick(function()
+        QRA.UI.Dialogs.ShowDeleteAllDataDialog(function()
+            QRA.UI.RefreshTree()
+        end)
+    end)
+
     -- RIGHT GROUP: Test Mode and Settings
     -- Settings button
     local settingsBtn = AF.CreateButton(topBar, "S", "static", 26, 26)

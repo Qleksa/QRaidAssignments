@@ -174,6 +174,12 @@ L["What would you like to do with the assignments?"] = "What would you like to d
 L["Expand All"] = "Expand All"
 L["Collapse All"] = "Collapse All"
 L["All Instances"] = "All Instances"
+L["Delete Boss Data"] = "Delete Boss Data"
+L["Delete all triggers and assignments for %s?"] = "Delete all triggers and assignments for %s?"
+L["Delete All Data"] = "Delete All Data"
+L["Delete ALL triggers and assignments?"] = "Delete ALL triggers and assignments?"
+L["This cannot be undone."] = "This cannot be undone."
+L["Confirm"] = "Confirm"
 
 --------------------------------------------------
 -- Notifications
