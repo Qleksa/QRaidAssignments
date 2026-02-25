@@ -86,42 +86,14 @@ local function ImportData(input, isSerialized, isForAddonChannel)
     ---@type Trigger[]
     local data = isSerialized and QRA.Deserialize(input, isForAddonChannel or false) or input
 
+    -- need a way to distunguish between full raid import, single trigger import, and boss import
     if data then
         QRA.Debug("Comm: Deserialized Data", data)
+        wipe(QRA.Triggers.GetAll())
         for _, trigger in ipairs(data) do
-            local existingTrigger = QRA.Triggers.Get(trigger.id)
 
-            if existingTrigger then
-                local existingAssignmentsById = {}
-                for _, existingAssignment in ipairs(existingTrigger.assignments or {}) do
-                    existingAssignmentsById[existingAssignment.id] = existingAssignment
-                end
-
-
-                for _, assignment in ipairs(trigger.assignments or {}) do
-                    if existingAssignmentsById[assignment.id] then
-                        -- Update existing assignment
-                        for i, existing in ipairs(existingTrigger.assignments) do
-                            if existing.id == assignment.id then
-                                existingTrigger.assignments[i] = assignment
-                                break
-                            end
-                        end
-                    else
-                        -- Add new assignment
-                        if not existingTrigger.assignments then
-                            existingTrigger.assignments = {}
-                        end
-                        table.insert(existingTrigger.assignments, assignment)
-                    end
-                end
-
-                -- Update trigger with merged assignments
-                QRA.Triggers.UpdateTrigger(existingTrigger)
-            else
-                -- New trigger - upsert directly (assignments already embedded)
-                QRA.Triggers.UpsertTrigger(trigger)
-            end
+            -- New trigger - upsert directly (assignments already embedded)
+            QRA.Triggers.UpsertTrigger(trigger)
         end
         QRA.UI.RefreshAll()
     else
