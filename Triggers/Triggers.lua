@@ -285,9 +285,8 @@ end
 ---@param unitId string The unit ID
 ---@param unitGuid string The unit GUID
 ---@param currentPercent number Current HP percentage (0-100)
----@param previousPercent number Previous HP percentage (0-100)
 ---@param isFake boolean Whether this is from fake boss (for debug messages)
-local function ProcessHealthThresholds(unitId, unitGuid, currentPercent, previousPercent, isFake)
+local function ProcessHealthThresholds(unitId, unitGuid, currentPercent, isFake)
     local triggersToCheck = GetHealthTriggersForUnit(unitId, unitGuid)
 
     -- Process each trigger
@@ -298,7 +297,7 @@ local function ProcessHealthThresholds(unitId, unitGuid, currentPercent, previou
             -- Find the LOWEST crossed threshold
             local crossedThreshold = nil
             for _, threshold in ipairs(thresholds) do
-                if previousPercent > threshold and currentPercent <= threshold then
+                if currentPercent <= threshold then
                     if not crossedThreshold or threshold < crossedThreshold then
                         crossedThreshold = threshold
                     end
@@ -308,7 +307,7 @@ local function ProcessHealthThresholds(unitId, unitGuid, currentPercent, previou
             if crossedThreshold then
                 -- Use counter to ensure fire once per threshold
                 local counterKey = string.format("%s_%s_%d",
-                    trigger.type, trigger.targetGuid, crossedThreshold)
+                    trigger.id, trigger.targetGuid, crossedThreshold)
                 local count = IncrementOccurrence(counterKey)
 
                 -- Always fire once for UNIT_HEALTH (no counter formula check needed)
@@ -318,7 +317,6 @@ local function ProcessHealthThresholds(unitId, unitGuid, currentPercent, previou
                         unitGuid = unitGuid,
                         threshold = crossedThreshold,
                         currentPercent = currentPercent,
-                        previousPercent = previousPercent,
                     }
 
                     local debugPrefix = isFake and "Triggers: Fired UNIT_HEALTH (fake)" or "Triggers: Fired UNIT_HEALTH"
@@ -344,35 +342,15 @@ end
 ---@param unitId string The unit ID that had a health change
 function QRA.Triggers.OnUnitHealth(unitId)
     if not encounterActive then return end
-
-    -- Only monitor boss units
     if not unitId or not unitId:match("^boss%d?$") then return end
 
-    -- Get current HP percentage
     local currentHP = UnitHealth(unitId)
     local maxHP = UnitHealthMax(unitId)
     if not currentHP or not maxHP or maxHP == 0 then return end
 
     local currentPercent = (currentHP / maxHP) * 100
-    local previousPercent = previousUnitHP[unitId]
-
-    -- First event for this unit - just store and return
-    if not previousPercent then
-        previousUnitHP[unitId] = currentPercent
-        return
-    end
-
-    -- Only proceed if HP decreased
-    if currentPercent >= previousPercent then
-        previousUnitHP[unitId] = currentPercent
-        return
-    end
-
-    -- Process thresholds using common logic
     local unitGuid = UnitGUID(unitId)
-    ProcessHealthThresholds(unitId, unitGuid, currentPercent, previousPercent, false)
-
-    previousUnitHP[unitId] = currentPercent
+    ProcessHealthThresholds(unitId, unitGuid, currentPercent, false)
 end
 
 --- Process UNIT_HEALTH events for fake bosses (DevMode)
@@ -409,7 +387,7 @@ local function BuildTriggerIndex()
         end
     end
 
-    QRA.Debug("Triggers: Built trigger index with", #activeTriggers, triggerIndex)
+    QRA.Debug("Triggers: Built trigger index:", triggerIndex)
 end
 
 local function RemoveFromIndex(trigger)
