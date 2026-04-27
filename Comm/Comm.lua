@@ -105,6 +105,7 @@ local function ImportData(input, isSerialized, isForAddonChannel)
     ---@type Trigger[]
     local data = isSerialized and QRA.Deserialize(input, isForAddonChannel or false) or input
 
+    -- need a way to distunguish between full raid import, single trigger import, and boss import
     if data then
         QRA.Debug("Comm: Deserialized Data", data)
         for _, trigger in ipairs(data) do

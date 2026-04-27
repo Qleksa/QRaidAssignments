@@ -146,8 +146,9 @@ end
 ---@param indentLevel number
 ---@param onToggle function
 ---@param onAddTrigger function
+---@param onDeleteBoss function
 ---@return Frame row
-local function CreateBossRow(parent, bossData, indentLevel, onToggle, onAddTrigger)
+local function CreateBossRow(parent, bossData, indentLevel, onToggle, onAddTrigger, onDeleteBoss)
     local row = CreateFrame("Frame", nil, parent)
     AF.SetHeight(row, TREE_ROW_HEIGHT)
     AF.SetPoint(row, "LEFT")
@@ -194,9 +195,17 @@ local function CreateBossRow(parent, bossData, indentLevel, onToggle, onAddTrigg
     countBg:SetPoint("CENTER", countBadge, 0, 0)
     countBg:SetColorTexture(0.2, 0.2, 0.25, 0.8)
 
+    -- Delete Boss button
+    local delBossBtn = AF.CreateButton(row, "x", "red", 20, 20)
+    AF.SetPoint(delBossBtn, "RIGHT", row, -5, 0)
+    AF.SetTooltip(delBossBtn, "ANCHOR_RIGHT", 0, 0, QRA.L["Delete Boss Data"])
+    delBossBtn:SetOnClick(function()
+        if onDeleteBoss then onDeleteBoss(bossData.name) end
+    end)
+
     -- Add Trigger button
     local addBtn = AF.CreateButton(row, "+", "lime", 20, 20)
-    AF.SetPoint(addBtn, "RIGHT", row, -5, 0)
+    AF.SetPoint(addBtn, "RIGHT", delBossBtn, "LEFT", -5, 0)
     AF.SetTooltip(addBtn, "ANCHOR_RIGHT", 0, 0, QRA.L["+ Add Trigger"])
     addBtn:SetOnClick(function()
         if onAddTrigger then onAddTrigger(bossData.name) end
@@ -617,6 +626,12 @@ local function CreateTreeWidgets(parent, listParent, bossName)
         QRA.UI.Dialogs.ShowTriggerEditor(nil, bossName)
     end
 
+    local function OnDeleteBoss(bossName)
+        QRA.UI.Dialogs.ShowDeleteBossDialog(bossName, function()
+            QRA.UI.RefreshTree()
+        end)
+    end
+
     -- If boss filter is set, only show that boss's triggers
     if bossName then
         local triggers = QRA.Triggers.GetBossTriggers(bossName)
@@ -679,7 +694,7 @@ local function CreateTreeWidgets(parent, listParent, bossName)
 
                         if #triggers > 0 then
                             -- Boss header
-                            local bossRow = CreateBossRow(listParent, bossData, 1, QRA.UI.RefreshTree, OnAddTrigger)
+                            local bossRow = CreateBossRow(listParent, bossData, 1, QRA.UI.RefreshTree, OnAddTrigger, OnDeleteBoss)
                             table.insert(widgets, bossRow)
 
                             -- Triggers (if boss expanded)

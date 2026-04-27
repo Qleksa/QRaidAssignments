@@ -685,6 +685,65 @@ function QRA.UI.Dialogs.ShowDeleteTriggerDialog(trigger, onComplete)
 end
 
 --------------------------------------------------
+-- Delete Boss Dialog
+--------------------------------------------------
+
+--- Show confirmation dialog to delete all triggers/assignments for a boss
+---@param bossName string
+---@param onComplete function
+function QRA.UI.Dialogs.ShowDeleteBossDialog(bossName, onComplete)
+    local form = CreateFrame("Frame", nil, mainFrame)
+    AF.SetSize(form, 350, 40)
+
+    local msgFS = AF.CreateFontString(form, string.format(QRA.L["Delete all triggers and assignments for %s?"], bossName), "white")
+    AF.SetPoint(msgFS, "TOPLEFT", 0, 0)
+
+    local noteFS = AF.CreateFontString(form, QRA.L["This cannot be undone."], "red")
+    AF.SetPoint(noteFS, "TOPLEFT", msgFS, "BOTTOMLEFT", 0, -8)
+
+    local dialog = AF.GetDialog(mainFrame, AF.WrapTextInColor(QRA.L["Delete Boss Data"], "red"), 420)
+    AF.SetPoint(dialog, "CENTER", mainFrame, 0, 0)
+    dialog:SetContent(form, 60)
+
+    dialog:SetOnConfirm(function()
+        local triggers = QRA.Triggers.GetBossTriggers(bossName)
+        for _, trigger in ipairs(triggers) do
+            QRA.Triggers.DeleteTrigger(trigger.id, false)
+        end
+        if onComplete then onComplete() end
+    end)
+end
+
+--------------------------------------------------
+-- Delete All Data Dialog
+--------------------------------------------------
+
+--- Show confirmation dialog to delete all triggers and assignments
+---@param onComplete function
+function QRA.UI.Dialogs.ShowDeleteAllDataDialog(onComplete)
+    local form = CreateFrame("Frame", nil, mainFrame)
+    AF.SetSize(form, 300, 40)
+
+    local msgFS = AF.CreateFontString(form, QRA.L["Delete ALL triggers and assignments?"], "white")
+    AF.SetPoint(msgFS, "TOPLEFT", 0, 0)
+
+    local noteFS = AF.CreateFontString(form, QRA.L["This cannot be undone."], "red")
+    AF.SetPoint(noteFS, "TOPLEFT", msgFS, "BOTTOMLEFT", 0, -8)
+
+    local dialog = AF.GetDialog(mainFrame, AF.WrapTextInColor(QRA.L["Delete All Data"], "red"), 320)
+    AF.SetPoint(dialog, "CENTER", mainFrame, 0, 0)
+    dialog:SetContent(form, 60)
+
+    dialog:SetOnConfirm(function()
+        local allTriggers = QRA.Triggers.GetAll()
+        for _, trigger in ipairs(allTriggers) do
+            QRA.Triggers.DeleteTrigger(trigger.id, false)
+        end
+        if onComplete then onComplete() end
+    end)
+end
+
+--------------------------------------------------
 -- Adopt Orphan Dialog
 --------------------------------------------------
 
