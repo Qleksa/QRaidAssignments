@@ -169,7 +169,7 @@ function QRA.Assignments.Update(triggerId, assignmentId, updates)
                     assignment[key] = value
                 end
             end
-            QRA.Triggers.UpdateTrigger(trigger)
+            -- QRA.Triggers.UpdateTrigger(trigger)
             QRA.Debug("Assignments: Updated", assignmentId)
             return true
         end
@@ -181,11 +181,14 @@ end
 
 --- Get an assignment by ID (searches all triggers and orphaned)
 ---@param assignmentId string
+---@param sourceTriggers Trigger[]|nil
 ---@return Assignment|nil assignment
 ---@return string|nil triggerId
-function QRA.Assignments.Get(assignmentId)
+function QRA.Assignments.Get(assignmentId, sourceTriggers)
+    local triggers = sourceTriggers or QRA.Triggers.GetAll()
+
     -- Search in triggers
-    for _, trigger in ipairs(QRA.DB.triggers or {}) do
+    for _, trigger in ipairs(triggers or {}) do
         if trigger.assignments then
             for _, assignment in ipairs(trigger.assignments) do
                 if assignment.id == assignmentId then
@@ -217,7 +220,7 @@ end
 ---@return Assignment[]
 function QRA.Assignments.GetAll()
     local all = {}
-    for _, trigger in ipairs(QRA.DB.triggers or {}) do
+    for _, trigger in ipairs(QRA.Triggers.GetAll() or {}) do
         if trigger.assignments then
             for _, assignment in ipairs(trigger.assignments) do
                 table.insert(all, assignment)
@@ -441,8 +444,9 @@ end
 ---@param triggerId string The trigger that fired
 ---@param eventData table|nil Data from the triggering event
 ---@param counter number The current counter value
-function QRA.Assignments.ExecuteForTrigger(triggerId, eventData, counter)
-    local triggerAssignments = QRA.Assignments.GetForTrigger(triggerId)
+---@param triggerOverride Trigger|nil
+function QRA.Assignments.ExecuteForTrigger(triggerId, eventData, counter, triggerOverride)
+    local triggerAssignments = (triggerOverride and triggerOverride.assignments) or QRA.Assignments.GetForTrigger(triggerId)
 
     QRA.Debug("Assignments: Found assignments", triggerAssignments)
 

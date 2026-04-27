@@ -629,38 +629,355 @@ end
 -- Boss Selector
 --------------------------------------------------
 
-local function GetAllBosses()
+---@param instanceFilter string|function|nil
+local function GetAllBosses(instanceFilter)
+    local resolvedFilter = instanceFilter
+    if type(resolvedFilter) == "function" then
+        resolvedFilter = resolvedFilter()
+    end
+
     local bosses = {}
     for instanceName, instanceData in pairs(QRA.Bosses.GetAllBosses()) do
-        bosses[instanceName] = {
-            text = instanceName,
-            notClickable = true,
-            children = {},
-        }
-        for _, bossData in ipairs(instanceData.bosses) do
-            table.insert(bosses[instanceName].children, {
-                text = bossData.name,
-                abbvr = bossData.abbreviation,
-                encounterId = bossData.encounterId,
-            })
+        if not resolvedFilter or resolvedFilter == "" or resolvedFilter == QRA.L["All Instances"] or resolvedFilter == instanceName then
+            bosses[instanceName] = {
+                text = instanceName,
+                notClickable = true,
+                children = {},
+            }
+            for _, bossData in ipairs(instanceData.bosses) do
+                table.insert(bosses[instanceName].children, {
+                    text = bossData.name,
+                    abbvr = bossData.abbreviation,
+                    encounterId = bossData.encounterId,
+                })
+            end
         end
     end
 
     return bosses
 end
 
+local function GetAllInstanceItems(includeAll)
+    local items = {}
+
+    if includeAll then
+        table.insert(items, {
+            text = QRA.L["All Instances"],
+            value = QRA.L["All Instances"],
+        })
+    end
+
+    local sortedInstances = QRA.Bosses.GetInstancesSortedByTier()
+    for _, instanceInfo in ipairs(sortedInstances) do
+        table.insert(items, {
+            text = instanceInfo.name,
+            value = instanceInfo.name,
+        })
+    end
+
+    return items
+end
+
+---@param includePersonal boolean
+---@return table
+local function GetFlatPlanItems(includePersonal)
+    local plans = QRA.Plans.GetAll() or {}
+    local sorted = {}
+
+    for _, plan in ipairs(plans) do
+        if includePersonal or not plan.isPersonal then
+            table.insert(sorted, plan)
+        end
+    end
+
+    table.sort(sorted, function(a, b)
+        if a.isPersonal ~= b.isPersonal then
+            return a.isPersonal
+        end
+        return (a.name or "") < (b.name or "")
+    end)
+
+    local items = {}
+    for _, plan in ipairs(sorted) do
+        table.insert(items, {
+            text = plan.name,
+            value = plan.id,
+        })
+    end
+
+    return items
+end
+
+local function GetPlanItems()
+    local plans = QRA.Plans.GetAll() or {}
+    local sorted = {}
+
+    for _, plan in ipairs(plans) do
+        table.insert(sorted, plan)
+    end
+
+    table.sort(sorted, function(a, b)
+        if a.isPersonal ~= b.isPersonal then
+            return a.isPersonal
+        end
+        return (a.name or "") < (b.name or "")
+    end)
+
+    local items = {}
+    for _, plan in ipairs(sorted) do
+        local versions = {}
+        for versionIndex = 1, #plan.versions do
+            local isActive = QRA.Plans.IsVersionActive(plan.id, versionIndex)
+            local label = "v" .. versionIndex
+            if isActive then
+                label = label .. " (Active)"
+            else
+                label = label .. "    "
+            end
+
+            table.insert(versions, {
+                text = label,
+                planId = plan.id,
+                version = versionIndex,
+            })
+        end
+
+        table.insert(items, {
+            text = plan.name,
+            notClickable = true,
+            children = versions,
+        })
+    end
+
+    return items
+end
+
 --- Create a menu to select a boss
 ---@param parent Frame Parent frame
 ---@param width number Dropdown width
 ---@param onSelect function Callback when selection changes
+---@param instanceFilter string|function|nil Optional filter by instance
 ---@return AF_CascadingMenuButton dropdown
-function QRA.Widgets.CreateBossMenu(parent, width, onSelect)
+function QRA.Widgets.CreateBossMenu(parent, width, onSelect, instanceFilter)
     local menu = AF.CreateCascadingMenuButton(parent, width or 200)
     menu:SetLabel(QRA.L["Boss"])
-    menu:SetItems(GetAllBosses())
+    menu:SetItems(GetAllBosses(instanceFilter))
     menu:SetText(QRA.L["-- Select Boss --"])
+
+    function menu:RefreshItems(newFilter)
+        if newFilter ~= nil then
+            instanceFilter = newFilter
+        end
+        self:SetItems(GetAllBosses(instanceFilter))
+    end
+
     if onSelect then
         hooksecurefunc(menu, "OnMenuSelection", onSelect)
+    end
+
+    return menu
+end
+
+--------------------------------------------------
+-- Instance Selector
+--------------------------------------------------
+
+---@class QRA_InstanceMenu : AF_CascadingMenuButton
+---@field GetSelectedValue fun(self: QRA_InstanceMenu): string|nil
+---@field SetSelectedValue fun(self: QRA_InstanceMenu, instanceName: string|nil)
+---@field RefreshItems fun(self: QRA_InstanceMenu)
+
+---@param parent Frame
+---@param width number
+---@param onSelect function|nil
+---@param includeAll boolean|nil
+---@return QRA_InstanceMenu
+function QRA.Widgets.CreateInstanceMenu(parent, width, onSelect, includeAll)
+    local selectedInstance = nil
+
+    ---@class QRA_InstanceMenu : AF_CascadingMenuButton
+    local menu = AF.CreateCascadingMenuButton(parent, width or 200)
+    menu:SetLabel(QRA.L["Instance"])
+
+    local function BuildItems()
+        return GetAllInstanceItems(includeAll ~= false)
+    end
+
+    menu:SetItems(BuildItems())
+    menu:SetText(QRA.L["-- Select Instance --"])
+
+    hooksecurefunc(menu, "OnMenuSelection", function(self, item)
+        if item.value then
+            selectedInstance = item.value
+            self:SetText(item.value)
+            if onSelect then
+                onSelect(item.value)
+            end
+        end
+    end)
+
+    function menu:GetSelectedValue()
+        return selectedInstance
+    end
+
+    function menu:SetSelectedValue(instanceName)
+        selectedInstance = instanceName
+        if instanceName and instanceName ~= "" then
+            menu:SetText(instanceName)
+        else
+            menu:SetText(QRA.L["-- Select Instance --"])
+        end
+    end
+
+    function menu:RefreshItems()
+        menu:SetItems(BuildItems())
+    end
+
+    return menu
+end
+
+--------------------------------------------------
+-- Plan Dropdown
+--------------------------------------------------
+
+---@class QRA_PlanDropdown : AF_Dropdown
+---@field GetSelectedPlanId fun(self: QRA_PlanDropdown): string|nil
+---@field SetSelectedPlanId fun(self: QRA_PlanDropdown, planId: string|nil)
+---@field RefreshItems fun(self: QRA_PlanDropdown)
+
+---@param parent Frame
+---@param width number
+---@param onSelect fun(planId: string)|nil
+---@param includePersonal boolean|nil
+---@return QRA_PlanDropdown
+function QRA.Widgets.CreatePlanDropdown(parent, width, onSelect, includePersonal)
+    local allowPersonal = includePersonal ~= false
+
+    ---@class QRA_PlanDropdown : AF_Dropdown
+    local dropdown = AF.CreateDropdown(parent, width or 200)
+    dropdown:SetLabel(QRA.L["Source Plan"])
+
+    local function BuildItems()
+        return GetFlatPlanItems(allowPersonal)
+    end
+
+    local function ApplyInitialSelection(items)
+        local selectedPlan = QRA.Plans.GetSelectedPlan()
+        if selectedPlan and (allowPersonal or not selectedPlan.isPersonal) then
+            dropdown:SetSelectedValue(selectedPlan.id)
+            return
+        end
+
+        if items and items[1] then
+            dropdown:SetSelectedValue(items[1].value)
+        end
+    end
+
+    local items = BuildItems()
+    dropdown:SetItems(items)
+    ApplyInitialSelection(items)
+
+    if onSelect then
+        dropdown:SetOnSelect(function(planId)
+            onSelect(planId)
+        end)
+    end
+
+    function dropdown:GetSelectedPlanId()
+        local value = dropdown:GetSelectedValue()
+        return value
+    end
+
+    function dropdown:SetSelectedPlanId(planId)
+        if planId then
+            dropdown:SetSelectedValue(planId)
+        end
+    end
+
+    function dropdown:RefreshItems()
+        local selectedPlanId = dropdown:GetSelectedPlanId()
+        local refreshed = BuildItems()
+        dropdown:SetItems(refreshed)
+
+        if selectedPlanId then
+            dropdown:SetSelectedValue(selectedPlanId)
+        end
+
+        if not dropdown:GetSelectedPlanId() and refreshed[1] then
+            dropdown:SetSelectedValue(refreshed[1].value)
+        end
+    end
+
+    return dropdown
+end
+
+--------------------------------------------------
+-- Plan Selector
+--------------------------------------------------
+
+---@class QRA_PlanMenu : AF_CascadingMenuButton
+---@field GetSelectedPlanId fun(self: QRA_PlanMenu): string|nil
+---@field GetSelectedVersion fun(self: QRA_PlanMenu): number|nil
+---@field SetSelected fun(self: QRA_PlanMenu, planId: string|nil, version: number|nil)
+---@field RefreshItems fun(self: QRA_PlanMenu)
+
+---@param parent Frame
+---@param width number
+---@param onSelect fun(planId: string, version: number)|nil
+---@return QRA_PlanMenu
+function QRA.Widgets.CreatePlanMenu(parent, width, onSelect)
+    local selectedPlanId = nil
+    local selectedVersion = nil
+
+    ---@class QRA_PlanMenu : AF_CascadingMenuButton
+    local menu = AF.CreateCascadingMenuButton(parent, width or 240)
+    menu:SetLabel(QRA.L["Plan"])
+
+    local function BuildItems()
+        return GetPlanItems()
+    end
+
+    menu:SetItems(BuildItems())
+    menu:SetText(QRA.L["-- Select Plan --"])
+
+    hooksecurefunc(menu, "OnMenuSelection", function(self, item)
+        if not item.planId or not item.version then
+            return
+        end
+
+        selectedPlanId = item.planId
+        selectedVersion = item.version
+
+        local plan = QRA.Plans.Get(item.planId)
+        self:SetText(string.format("%s v%d", plan and plan.name or QRA.L["Plan"], item.version))
+
+        if onSelect then
+            onSelect(item.planId, item.version)
+        end
+    end)
+
+    function menu:GetSelectedPlanId()
+        return selectedPlanId
+    end
+
+    function menu:GetSelectedVersion()
+        return selectedVersion
+    end
+
+    function menu:SetSelected(planId, version)
+        selectedPlanId = planId
+        selectedVersion = version
+
+        local plan = planId and QRA.Plans.Get(planId) or nil
+        if plan and version then
+            menu:SetText(string.format("%s v%d", plan.name, version))
+        else
+            menu:SetText(QRA.L["-- Select Plan --"])
+        end
+    end
+
+    function menu:RefreshItems()
+        menu:SetItems(BuildItems())
     end
 
     return menu

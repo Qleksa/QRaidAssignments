@@ -667,63 +667,68 @@ local function CreateTreeWidgets(parent, listParent, bossName)
     else
         -- Show all triggers grouped by Instance → Boss
         local instances = QRA.Bosses.GetInstancesSortedByTier()
+        local selectedPlan = QRA.Plans.GetSelectedPlan()
+        local selectedInstance = QRA.Plans.GetEffectiveInstanceName(selectedPlan)
 
         for _, instanceInfo in ipairs(instances) do
             local instanceName = instanceInfo.name
             local instanceData = instanceInfo.data
 
-            -- Check if instance has any triggers
-            local instanceHasTriggers = false
-            for _, bossData in ipairs(instanceData.bosses) do
-                local bossTriggers = QRA.Triggers.GetBossTriggers(bossData.name)
-                if #bossTriggers > 0 then
-                    instanceHasTriggers = true
-                    break
+            if selectedInstance == QRA.L["All Instances"] or selectedInstance == instanceName then
+
+                -- Check if instance has any triggers
+                local instanceHasTriggers = false
+                for _, bossData in ipairs(instanceData.bosses) do
+                    local bossTriggers = QRA.Triggers.GetBossTriggers(bossData.name)
+                    if #bossTriggers > 0 then
+                        instanceHasTriggers = true
+                        break
+                    end
                 end
-            end
 
-            if instanceHasTriggers then
-                -- Instance header
-                local instanceRow = CreateInstanceRow(listParent, instanceName, instanceData.tier, QRA.UI.RefreshTree)
-                table.insert(widgets, instanceRow)
+                if instanceHasTriggers then
+                    -- Instance header
+                    local instanceRow = CreateInstanceRow(listParent, instanceName, instanceData.tier, QRA.UI.RefreshTree)
+                    table.insert(widgets, instanceRow)
 
-                -- Bosses (if instance expanded)
-                if not IsInstanceCollapsed(instanceName) then
-                    for _, bossData in ipairs(instanceData.bosses) do
-                        local triggers = QRA.Triggers.GetBossTriggers(bossData.name)
+                    -- Bosses (if instance expanded)
+                    if not IsInstanceCollapsed(instanceName) then
+                        for _, bossData in ipairs(instanceData.bosses) do
+                            local triggers = QRA.Triggers.GetBossTriggers(bossData.name)
 
-                        if #triggers > 0 then
-                            -- Boss header
-                            local bossRow = CreateBossRow(listParent, bossData, 1, QRA.UI.RefreshTree, OnAddTrigger, OnDeleteBoss)
-                            table.insert(widgets, bossRow)
+                            if #triggers > 0 then
+                                -- Boss header
+                                local bossRow = CreateBossRow(listParent, bossData, 1, QRA.UI.RefreshTree, OnAddTrigger, OnDeleteBoss)
+                                table.insert(widgets, bossRow)
 
-                            -- Triggers (if boss expanded)
-                            if not IsBossCollapsed(bossData.name) then
-                                for _, trigger in ipairs(triggers) do
-                                    -- Trigger row
-                                    local triggerRow = CreateTriggerRow(
-                                        listParent,
-                                        trigger,
-                                        2,
-                                        RefreshTree,
-                                        OnEditTrigger,
-                                        OnDeleteTrigger,
-                                        OnAddAssignment
-                                    )
-                                    table.insert(widgets, triggerRow)
+                                -- Triggers (if boss expanded)
+                                if not IsBossCollapsed(bossData.name) then
+                                    for _, trigger in ipairs(triggers) do
+                                        -- Trigger row
+                                        local triggerRow = CreateTriggerRow(
+                                            listParent,
+                                            trigger,
+                                            2,
+                                            RefreshTree,
+                                            OnEditTrigger,
+                                            OnDeleteTrigger,
+                                            OnAddAssignment
+                                        )
+                                        table.insert(widgets, triggerRow)
 
-                                    -- Nested assignments (if trigger expanded)
-                                    if not IsTriggerCollapsed(trigger.id) and trigger.assignments then
-                                        for _, assignment in ipairs(trigger.assignments) do
-                                            local assignRow = CreateAssignmentRow(
-                                                listParent,
-                                                assignment,
-                                                trigger.id,
-                                                3,
-                                                OnEditAssignment,
-                                                OnDeleteAssignment
-                                            )
-                                            table.insert(widgets, assignRow)
+                                        -- Nested assignments (if trigger expanded)
+                                        if not IsTriggerCollapsed(trigger.id) and trigger.assignments then
+                                            for _, assignment in ipairs(trigger.assignments) do
+                                                local assignRow = CreateAssignmentRow(
+                                                    listParent,
+                                                    assignment,
+                                                    trigger.id,
+                                                    3,
+                                                    OnEditAssignment,
+                                                    OnDeleteAssignment
+                                                )
+                                                table.insert(widgets, assignRow)
+                                            end
                                         end
                                     end
                                 end

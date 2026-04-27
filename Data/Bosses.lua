@@ -152,6 +152,126 @@ QRA.Bosses = {
                 },
             }
         },
+        ["Siege of Orgrimmar"] = {
+            instanceId = 1136,
+            tier = 16,
+            bosses = {
+                {
+                    name = "Immerseus",
+                    encounterId = 1602,
+                    zoneName = "Pools of Power",
+                    npcIds = { 71543 },
+                },
+                {
+                    name = "Fallen Protectors",
+                    abbreviation = "Protectors",
+                    encounterId = 1598,
+                    zoneName = "Scarred Vale",
+                    npcIds = {
+                        71479, -- He Softfoot
+                        71475, -- Rook Stonetoe
+                        71480, -- Sun Tenderheart
+                    },
+                },
+                {
+                    name = "Norushen",
+                    encounterId = 1624,
+                    zoneName = "Chamber of Purification",
+                    npcIds = {
+                        72276, -- Amalgam of Corruption
+                     },
+                },
+                {
+                    name = "Sha of Pride",
+                    encounterId = 1604,
+                    zoneName = "Vault of Y'shaarj",
+                    npcIds = { 71734 },
+                },
+                {
+                    name = "Galakras",
+                    encounterId = 1622,
+                    zoneName = "Dranosh'ar Landing",
+                    npcIds = {
+                        72249, -- Galakras
+                    },
+                },
+                {
+                    name = "Iron Juggernaut",
+                    encounterId = 1600,
+                    zoneName = "Gates of Orgrimmar",
+                    npcIds = { 71466 },
+                },
+                {
+                    name = "Kor'kron Dark Shaman",
+                    abbreviation = "Kor'kron",
+                    encounterId = 1606,
+                    zoneName = "Valley of Strength",
+                    npcIds = {
+                        71859, -- Earthbreaker Haromm
+                        71858, -- Wavebinder Kardris
+                        71921, -- Darkfang
+                        71923, -- Bloodclaw
+                    },
+                },
+                {
+                    name = "General Nazgrim",
+                    abbreviation = "Nazgrim",
+                    encounterId = 1603,
+                    zoneName = "The Descent",
+                    npcIds = { 71515 },
+                },
+                {
+                    name = "Malkorok",
+                    encounterId = 1595,
+                    zoneName = "Kol'kron Barracks",
+                    npcIds = { 71454 },
+                },
+                {
+                    name = "Spoils of Pandaria",
+                    abbreviation = "Spoils",
+                    encounterId = 1594,
+                    zoneName = "Artifact Storage",
+                },
+                {
+                    name = "Thok the Bloodthirsty",
+                    abbreviation = "Thok",
+                    encounterId = 1599,
+                    zoneName = "The Menagerie",
+                    npcIds = { 71529 },
+                },
+                {
+                    name = "Siegecrafter Blackfuse",
+                    abbreviation = "Blackfuse",
+                    encounterId = 1601,
+                    zoneName = "The Siegeworks",
+                    npcIds = { 71504 },
+                },
+                {
+                    name = "Paragons of the Klaxxi",
+                    abbreviation = "Paragons",
+                    encounterId = 1593,
+                    zoneName = "Chamber of the Paragons",
+                    npcIds = {
+                        71161, -- Kil'ruk
+                        71157, -- Xaril
+                        71156, -- Kaz'tik
+                        71155, -- Korven
+                        71160, -- Iyyokuk
+                        71154, -- Ka'roz
+                        71152, -- Skeer
+                        71158, -- Rik'kal
+                        71153, -- Hisek
+                    },
+                },
+                {
+                    name = "Garrosh Hellscream",
+                    abbreviation = "Garrosh",
+                    encounterId = 1623,
+                    zoneName = "The Inner Sanctum",
+                    npcIds = { 71865 },
+                }
+            },
+        },
     }
 }
 

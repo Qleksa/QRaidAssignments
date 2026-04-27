@@ -17,6 +17,7 @@ Util/CounterFormula.lua
 Util/Table.lua
 
 Core/Main.lua
+Core/Plans.lua
 
 Logger/Logger.lua
 Logger/LogViewer.lua

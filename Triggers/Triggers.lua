@@ -129,6 +129,29 @@ local triggerIndex = {}        -- Index of triggers by type and spellId/npcId
 local previousUnitHP = {}      -- Track previous HP percentage per unit for UNIT_HEALTH triggers
 local currentEncounterId = nil -- Current encounter ID for re-registration
 
+local function GetEditableTriggerList()
+    if QRA.Plans and QRA.Plans.GetSelectedTriggers then
+        return QRA.Plans.GetSelectedTriggers()
+    end
+
+    QRA.DB.triggers = QRA.DB.triggers or {}
+    return QRA.DB.triggers
+end
+
+local function GetRuntimeTriggerList()
+    if QRA.Plans and QRA.Plans.GetEncounterRuntimeTriggers then
+        return QRA.Plans.GetEncounterRuntimeTriggers()
+    end
+
+    return QRA.DB.triggers or {}
+end
+
+local function MarkSelectedPlanUpdated()
+    if QRA.Plans and QRA.Plans.MarkUpdated then
+        QRA.Plans.MarkUpdated()
+    end
+end
+
 --------------------------------------------------
 -- Helper Functions
 --------------------------------------------------
@@ -327,10 +350,10 @@ local function ProcessHealthThresholds(unitId, unitGuid, currentPercent, isFake)
                         local delayMsg = isFake and "Triggers: Delaying UNIT_HEALTH (fake) activation by" or "Triggers: Delaying UNIT_HEALTH activation by"
                         QRA.Debug(delayMsg, trigger.activateIn, "seconds")
                         QRA.DelayedInvoke(trigger.activateIn, function()
-                            QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count)
+                            QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count, trigger)
                         end)
                     else
-                        QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count)
+                        QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, count, trigger)
                     end
                 end
             end
@@ -490,7 +513,7 @@ function QRA.Triggers.RegisterEncounterTriggers(encounterId)
     QRA.Debug("Triggers: Registering triggers for encounter ID", encounterId)
     QRA.Triggers.UnregisterAll()
 
-    for _, trigger in ipairs(QRA.DB.triggers) do
+    for _, trigger in ipairs(GetRuntimeTriggerList()) do
         if trigger.enabled and trigger.encounterId == encounterId and #trigger.assignments > 0 then
             QRA.Triggers.Register(trigger)
         end
@@ -522,7 +545,10 @@ end
 --- Get all triggers
 ---@return Trigger[]
 function QRA.Triggers.GetAll()
-    return QRA.DB.triggers
+    if QRA.Plans and QRA.Plans.GetSelectedTriggers then
+        return QRA.Plans.GetSelectedTriggers()
+    end
+    return GetEditableTriggerList()
 end
 
 --- Get triggers for a specific boss
@@ -530,6 +556,7 @@ end
 --- @return Trigger[]
 function QRA.Triggers.GetBossTriggers(bossName)
     local triggers = {}
+    local sourceTriggers = GetEditableTriggerList()
 
     ---@param a Trigger
     ---@param b Trigger
@@ -553,7 +580,7 @@ function QRA.Triggers.GetBossTriggers(bossName)
         return (a.time or 0) < (b.time or 0)
     end
 
-    for _, trigger in ipairs(QRA.DB.triggers) do
+    for _, trigger in ipairs(sourceTriggers) do
         if trigger.bossName == bossName then
             table.insert(triggers, trigger)
         end
@@ -565,11 +592,17 @@ end
 
 --- Get triggers for a specific encounter ID
 --- @param encounterId number encounter id
+--- @param sourceTriggers Trigger[]|nil
 --- @return Trigger[]
-function QRA.Triggers.GetTriggersByEncounterId(encounterId)
-    local triggers = {}
+function QRA.Triggers.GetTriggersByEncounterId(encounterId, sourceTriggers)
+    if not sourceTriggers and QRA.Plans and QRA.Plans.GetTriggersByEncounterId then
+        return QRA.Plans.GetTriggersByEncounterId(encounterId)
+    end
 
-    for _, trigger in ipairs(QRA.DB.triggers) do
+    local triggers = {}
+    local source = sourceTriggers or GetEditableTriggerList()
+
+    for _, trigger in ipairs(source) do
         if trigger.encounterId == encounterId then
             table.insert(triggers, trigger)
         end
@@ -580,9 +613,11 @@ end
 
 --- Get a specific trigger by ID
 ---@param triggerId string
+---@param sourceTriggers Trigger[]|nil
 ---@return Trigger|nil
-function QRA.Triggers.Get(triggerId)
-    for _, trigger in ipairs(QRA.DB.triggers) do
+function QRA.Triggers.Get(triggerId, sourceTriggers)
+    local source = sourceTriggers or GetEditableTriggerList()
+    for _, trigger in ipairs(source) do
         if trigger.id == triggerId then
             return trigger
         end
@@ -602,7 +637,8 @@ function QRA.Triggers.SaveTrigger(trigger)
         return
     end
 
-    table.insert(QRA.DB.triggers, trigger)
+    table.insert(GetEditableTriggerList(), trigger)
+    MarkSelectedPlanUpdated()
     QRA.Debug("Triggers: Saved trigger", trigger.id)
 end
 
@@ -614,9 +650,12 @@ function QRA.Triggers.UpdateTrigger(trigger)
         return
     end
 
-    for index, existingTrigger in ipairs(QRA.DB.triggers) do
+    local editableTriggers = GetEditableTriggerList()
+
+    for index, existingTrigger in ipairs(editableTriggers) do
         if existingTrigger.id == trigger.id then
-            QRA.DB.triggers[index] = trigger
+            editableTriggers[index] = trigger
+            MarkSelectedPlanUpdated()
             QRA.Debug("Triggers: Updated trigger", trigger.id)
             return
         end
@@ -633,15 +672,19 @@ function QRA.Triggers.UpsertTrigger(trigger)
         return
     end
 
-    for index, existingTrigger in ipairs(QRA.DB.triggers) do
+    local editableTriggers = GetEditableTriggerList()
+
+    for index, existingTrigger in ipairs(editableTriggers) do
         if existingTrigger.id == trigger.id then
-            QRA.DB.triggers[index] = trigger
+            editableTriggers[index] = trigger
+            MarkSelectedPlanUpdated()
             QRA.Debug("Triggers: Upserted (updated) trigger", trigger.id)
             return
         end
     end
 
-    table.insert(QRA.DB.triggers, trigger)
+    table.insert(editableTriggers, trigger)
+    MarkSelectedPlanUpdated()
     QRA.Debug("Triggers: Upserted (saved) new trigger", trigger.id)
 end
 
@@ -649,7 +692,9 @@ end
 --- @param triggerId string trigger ID to delete
 --- @param orphanAssignments boolean|nil If true, move assignments to orphaned. If false, delete them. If nil, just delete trigger (assignments already handled)
 function QRA.Triggers.DeleteTrigger(triggerId, orphanAssignments)
-    for index, trigger in ipairs(QRA.DB.triggers) do
+    local editableTriggers = GetEditableTriggerList()
+
+    for index, trigger in ipairs(editableTriggers) do
         if trigger.id == triggerId then
             -- Handle assignments if present and orphanAssignments is specified
             if orphanAssignments ~= nil and trigger.assignments and #trigger.assignments > 0 then
@@ -660,7 +705,8 @@ function QRA.Triggers.DeleteTrigger(triggerId, orphanAssignments)
                 -- If orphanAssignments is false, assignments are just deleted with the trigger
             end
 
-            table.remove(QRA.DB.triggers, index)
+            table.remove(editableTriggers, index)
+            MarkSelectedPlanUpdated()
             QRA.Debug("Triggers: Deleted trigger", triggerId)
             return true
         end
@@ -829,18 +875,18 @@ function QRA.Triggers.Fire(trigger, eventData)
             QRA.Logger.Log("  delayed by " .. initialDelay .. " seconds" .. (interval and (", then every " .. interval .. " seconds") or "") .. (repeatCount and (", for " .. repeatCount .. " times") or ""))
 
             QRA.DelayedInvoke(initialDelay, function()
-                QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, currentCounter)
+                QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, currentCounter, trigger)
 
                 if interval then
                     QRA.Debug("Triggers: Repeating delayed activation for", trigger.id, "every", interval, "seconds", repeatCount and ("for " .. repeatCount .. " times") or "indefinitely")
                     local ticker = C_Timer.NewTicker(interval, function()
-                        QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, IncrementOccurrence(counterKey))
+                        QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, IncrementOccurrence(counterKey), trigger)
                     end, repeatCount and (repeatCount - 1) or 0)
                     table.insert(delayedTriggerHandles, ticker)
                 end
             end)
         else
-            QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, currentCounter)
+            QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, currentCounter, trigger)
         end
     end
 
@@ -1053,6 +1099,16 @@ end
 --------------------------------------------------
 
 local function CreateDefaultBossTriggers()
+    local previousPlanId = QRA.Plans and QRA.Plans.GetSelectedPlanId and QRA.Plans.GetSelectedPlanId() or nil
+    local previousVersion = QRA.Plans and QRA.Plans.GetSelectedVersion and QRA.Plans.GetSelectedVersion() or nil
+
+    if QRA.Plans and QRA.Plans.GetActivePlan and QRA.Plans.SetSelected then
+        local targetPlan = QRA.Plans.GetActivePlan()
+        if targetPlan then
+            QRA.Plans.SetSelected(targetPlan.id, targetPlan.activeVersion)
+        end
+    end
+
     local bosses = QRA.Bosses.GetAllBosses()
     for _, instanceData in pairs(bosses) do
         for _, bossData in ipairs(instanceData.bosses) do
@@ -1073,6 +1129,10 @@ local function CreateDefaultBossTriggers()
                 end
             end
         end
+    end
+
+    if QRA.Plans and QRA.Plans.SetSelected and previousPlanId then
+        QRA.Plans.SetSelected(previousPlanId, previousVersion)
     end
 end
 

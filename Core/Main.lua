@@ -50,6 +50,7 @@ function QRA.UIParent:PLAYER_LOGIN()
             assignments = {},
             templates = {},
             triggers = {},
+            plans = {},
             notifications = {},
             settings = {
                 debug = false,
@@ -102,6 +103,10 @@ function QRA.InitializeModules()
 
     if QRA.Bosses and QRA.Bosses.Initialize then
         QRA.Bosses.Initialize()
+    end
+
+    if QRA.Plans and QRA.Plans.Initialize then
+        QRA.Plans.Initialize()
     end
 
     if QRA.Triggers and QRA.Triggers.Initialize then

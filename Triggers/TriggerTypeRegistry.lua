@@ -474,7 +474,7 @@ local function RegisterTimerType()
             end
             -- Fire timer trigger assignments directly
             if QRA.Assignments and QRA.Assignments.ExecuteForTrigger then
-                QRA.Assignments.ExecuteForTrigger(trigger.id, { time = trigger.time }, 1)
+                QRA.Assignments.ExecuteForTrigger(trigger.id, { time = trigger.time }, 1, trigger)
             end
             context.LogEvent("TIMER", {
                 triggerId = trigger.id,

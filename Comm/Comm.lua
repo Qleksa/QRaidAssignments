@@ -8,6 +8,16 @@ end
 QRA.Comm = {}
 
 local COMM_PREFIX = "QRA_COMM"
+local PLAN_EXPORT_SCHEMA = 2
+
+---@class QRA_CommPlanPayload
+---@field schema number
+---@field type string
+---@field planName string
+---@field instanceName string
+---@field selectedVersion number
+---@field exportedAt integer
+---@field triggers Trigger[]
 
 local function RegisterComm()
     QRA.RegisterComm(COMM_PREFIX, function (data, sender, channel)
@@ -25,21 +35,138 @@ local function CopyTriggersAndAssignments(triggers)
     return copiedData
 end
 
+---@param data any
+---@return boolean
+local function IsLegacyTriggerList(data)
+    if type(data) ~= "table" then
+        return false
+    end
+
+    if #data == 0 then
+        return false
+    end
+
+    local first = data[1]
+    return type(first) == "table" and first.id ~= nil and first.type ~= nil
+end
+
+---@param data any
+---@return boolean
+local function IsPlanPayload(data)
+    return type(data) == "table"
+        and data.type == "plan"
+        and type(data.planName) == "string"
+        and type(data.triggers) == "table"
+end
+
+---@param plan Plan
+---@param version number
+---@return QRA_CommPlanPayload
+local function BuildPlanPayload(plan, version)
+    local triggers = QRA.Plans.GetTriggersForVersion(plan.id, version)
+    return {
+        schema = PLAN_EXPORT_SCHEMA,
+        type = "plan",
+        planName = plan.name,
+        instanceName = plan.instanceName,
+        selectedVersion = version,
+        exportedAt = time(),
+        triggers = CopyTriggersAndAssignments(triggers),
+    }
+end
+
+---@param payload QRA_CommPlanPayload
+local function ImportPlanPayload(payload)
+    local incomingName = payload.planName and strtrim(payload.planName) or ""
+    local instanceName = payload.instanceName and strtrim(payload.instanceName) or QRA.L["All Instances"]
+
+    if incomingName == "" then
+        incomingName = QRA.Plans.GetDefaultPlanName(instanceName)
+    end
+
+    if incomingName == "Personal" then
+        incomingName = incomingName .. " (Shared)"
+    end
+
+    local importedPlan, importedVersion = QRA.Plans.ImportReplaceActiveVersion(incomingName, instanceName, payload.triggers or {}, "import")
+
+    if QRA.UI and QRA.UI.SetPlanSelection and importedPlan then
+        QRA.UI.SetPlanSelection(importedPlan.id, importedVersion)
+    end
+end
+
+---@param incomingTriggers Trigger[]
+local function ImportLegacyTriggerList(incomingTriggers)
+    local selectedPlan = QRA.Plans.GetSelectedPlan()
+
+    if not selectedPlan or selectedPlan.isPersonal then
+        local generatedName = QRA.Plans.GetDefaultPlanName("Imported")
+        selectedPlan = QRA.Plans.Create(generatedName, QRA.L["All Instances"])
+    end
+
+    local baseVersion = QRA.Plans.GetSelectedVersion()
+    local existing = QRA.Plans.GetTriggersForVersion(selectedPlan.id, baseVersion)
+    local merged = CopyTriggersAndAssignments(existing)
+    local mergedIndex = {}
+
+    for i, trigger in ipairs(merged) do
+        mergedIndex[trigger.id] = i
+    end
+
+    for _, incoming in ipairs(incomingTriggers) do
+        local copied = QRA.DeepCopy(incoming)
+        local idx = mergedIndex[copied.id]
+        if idx then
+            merged[idx] = copied
+        else
+            table.insert(merged, copied)
+            mergedIndex[copied.id] = #merged
+        end
+    end
+
+    local importedPlan, importedVersion = QRA.Plans.ImportReplaceActiveVersion(selectedPlan.name, selectedPlan.instanceName, merged, "legacy-import")
+    if QRA.UI and QRA.UI.SetPlanSelection and importedPlan then
+        QRA.UI.SetPlanSelection(importedPlan.id, importedVersion)
+    end
+end
+
 -- Export serialized triggers and assignments
 ---@param isForAddonChannel? boolean
 ---@return string
 function QRA.Comm.Export(isForAddonChannel)
-    QRA.Debug("Comm: Exporting Data")
-    local triggers = QRA.Triggers.GetAll()
-
-    if not triggers or #triggers == 0 then
-        QRA.Print("Comm: No triggers found to export")
+    QRA.Debug("Comm: Exporting selected plan")
+    local plan = QRA.Plans.GetSelectedPlan()
+    if not plan then
+        QRA.Print("Comm: No selected plan found to export")
         return ""
     end
 
-    local exportData = CopyTriggersAndAssignments(triggers)
-    local exportString = QRA.Serialize(exportData, isForAddonChannel or false)
+    local version = QRA.Plans.GetSelectedVersion()
+    local payload = BuildPlanPayload(plan, version)
+
+    local exportString = QRA.Serialize(payload, isForAddonChannel or false)
     QRA.Debug("Comm: Export String Generated")
+    return exportString
+end
+
+--- Export active shared plan for raid transmission
+---@param isForAddonChannel? boolean
+---@return string
+function QRA.Comm.ExportActiveSharedPlan(isForAddonChannel)
+    local plan = QRA.Plans.GetActivePlan() or QRA.Plans.GetSelectedPlan()
+    if not plan then
+        QRA.Print("Comm: No shared plan found to export")
+        return ""
+    end
+
+    if plan.isPersonal then
+        QRA.Print("Comm: Personal plan cannot be sent to raid.")
+        return ""
+    end
+
+    local payload = BuildPlanPayload(plan, plan.activeVersion)
+    local exportString = QRA.Serialize(payload, isForAddonChannel or false)
+    QRA.Debug("Comm: Shared plan export generated")
     return exportString
 end
 
@@ -67,63 +194,34 @@ end
 ---@param isForAddonChannel? boolean
 ---@return string
 function QRA.Comm.ExportBoss(encounterId, isForAddonChannel)
-    QRA.Debug("Comm: Exporting Boss Data")
-    local triggers = QRA.Triggers.GetTriggersByEncounterId(encounterId)
-
-    if not triggers or #triggers == 0 then
-        QRA.Print("Comm: No data found for encounter ID " .. encounterId)
-        return ""
-    end
-
-    local exportData = CopyTriggersAndAssignments(triggers)
-    local exportString = QRA.Serialize(exportData, isForAddonChannel or false)
-    QRA.Debug("Comm: Export String Generated")
-    return exportString
+    return QRA.Comm.Export(isForAddonChannel)
 end
 
 local function ImportData(input, isSerialized, isForAddonChannel)
     QRA.Debug("Comm: Importing Data")
-    ---@type Trigger[]
-    local data = isSerialized and QRA.Deserialize(input, isForAddonChannel or false) or input
+    ---@type any
+    local data = input
 
-    -- need a way to distunguish between full raid import, single trigger import, and boss import
+    if isSerialized then
+        local first, second = QRA.Deserialize(input, isForAddonChannel or false)
+        if type(first) == "boolean" then
+            data = first and second or nil
+        else
+            data = first
+        end
+    end
+
     if data then
         QRA.Debug("Comm: Deserialized Data", data)
-        for _, trigger in ipairs(data) do
-            local existingTrigger = QRA.Triggers.Get(trigger.id)
-
-            if existingTrigger then
-                local existingAssignmentsById = {}
-                for _, existingAssignment in ipairs(existingTrigger.assignments or {}) do
-                    existingAssignmentsById[existingAssignment.id] = existingAssignment
-                end
-
-
-                for _, assignment in ipairs(trigger.assignments or {}) do
-                    if existingAssignmentsById[assignment.id] then
-                        -- Update existing assignment
-                        for i, existing in ipairs(existingTrigger.assignments) do
-                            if existing.id == assignment.id then
-                                existingTrigger.assignments[i] = assignment
-                                break
-                            end
-                        end
-                    else
-                        -- Add new assignment
-                        if not existingTrigger.assignments then
-                            existingTrigger.assignments = {}
-                        end
-                        table.insert(existingTrigger.assignments, assignment)
-                    end
-                end
-
-                -- Update trigger with merged assignments
-                QRA.Triggers.UpdateTrigger(existingTrigger)
-            else
-                -- New trigger - upsert directly (assignments already embedded)
-                QRA.Triggers.UpsertTrigger(trigger)
-            end
+        if IsPlanPayload(data) then
+            ImportPlanPayload(data)
+        elseif IsLegacyTriggerList(data) then
+            ImportLegacyTriggerList(data)
+        else
+            QRA.Print("Comm: Unsupported import format")
+            return
         end
+
         QRA.UI.RefreshAll()
     else
         QRA.Print("Comm: Failed to deserialize data")
