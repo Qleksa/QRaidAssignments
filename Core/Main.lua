@@ -44,7 +44,6 @@ QRA.UIParent:RegisterEvent("PLAYER_LOGIN")
 function QRA.UIParent:PLAYER_LOGIN()
     self:UnregisterEvent("PLAYER_LOGIN")
 
-    -- Initialize saved variables
     if not QRA_DB then
         QRA_DB = {
             assignments = {},
@@ -52,6 +51,11 @@ function QRA.UIParent:PLAYER_LOGIN()
             triggers = {},
             plans = {},
             notes = {},
+            personalNote = {
+                text = "",
+                timestamp = time(),
+                author = UnitName("player"),
+            },
             notifications = {},
             settings = {
                 debug = false,
@@ -67,6 +71,14 @@ function QRA.UIParent:PLAYER_LOGIN()
                     fontName = "Noto_AP",
                     fontSize = 14,
                     lineSpacing = 2,
+                },
+                personalNoteFrame = {
+                    position = {
+                        point = "CENTER",
+                        xOfs = 300,
+                        yOfs = 0,
+                    },
+                    enabled = false,
                 },
             }
         }
@@ -92,33 +104,16 @@ function QRA.UIParent:PLAYER_LOGIN()
         }
     end
 
-    if QRA.Settings.noteFrame.enabled == nil then
-        QRA.Settings.noteFrame.enabled = true
-    end
-    if not QRA.Settings.noteFrame.fontName or QRA.Settings.noteFrame.fontName == "" then
-        QRA.Settings.noteFrame.fontName = "Noto_AP"
-    end
-    if not QRA.Settings.noteFrame.fontSize then
-        QRA.Settings.noteFrame.fontSize = 14
-    end
-    if QRA.Settings.noteFrame.lineSpacing == nil then
-        QRA.Settings.noteFrame.lineSpacing = 2
-    end
 
-    -- Ensure new settings fields exist in existing saves (with proper defaults)
     if QRA.Settings.hideChangelogUntilNextVersion == nil then
         QRA.Settings.hideChangelogUntilNextVersion = false
     end
-    -- lastSeenVersion is intentionally left nil for first-time users
-
-    -- AFConfig.debug[QRA.name] = QRA.Settings.debug
 
     -- Initialize all modules
 
     QRA.InitializeModules()
     QRA.Debug("All modules initialized")
 
-    -- Check and show changelog if needed (after all modules are ready)
     if QRA.Changelog and QRA.Changelog.CheckAndShow then
         QRA.Changelog.CheckAndShow()
     end
@@ -176,12 +171,10 @@ function QRA.InitializeModules()
         QRA.Notes.Initialize()
     end
 
-    -- Initialize DevMode
     if QRA.DevMode and QRA.DevMode.Initialize then
         QRA.DevMode.Initialize()
     end
 
-    -- Initialize DevMode EventHistory
     if QRA.DevMode and QRA.DevMode.EventHistory and QRA.DevMode.EventHistory.Initialize then
         QRA.DevMode.EventHistory.Initialize()
     end
@@ -282,6 +275,8 @@ SlashCmdList.QRAASSIGNMENTS = function(msg)
         QRA.Print("  /qra note - Toggle notes display")
         QRA.Print("  /qra note config - Open note config")
         QRA.Print("  /qra note push - Push notes to raid")
+        QRA.Print("  /qra pnote - Toggle personal note display")
+        QRA.Print("  /qra pnote config - Open note config")
     elseif msg == "hide" then
         QRA.UI.HideMainFrame()
     elseif msg == "test" then
@@ -323,6 +318,22 @@ SlashCmdList.QRAASSIGNMENTS = function(msg)
             end
         else
             QRA.Print("Unknown note command. Use /qra note, /qra note config, or /qra note push")
+        end
+    elseif msg:find("^pnote") then
+        local sub = msg:match("^pnote%s+(.+)$")
+        if not sub or sub == "" then
+        if QRA.Notes and QRA.Notes.IsEnabled and not QRA.Notes.IsEnabled() then
+                QRA.Print(QRA.L["Notes are disabled."])
+        elseif QRA.Notes and QRA.Notes.TogglePersonalEnabled then
+                local enabled = QRA.Notes.TogglePersonalEnabled()
+                QRA.Print(QRA.L["Personal Note:"], enabled and QRA.L["Enabled"] or QRA.L["Disabled"])
+            end
+        elseif sub == "config" then
+            if QRA.Notes and QRA.Notes.ShowConfig then
+                QRA.Notes.ShowConfig(true)
+            end
+        else
+            QRA.Print("Unknown personal note command. Use /qra pnote or /qra pnote config")
         end
     else
         QRA.Print("Unknown command. Use /qra help for available commands.")

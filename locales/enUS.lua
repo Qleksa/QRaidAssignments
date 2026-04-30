@@ -149,8 +149,6 @@ L["Note Config"] = "Note Config"
 L["Open Note Config"] = "Open Note Config"
 L["Enable Notes"] = "Enable Notes"
 L["Push Notes to Raid"] = "Push Notes to Raid"
-L["Unlock Note Frame"] = "Unlock Note Frame"
-L["Lock Note Frame"] = "Lock Note Frame"
 L["Note Font"] = "Note Font"
 L["Note Font Size"] = "Note Font Size"
 L["Note Line Spacing"] = "Note Line Spacing"
@@ -161,6 +159,11 @@ L["No boss note selected"] = "No boss note selected"
 L["Insert Class Color"] = "Insert Class Color"
 L["-- Select Class --"] = "-- Select Class --"
 L["Insert icons and class colors into note"] = "Insert icons and class colors into note"
+L["Personal Note"] = "Personal Note"
+L["Personal Note:"] = "Personal Note:"
+L["Personal Note Frame"] = "Personal Note Frame"
+L["Enable Personal Note"] = "Enable Personal Note"
+L["Notes are disabled."] = "Notes are disabled. Can't toggle personal note."
 
 -- Trigger Types
 L["Spell Cast Success"] = "Spell Cast Success"
@@ -179,16 +182,6 @@ L["Target Unit/NPC ID"] = "Target Unit/NPC ID"
 L["Export"] = "Export"
 L["Import"] = "Import"
 L["Send to Raid"] = "Send to Raid"
-
---------------------------------------------------
--- Templates
---------------------------------------------------
-L["Saved Templates"] = "Saved Templates"
-L["Save Current as Template"] = "Save Current as Template"
-L["Save Template"] = "Save Template"
-L["Template Name"] = "Template Name"
-L["Template applied:"] = "Template applied:"
-L["assignments"] = "assignments"
 
 --------------------------------------------------
 -- Settings

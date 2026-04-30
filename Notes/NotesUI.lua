@@ -24,6 +24,8 @@ local RAID_ICON_INSERT_ORDER = {
     "star", "circle", "diamond", "triangle", "moon", "square", "cross", "skull",
 }
 
+local PERSONAL_NOTE_KEY = "__personal_note__"
+
 local CLASS_COLOR_ITEMS = {
     { key = "NONE", text = "-- Select Class --", value = "__none__" },
     { key = "DEATHKNIGHT", text = "Death Knight", value = "|cffc41f3b" },
@@ -59,7 +61,31 @@ local function GetSettings()
     settings.lineSpacing = tonumber(settings.lineSpacing) or 2
     settings.lineSpacing = math.max(0, math.min(20, settings.lineSpacing))
 
+    if type(settings.lastSelectedNote) ~= "table" then
+        settings.lastSelectedNote = nil
+    end
+
     return settings
+end
+
+---@param encounterId number|nil
+---@param isPersonal boolean
+local function RememberSelectedTarget(encounterId, isPersonal)
+    local settings = GetSettings()
+
+    if isPersonal then
+        settings.lastSelectedNote = {
+            type = "personal",
+        }
+        return
+    end
+
+    if encounterId then
+        settings.lastSelectedNote = {
+            type = "boss",
+            encounterId = encounterId,
+        }
+    end
 end
 
 local function UpdateNotePosition(point, x, y)
@@ -115,6 +141,10 @@ local function ApplyNoteFont()
     local settings = GetSettings()
     AF.SetFont(noteText, settings.fontName, settings.fontSize, "none", true)
     noteText:SetSpacing(settings.lineSpacing)
+
+    if QRA.Notes.ApplyPersonalNoteFont then
+        QRA.Notes.ApplyPersonalNoteFont(settings.fontName, settings.fontSize, settings.lineSpacing)
+    end
 end
 
 local function RefreshDisplayText()
@@ -175,6 +205,7 @@ function QRA.Notes.SetEncounter(encounterId, bossName)
 
     currentEncounterId = encounterId
     currentBossName = bossName
+    RememberSelectedTarget(encounterId, false)
 
     EnsureNoteFrame()
     RefreshDisplayText()
@@ -235,6 +266,10 @@ function QRA.Notes.SetEnabled(enabled)
     else
         noteFrame:Hide()
     end
+
+    if QRA.Notes.UpdatePersonalVisibility then
+        QRA.Notes.UpdatePersonalVisibility()
+    end
 end
 
 ---@return boolean
@@ -254,9 +289,20 @@ function QRA.Notes.GetCurrentBossName()
     return currentBossName
 end
 
+function QRA.Notes.GetDisplayFontSettings()
+    local settings = GetSettings()
+    return settings.fontName, settings.fontSize, settings.lineSpacing
+end
+
 ---@return table[]
 local function GetBossItems()
-    local items = {}
+    local items = {
+        {
+            text = QRA.L["Personal Note"],
+            value = PERSONAL_NOTE_KEY,
+            bossName = QRA.L["Personal Note"],
+        },
+    }
     local instances = QRA.Bosses.GetInstancesSortedByTier()
 
     for _, instanceInfo in ipairs(instances) do
@@ -293,14 +339,75 @@ local function GetInitialEncounterForConfig()
     return nil
 end
 
-local function ShowConfigFrame()
+---@param openPersonal boolean|nil
+---@return number|nil encounterId
+---@return string|nil bossName
+---@return boolean isPersonal
+local function GetPreferredConfigTarget(openPersonal)
+    if openPersonal then
+        return nil, QRA.L["Personal Note"], true
+    end
+
+    local lastSelected = GetSettings().lastSelectedNote
+    if type(lastSelected) == "table" then
+        if lastSelected.type == "personal" then
+            return nil, QRA.L["Personal Note"], true
+        end
+
+        if lastSelected.type == "boss" and lastSelected.encounterId then
+            local encounterId = tonumber(lastSelected.encounterId)
+            if encounterId then
+                local bossData = QRA.Bosses.GetBossByEncounterId(encounterId)
+                if bossData then
+                    return encounterId, bossData.name, false
+                end
+            end
+        end
+    end
+
+    local initialEncounter = GetInitialEncounterForConfig()
+    if initialEncounter then
+        local bossData = QRA.Bosses.GetBossByEncounterId(initialEncounter)
+        return initialEncounter, bossData and bossData.name or nil, false
+    end
+
+    return nil, nil, false
+end
+
+local function ShowConfigFrame(openPersonal)
     EnsureNoteFrame()
+
+    local function UpdatePersonalToggleState()
+        if not configFrame or not configFrame.personalNoteEnabledCheck then return end
+
+        local notesEnabled = QRA.Notes.IsEnabled()
+        local personalEnabled = QRA.Notes.IsPersonalEnabled and QRA.Notes.IsPersonalEnabled() or false
+
+        configFrame.personalNoteEnabledCheck:SetChecked(personalEnabled)
+        configFrame.personalNoteEnabledCheck:SetEnabled(notesEnabled)
+    end
 
     if configFrame then
         configFrame.noteEnabledCheck:SetChecked(QRA.Notes.IsEnabled())
+        UpdatePersonalToggleState()
         configFrame.fontDropdown:SetSelectedValue(GetSettings().fontName)
         configFrame.fontSizeSlider:SetValue(GetSettings().fontSize)
         configFrame.lineSpacingSlider:SetValue(GetSettings().lineSpacing)
+
+        if configFrame.LoadEditorForEncounter then
+            local encounterId, bossName, isPersonal = GetPreferredConfigTarget(openPersonal)
+            if isPersonal or encounterId then
+                configFrame.LoadEditorForEncounter(encounterId, bossName, isPersonal)
+            end
+
+            if encounterId and not isPersonal then
+                QRA.Notes.SetEncounter(encounterId, bossName)
+                if QRA.Notes.IsEnabled() then
+                    EnsureNoteFrame():Show()
+                end
+            end
+        end
+
         configFrame:Show()
         return
     end
@@ -323,19 +430,24 @@ local function ShowConfigFrame()
 
     local noteEnabledCheck = AF.CreateCheckButton(content, QRA.L["Enable Notes"], function(checked)
         QRA.Notes.SetEnabled(checked)
+        UpdatePersonalToggleState()
     end)
     AF.SetPoint(noteEnabledCheck, "TOPLEFT", content, 0, 0)
     noteEnabledCheck:SetChecked(QRA.Notes.IsEnabled())
     configFrame.noteEnabledCheck = noteEnabledCheck
 
-    local lockBtn = AF.CreateButton(content, QRA.L["Lock Note Frame"], "static", 120, 22)
-    AF.SetPoint(lockBtn, "TOPRIGHT", content, 0, 0)
-    lockBtn:SetOnClick(function()
-        AF.HideMovers()
+    local personalNoteEnabledCheck = AF.CreateCheckButton(content, QRA.L["Enable Personal Note"], function(checked)
+        if QRA.Notes and QRA.Notes.SetPersonalEnabled then
+            QRA.Notes.SetPersonalEnabled(checked)
+        end
     end)
+    AF.SetPoint(personalNoteEnabledCheck, "LEFT", noteEnabledCheck, "RIGHT", 120, 0)
+    personalNoteEnabledCheck:SetChecked(QRA.Notes and QRA.Notes.IsPersonalEnabled and QRA.Notes.IsPersonalEnabled() or false)
+    configFrame.personalNoteEnabledCheck = personalNoteEnabledCheck
+    UpdatePersonalToggleState()
 
-    local unlockBtn = AF.CreateButton(content, QRA.L["Unlock Note Frame"], "static", 130, 22)
-    AF.SetPoint(unlockBtn, "RIGHT", lockBtn, "LEFT", -8, 0)
+    local unlockBtn = AF.CreateButton(content, QRA.L["Show Movers"], "static", 100, 22)
+    AF.SetPoint(unlockBtn, "LEFT", personalNoteEnabledCheck, "RIGHT", 160, 0)
     unlockBtn:SetOnClick(function()
         AF.ShowMovers(MOVER_GROUP)
     end)
@@ -383,15 +495,72 @@ local function ShowConfigFrame()
     local editor = AF.CreateScrollEditBox(content, nil, QRA.L["Boss Note"], 520, 360)
     AF.SetPoint(editor, "TOPLEFT", iconBar, "BOTTOMLEFT", 0, -6)
 
+    if editor.eb then
+        editor.eb:HookScript("OnEditFocusGained", function(editBox)
+            local cursor = editBox:GetCursorPosition() or 0
+            editBox:HighlightText(cursor, cursor)
+        end)
+    end
+
     local selectedEncounterId = nil
     local selectedBossName = nil
+    local selectedPersonalNote = false
+    local suppressAutoSave = false
 
-    local function LoadEditorForEncounter(encounterId, bossName)
+    local function PersistEditorText(text)
+        if selectedPersonalNote then
+            if QRA.Notes.SetPersonalRawText then
+                QRA.Notes.SetPersonalRawText(text or "")
+            end
+            if QRA.Notes.RefreshPersonalDisplay then
+                QRA.Notes.RefreshPersonalDisplay()
+            end
+            return
+        end
+
+        if not selectedEncounterId then
+            return
+        end
+
+        SaveNote(selectedEncounterId, text or "")
+        QRA.Notes.RefreshNote(selectedEncounterId)
+    end
+
+    editor:SetOnTextChanged(function(value)
+        if suppressAutoSave then
+            return
+        end
+
+        PersistEditorText(value)
+    end)
+
+    local function LoadEditorForEncounter(encounterId, bossName, isPersonal)
+        selectedPersonalNote = isPersonal == true or encounterId == PERSONAL_NOTE_KEY
+
+        if selectedPersonalNote then
+            selectedEncounterId = nil
+            selectedBossName = QRA.L["Personal Note"]
+            bossDropdown:SetText(selectedBossName)
+            RememberSelectedTarget(nil, true)
+            suppressAutoSave = true
+            if QRA.Notes.GetPersonalRawText then
+                editor:SetText(QRA.Notes.GetPersonalRawText() or "")
+            else
+                editor:SetText("")
+            end
+            editor:SetCursorPosition(0)
+            suppressAutoSave = false
+            return
+        end
+
         selectedEncounterId = encounterId
         selectedBossName = bossName
         bossDropdown:SetText(bossName or QRA.L["-- Select Boss --"])
+        RememberSelectedTarget(encounterId, false)
+        suppressAutoSave = true
         editor:SetText(encounterId and GetNote(encounterId) or "")
         editor:SetCursorPosition(0)
+        suppressAutoSave = false
     end
     configFrame.LoadEditorForEncounter = LoadEditorForEncounter
 
@@ -433,12 +602,14 @@ local function ShowConfigFrame()
         local text = editBox:GetText() or ""
         local cursor = editBox:GetCursorPosition() or 0
 
+        suppressAutoSave = true
         editBox:Insert("")
         local textNew = editBox:GetText() or ""
         local cursorNew = editBox:GetCursorPosition() or cursor
 
         editBox:SetText(text)
         editBox:SetCursorPosition(cursor)
+        suppressAutoSave = false
 
         local selectedStart = cursorNew
         local selectedEnd = #text - (#textNew - cursorNew)
@@ -513,34 +684,31 @@ local function ShowConfigFrame()
 
     hooksecurefunc(bossDropdown, "OnMenuSelection", function(_, item)
         if item and item.value then
-            LoadEditorForEncounter(item.value, item.bossName or item.text)
+            if item.value == PERSONAL_NOTE_KEY then
+                LoadEditorForEncounter(nil, item.bossName or item.text, true)
+            else
+                local bossName = item.bossName or item.text
+                QRA.Notes.SetEncounter(item.value, bossName)
+                if QRA.Notes.IsEnabled() then
+                    EnsureNoteFrame():Show()
+                end
+            end
         end
     end)
 
-    local initialEncounter = GetInitialEncounterForConfig()
-    if initialEncounter then
-        local bossData = QRA.Bosses.GetBossByEncounterId(initialEncounter)
-        LoadEditorForEncounter(initialEncounter, bossData and bossData.name or nil)
+    local initialEncounter, initialBossName, initialPersonal = GetPreferredConfigTarget(openPersonal)
+    if initialPersonal then
+        LoadEditorForEncounter(nil, initialBossName or QRA.L["Personal Note"], true)
+    elseif initialEncounter then
+        LoadEditorForEncounter(initialEncounter, initialBossName, false)
+        QRA.Notes.SetEncounter(initialEncounter, initialBossName)
+        if QRA.Notes.IsEnabled() then
+            EnsureNoteFrame():Show()
+        end
     end
 
-    local saveBtn = AF.CreateButton(content, QRA.L["Save"], "softlime", 60, 24)
-    AF.SetPoint(saveBtn, "TOPLEFT", editor, "BOTTOMLEFT", 0, -8)
-    saveBtn:SetOnClick(function()
-        if not selectedEncounterId then
-            QRA.Print(QRA.L["Please select a boss note."])
-            return
-        end
-
-        SaveNote(selectedEncounterId, editor:GetText() or "")
-        QRA.Notes.RefreshNote(selectedEncounterId)
-        if currentEncounterId == selectedEncounterId then
-            QRA.Notes.SetEncounter(selectedEncounterId, selectedBossName)
-        end
-        QRA.Print(QRA.L["Note saved."])
-    end)
-
     local pushBtn = AF.CreateButton(content, QRA.L["Push Notes to Raid"], "softblue", 135, 24)
-    AF.SetPoint(pushBtn, "LEFT", saveBtn, "RIGHT", 8, 0)
+    AF.SetPoint(pushBtn, "TOPLEFT", editor, "BOTTOMLEFT", 0, -8)
     pushBtn:SetOnClick(function()
         if QRA.Comm and QRA.Comm.SendNotesToRaid then
             QRA.Comm.SendNotesToRaid()
@@ -562,8 +730,9 @@ local function ShowConfigFrame()
     configFrame:Show()
 end
 
-function QRA.Notes.ShowConfig()
-    ShowConfigFrame()
+---@param openPersonal? boolean
+function QRA.Notes.ShowConfig(openPersonal)
+    ShowConfigFrame(openPersonal)
 end
 
 function QRA.Notes.GetAllRaw()
@@ -597,6 +766,19 @@ end
 function QRA.Notes.Initialize()
     QRA.DB.notes = QRA.DB.notes or {}
     EnsureNoteFrame()
+
+    local lastSelected = GetSettings().lastSelectedNote
+    if type(lastSelected) == "table" and lastSelected.type == "boss" and lastSelected.encounterId then
+        local encounterId = tonumber(lastSelected.encounterId)
+        if encounterId then
+            local bossName = nil
+            if QRA.Bosses and QRA.Bosses.GetBossByEncounterId then
+                local bossData = QRA.Bosses.GetBossByEncounterId(encounterId)
+                bossName = bossData and bossData.name or nil
+            end
+            QRA.Notes.SetEncounter(encounterId, bossName)
+        end
+    end
 
     if QRA.Notes.IsEnabled() then
         noteFrame:Show()

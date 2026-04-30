@@ -24,6 +24,7 @@ Logger/Logger.lua
 Logger/LogViewer.lua
 
 Notes/NotesUI.lua
+Notes/PersonalNoteUI.lua
 
 Locales/enUS.lua
 
