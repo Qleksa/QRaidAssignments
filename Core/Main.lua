@@ -51,16 +51,59 @@ function QRA.UIParent:PLAYER_LOGIN()
             templates = {},
             triggers = {},
             plans = {},
+            notes = {},
             notifications = {},
             settings = {
                 debug = false,
                 lastSeenVersion = nil,
                 hideChangelogUntilNextVersion = false,
+                noteFrame = {
+                    position = {
+                        point = "CENTER",
+                        xOfs = -300,
+                        yOfs = 0,
+                    },
+                    enabled = true,
+                    fontName = "Noto_AP",
+                    fontSize = 14,
+                    lineSpacing = 2,
+                },
             }
         }
     end
     QRA.DB = QRA_DB
     QRA.Settings = QRA.DB.settings
+
+    if not QRA.DB.notes then
+        QRA.DB.notes = {}
+    end
+
+    if not QRA.Settings.noteFrame then
+        QRA.Settings.noteFrame = {
+            position = {
+                point = "CENTER",
+                xOfs = -300,
+                yOfs = 0,
+            },
+            enabled = true,
+            fontName = "Noto_AP",
+            fontSize = 14,
+            lineSpacing = 2,
+        }
+    end
+
+    if QRA.Settings.noteFrame.enabled == nil then
+        QRA.Settings.noteFrame.enabled = true
+    end
+    if not QRA.Settings.noteFrame.fontName or QRA.Settings.noteFrame.fontName == "" then
+        QRA.Settings.noteFrame.fontName = "Noto_AP"
+    end
+    if not QRA.Settings.noteFrame.fontSize then
+        QRA.Settings.noteFrame.fontSize = 14
+    end
+    if QRA.Settings.noteFrame.lineSpacing == nil then
+        QRA.Settings.noteFrame.lineSpacing = 2
+    end
 
     -- Ensure new settings fields exist in existing saves (with proper defaults)
     if QRA.Settings.hideChangelogUntilNextVersion == nil then
@@ -129,6 +172,10 @@ function QRA.InitializeModules()
         QRA.Comm.Initialize()
     end
 
+    if QRA.Notes and QRA.Notes.Initialize then
+        QRA.Notes.Initialize()
+    end
+
     -- Initialize DevMode
     if QRA.DevMode and QRA.DevMode.Initialize then
         QRA.DevMode.Initialize()
@@ -138,6 +185,9 @@ function QRA.InitializeModules()
     if QRA.DevMode and QRA.DevMode.EventHistory and QRA.DevMode.EventHistory.Initialize then
         QRA.DevMode.EventHistory.Initialize()
     end
+
+    QRA.UIParent:RegisterEvent("ZONE_CHANGED_INDOORS")
+    QRA.UIParent:RegisterEvent("ZONE_CHANGED")
 end
 
 ---------------------------------------------------
@@ -146,10 +196,40 @@ end
 
 function QRA.UIParent:ZONE_CHANGED()
     QRA.Debug("ZONE_CHANGED: " .. (GetZoneText() or "Unknown") .. " - " .. (GetSubZoneText() or "Unknown"))
+    QRA.CheckBossZone()
 end
 
 function QRA.UIParent:ZONE_CHANGED_INDOORS()
     QRA.Debug("ZONE_CHANGED_INDOORS: " .. (GetZoneText() or "Unknown") .. " - " .. (GetSubZoneText() or "Unknown"))
+    QRA.CheckBossZone()
+end
+
+---@param forcedBossData? BossData
+function QRA.CheckBossZone(forcedBossData)
+    if not QRA.Settings.noteFrame or not QRA.Settings.noteFrame.enabled then
+        return
+    end
+
+    local bossData = forcedBossData
+
+    if not bossData then
+        local zoneName = GetZoneText()
+        local subZone = GetSubZoneText()
+
+        if subZone and subZone ~= "" then
+            bossData = QRA.Bosses.GetBossByZoneName(subZone)
+        end
+        if not bossData and zoneName and zoneName ~= "" then
+            bossData = QRA.Bosses.GetBossByZoneName(zoneName)
+        end
+    end
+
+    if bossData then
+        QRA.Debug("Entered boss zone:", bossData.name)
+        if QRA.Notes then
+            QRA.Notes.ShowForEncounter(bossData.encounterId, bossData.name)
+        end
+    end
 end
 
 --------------------------------------------------
@@ -199,6 +279,9 @@ SlashCmdList.QRAASSIGNMENTS = function(msg)
         QRA.Print("  /qra devmode - Toggle dev/test mode")
         QRA.Print("  /qra debug - Toggle debug mode")
         QRA.Print("  /qra logs - Toggle log viewer")
+        QRA.Print("  /qra note - Toggle notes display")
+        QRA.Print("  /qra note config - Open note config")
+        QRA.Print("  /qra note push - Push notes to raid")
     elseif msg == "hide" then
         QRA.UI.HideMainFrame()
     elseif msg == "test" then
@@ -222,6 +305,24 @@ SlashCmdList.QRAASSIGNMENTS = function(msg)
     elseif msg == "logs" then
         if QRA.Logger and QRA.Logger.ToggleLogFrame then
             QRA.Logger.ToggleLogFrame()
+        end
+    elseif msg:find("^note") then
+        local sub = msg:match("^note%s+(.+)$")
+        if not sub or sub == "" then
+            if QRA.Notes then
+                local enabled = QRA.Notes.ToggleEnabled()
+                QRA.Print(QRA.L["Notes:"], enabled and QRA.L["Enabled"] or QRA.L["Disabled"])
+            end
+        elseif sub == "config" then
+            if QRA.Notes and QRA.Notes.ShowConfig then
+                QRA.Notes.ShowConfig()
+            end
+        elseif sub == "push" then
+            if QRA.Comm and QRA.Comm.SendNotesToRaid then
+                QRA.Comm.SendNotesToRaid()
+            end
+        else
+            QRA.Print("Unknown note command. Use /qra note, /qra note config, or /qra note push")
         end
     else
         QRA.Print("Unknown command. Use /qra help for available commands.")

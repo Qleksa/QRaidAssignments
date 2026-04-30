@@ -18,6 +18,7 @@ QRA.UI = {}
 QRA.Triggers = {}
 QRA.Assignments = {}
 QRA.Plans = {}
+QRA.Notes = {}
 QRA.Templates = {}
 QRA.Widgets = {}
 QRA.Notifications = {}
