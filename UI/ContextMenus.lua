@@ -26,7 +26,7 @@ function QRA.UI.ContextMenus.ShowTriggerContextMenu(owner, trigger, onDelete, on
         {
             QRA.L["Send to Raid"],
             function()
-                local exportString = QRA.Comm.ExportTrigger(trigger.id, true)
+                local exportString = QRA.Comm.ExportActiveSharedPlan(true)
                 QRA.Comm.SendToRaid(exportString)
             end,
         },

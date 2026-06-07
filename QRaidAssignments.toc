@@ -15,11 +15,16 @@ Changelog.lua
 Util/Debug.lua
 Util/CounterFormula.lua
 Util/Table.lua
+Util/TextFormatter.lua
 
 Core/Main.lua
+Core/Plans.lua
 
 Logger/Logger.lua
 Logger/LogViewer.lua
+
+Notes/NotesUI.lua
+Notes/PersonalNoteUI.lua
 
 Locales/enUS.lua
 

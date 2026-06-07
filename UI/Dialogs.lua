@@ -14,6 +14,8 @@ local AF = _G.AbstractFramework
 local assignmentEditorFrame = nil
 ---@class AF_HeaderedFrame
 local triggerEditorFrame = nil
+---@class AF_HeaderedFrame
+local planEditorFrame = nil
 ---@class Frame
 local mainFrame = nil
 
@@ -165,6 +167,7 @@ function QRA.UI.Dialogs.ShowAssignmentEditor(assignment, triggerId)
 
         local selectedTriggerId = triggerDropdown:GetSelectedValue()
 
+        QRA.Debug("Countdown time:", countdownSlider:GetValue())
         local newAssignment = QRA.Assignments.Create({
             triggerId = selectedTriggerId,
             counterFormula = counterInput:GetValue() or "*",
@@ -181,26 +184,6 @@ function QRA.UI.Dialogs.ShowAssignmentEditor(assignment, triggerId)
         if currentIsNew then
             if selectedTriggerId then
                 QRA.Assignments.Add(selectedTriggerId, newAssignment)
-            end
-        elseif currentIsOrphaned then
-            -- Updating an orphaned assignment
-            if selectedTriggerId then
-                -- Moving orphan to a trigger
-                QRA.Assignments.DeleteOrphan(currentAssignment.id)
-                QRA.Assignments.Add(selectedTriggerId, newAssignment)
-            else
-                -- Just updating orphan data
-                QRA.Assignments.UpdateOrphan(currentAssignment.id, {
-                    counterFormula = newAssignment.counterFormula,
-                    assignTarget = newAssignment.assignTarget,
-                    spellId = newAssignment.spellId,
-                    spellName = newAssignment.spellName,
-                    message = newAssignment.message,
-                    targetPlayer = newAssignment.targetPlayer,
-                    countdownTime = newAssignment.countdownTime,
-                    alertType = newAssignment.alertType,
-                    activateIn = newAssignment.activateIn,
-                })
             end
         else
             -- Updating existing assignment
@@ -521,6 +504,225 @@ function QRA.UI.Dialogs.ShowTemplateNameDialog(onConfirm)
     end)
 end
 
+--- Show new plan editor window
+---@param onConfirm fun(planId: string, version: number)
+function QRA.UI.Dialogs.ShowNewPlanDialog(onConfirm)
+    if not planEditorFrame then
+        planEditorFrame = AF.CreateHeaderedFrame(
+            QRA.UIParent,
+            "QRA_PlanEditor",
+            QRA.L["Plan Editor"],
+            320,
+            285,
+            "HIGH",
+            mainFrame:GetFrameLevel() + 10
+        )
+        AF.SetPoint(planEditorFrame, "CENTER", mainFrame, 0, 0)
+        table.insert(UISpecialFrames, planEditorFrame:GetName())
+    end
+
+    planEditorFrame:SetTitle(AF.WrapTextInColor(QRA.L["New Plan"], "softlime"))
+
+    if planEditorFrame.content then
+        planEditorFrame.content:Hide()
+        planEditorFrame.content:SetParent(nil)
+    end
+
+    local form = CreateFrame("Frame", nil, planEditorFrame)
+    AF.SetPoint(form, "TOPLEFT", planEditorFrame, 10, -20)
+    AF.SetPoint(form, "BOTTOMRIGHT", planEditorFrame, -10, 50)
+    planEditorFrame.content = form
+
+    local FIELD_WIDTH = 280
+
+    local nameInput = AF.CreateEditBox(form, QRA.L["Plan Name (optional)"], FIELD_WIDTH, 20)
+    AF.SetPoint(nameInput, "TOPLEFT", 0, 10)
+
+    local instanceMenu = QRA.Widgets.CreateInstanceMenu(form, FIELD_WIDTH, nil, false)
+    AF.SetPoint(instanceMenu, "TOPLEFT", nameInput, "BOTTOMLEFT", 0, -20)
+
+    local sortedInstances = QRA.Bosses.GetInstancesSortedByTier()
+    if sortedInstances and sortedInstances[1] and sortedInstances[1].name then
+        instanceMenu:SetSelectedValue(sortedInstances[1].name)
+    end
+
+    local sourcePlanDropdown = QRA.Widgets.CreatePlanDropdown(form, FIELD_WIDTH, nil, true)
+    AF.SetPoint(sourcePlanDropdown, "TOPLEFT", instanceMenu, "BOTTOMLEFT", 0, -74)
+
+    local personalCheck = AF.CreateCheckButton(form, QRA.L["Personal"])
+    AF.SetPoint(personalCheck, "TOPLEFT", instanceMenu, "BOTTOMLEFT", 0, -18)
+    AF.SetTooltip(personalCheck, "TOPLEFT", 0, 2, QRA.L["Create a new empty version on Personal plan"])
+
+    local newVersionCheck = AF.CreateCheckButton(form, QRA.L["Clone"])
+    AF.SetPoint(newVersionCheck, "TOPLEFT", personalCheck, "BOTTOMLEFT", 0, -8)
+    AF.SetTooltip(newVersionCheck, "TOPLEFT", 0, 2, QRA.L["Clone active version of selected source plan"])
+
+    local function GetSelectedSourcePlan()
+        local planId = sourcePlanDropdown:GetSelectedPlanId()
+        return planId and QRA.Plans.Get(planId) or nil
+    end
+
+    local function RefreshSourcePlanSelectionForPersonal()
+        if personalCheck:GetChecked() then
+            sourcePlanDropdown:SetSelectedPlanId(QRA.Plans.GetPersonalPlan().id)
+        elseif newVersionCheck:GetChecked() then
+            local selectedPlan = QRA.Plans.GetSelectedPlan()
+            if selectedPlan and not selectedPlan.isPersonal then
+                sourcePlanDropdown:SetSelectedPlanId(selectedPlan.id)
+            end
+        end
+    end
+
+    local function UpdateNameValue()
+        if personalCheck:GetChecked() then
+            nameInput:SetText(QRA.L["Personal"])
+            return
+        end
+
+        if newVersionCheck:GetChecked() then
+            local sourcePlan = GetSelectedSourcePlan()
+            if sourcePlan then
+                nameInput:SetText(sourcePlan.name)
+            else
+                nameInput:SetText("")
+            end
+            return
+        end
+
+        nameInput:SetText("")
+    end
+
+    local function UpdateFormState()
+        local personal = personalCheck:GetChecked() and true or false
+        local newVersion = newVersionCheck:GetChecked() and true or false
+
+        sourcePlanDropdown:RefreshItems()
+
+        if personal then
+            sourcePlanDropdown:SetSelectedPlanId(QRA.Plans.GetPersonalPlan().id)
+        end
+
+        instanceMenu:SetEnabled((not newVersion) and (not personal))
+        sourcePlanDropdown:SetEnabled(newVersion)
+        if newVersion then
+            sourcePlanDropdown:Show()
+        else
+            sourcePlanDropdown:Hide()
+        end
+
+        if personal then
+            nameInput:SetEnabled(false)
+            if not newVersion and instanceMenu.GetSelectedValue then
+                instanceMenu:SetSelectedValue(QRA.L["All Instances"])
+            end
+        elseif newVersion then
+            nameInput:SetEnabled(false)
+        else
+            nameInput:SetEnabled(true)
+        end
+
+        UpdateNameValue()
+    end
+
+    sourcePlanDropdown:SetOnSelect(function()
+        if newVersionCheck:GetChecked() then
+            UpdateNameValue()
+        end
+    end)
+
+    personalCheck:SetOnCheck(function()
+        if personalCheck:GetChecked() then
+            newVersionCheck:SetChecked(false)
+        end
+        RefreshSourcePlanSelectionForPersonal()
+        UpdateFormState()
+    end)
+
+    newVersionCheck:SetOnCheck(function()
+        if newVersionCheck:GetChecked() then
+            personalCheck:SetChecked(false)
+        end
+        RefreshSourcePlanSelectionForPersonal()
+        UpdateFormState()
+    end)
+
+    local selectedPlan = QRA.Plans.GetSelectedPlan()
+    if selectedPlan and selectedPlan.isPersonal then
+        personalCheck:SetChecked(true)
+        sourcePlanDropdown:SetSelectedPlanId(selectedPlan.id)
+    else
+        personalCheck:SetChecked(false)
+        if selectedPlan and selectedPlan.id then
+            sourcePlanDropdown:SetSelectedPlanId(selectedPlan.id)
+        end
+    end
+    newVersionCheck:SetChecked(false)
+    UpdateFormState()
+
+    if not planEditorFrame.saveBtn then
+        planEditorFrame.saveBtn = AF.CreateButton(planEditorFrame, QRA.L["Save"], "softlime", 80, 26)
+        AF.SetPoint(planEditorFrame.saveBtn, "BOTTOMRIGHT", planEditorFrame, -10, 10)
+    end
+    local saveBtn = planEditorFrame.saveBtn
+
+    if not planEditorFrame.cancelBtn then
+        planEditorFrame.cancelBtn = AF.CreateButton(planEditorFrame, QRA.L["Cancel"], "gray", 80, 26)
+        AF.SetPoint(planEditorFrame.cancelBtn, "RIGHT", planEditorFrame.saveBtn, "LEFT", -10, 0)
+        planEditorFrame.cancelBtn:SetOnClick(function()
+            planEditorFrame:Hide()
+        end)
+    end
+
+    saveBtn:SetOnClick(function()
+        local personal = personalCheck:GetChecked() and true or false
+        local newVersion = newVersionCheck:GetChecked() and true or false
+
+        local targetPlan = nil
+        local targetVersion = nil
+
+        if personal then
+            local personalPlan = QRA.Plans.GetPersonalPlan()
+            targetVersion = QRA.Plans.AddEmptyVersion(personalPlan.id, "manual")
+            targetPlan = personalPlan
+        elseif newVersion then
+            local sourcePlan = GetSelectedSourcePlan()
+            if not sourcePlan then
+                QRA.Print(QRA.L["Please select a source plan."])
+                return
+            end
+
+            targetVersion = QRA.Plans.AddVersionFromActive(sourcePlan.id, "manual")
+            targetPlan = QRA.Plans.Get(sourcePlan.id)
+        else
+            local instanceName = instanceMenu:GetSelectedValue()
+            if not instanceName or instanceName == "" then
+                QRA.Print(QRA.L["Please select an instance."])
+                return
+            end
+
+            local planName = strtrim(nameInput:GetText() or "")
+            if planName == "" then
+                planName = nil
+            end
+
+            targetPlan = QRA.Plans.Create(planName, instanceName)
+            targetVersion = 1
+        end
+
+        if targetPlan and targetVersion then
+            QRA.Plans.SetSelected(targetPlan.id, targetVersion)
+
+            if onConfirm then
+                onConfirm(targetPlan.id, targetVersion)
+            end
+        end
+
+        planEditorFrame:Hide()
+    end)
+
+    planEditorFrame:Show()
+end
+
 ---@class AF_HeaderedFrame
 local exportFrame = nil
 --- Show export dialog
@@ -735,11 +937,68 @@ function QRA.UI.Dialogs.ShowDeleteAllDataDialog(onComplete)
     dialog:SetContent(form, 60)
 
     dialog:SetOnConfirm(function()
-        local allTriggers = QRA.Triggers.GetAll()
-        for _, trigger in ipairs(allTriggers) do
-            QRA.Triggers.DeleteTrigger(trigger.id, false)
+        if QRA.Plans and QRA.Plans.ClearAll then
+            QRA.Plans.ClearAll(false)
         end
         if onComplete then onComplete() end
+    end)
+end
+
+--------------------------------------------------
+-- Delete Plan/Version Dialog
+--------------------------------------------------
+
+---@param planId string
+---@param version number
+---@param onComplete function|nil
+function QRA.UI.Dialogs.ShowDeletePlanOrVersionDialog(planId, version, onComplete)
+    local plan = QRA.Plans.Get(planId)
+    if not plan then
+        QRA.Print(QRA.L["Plan not found."])
+        return
+    end
+
+    local isLastVersion = #plan.versions <= 1
+    local actionText = isLastVersion and QRA.L["Delete Plan"] or QRA.L["Delete Version"]
+    local titleText = isLastVersion and QRA.L["Delete Plan"] or QRA.L["Delete Version"]
+
+    local form = CreateFrame("Frame", nil, mainFrame)
+    AF.SetSize(form, 360, 56)
+
+    local message
+    if isLastVersion then
+        message = string.format(QRA.L["Delete plan '%s' and all data?"], plan.name)
+    else
+        message = string.format(QRA.L["Delete %s from '%s'?"], "v" .. tostring(version), plan.name)
+    end
+
+    local msgFS = AF.CreateFontString(form, message, "white")
+    AF.SetPoint(msgFS, "TOPLEFT", 0, 0)
+
+    local noteFS = AF.CreateFontString(form, QRA.L["This cannot be undone."], "red")
+    AF.SetPoint(noteFS, "TOPLEFT", msgFS, "BOTTOMLEFT", 0, -8)
+
+    local dialog = AF.GetDialog(mainFrame, AF.WrapTextInColor(titleText, "red"), 420)
+    AF.SetPoint(dialog, "CENTER", mainFrame, 0, 0)
+    dialog:SetContent(form, 70)
+    dialog:SetToCustom(actionText, QRA.L["Cancel"], 95)
+
+    dialog:SetOnConfirm(function()
+        local deleted, reason = QRA.Plans.DeletePlanOrVersion(planId, version)
+        if not deleted then
+            if reason == "personal_protected" then
+                QRA.Print(QRA.L["Personal plan cannot be deleted."])
+            elseif reason == "not_found" then
+                QRA.Print(QRA.L["Plan not found."])
+            else
+                QRA.Print(QRA.L["Failed to delete plan/version."])
+            end
+            return
+        end
+
+        if onComplete then
+            onComplete()
+        end
     end)
 end
 

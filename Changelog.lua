@@ -78,6 +78,27 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
+        version = "2.0.0",
+        changes = {
+            "Siege support and removed ToT bosses",
+            "Added plans feature to create and manage multiple sets of triggers and assignments for different strategies or boss mechanics",
+            "Added notes feature to create and manage free-form notes that can be used for planning. Notes auto switch based on boss.",
+            "Both of these feature raid leader and personal plans/notes"
+        }
+    },
+    {
+        version = "1.4.0",
+        changes = {
+            "Added Delete boss and Delete all data buttons",
+        }
+    },
+    {
+        version = "1.3.1",
+        changes = {
+            "Added missing paladin and priest CDs"
+        }
+    },
+    {
         version = "1.3.0",
         changes = {
             "Supports stacking notifications for multiple assignments triggered simultaneously",

@@ -465,7 +465,7 @@ function EventFirer.FireTimerTrigger(triggerId)
 
     -- Fire the timer trigger's assignments directly
     if QRA.Assignments and QRA.Assignments.ExecuteForTrigger then
-        QRA.Assignments.ExecuteForTrigger(triggerId, { time = trigger.time }, 1)
+        QRA.Assignments.ExecuteForTrigger(triggerId, { time = trigger.time }, 1, trigger)
     end
 
     QRA.DevMode.EventHistory.AddEvent("TIMER", {

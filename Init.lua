@@ -8,7 +8,7 @@ local QRA = select(2, ...)
 QRA = QRA or {}
 
 QRA.name = "QRaidAssignments"
-QRA.version = "1.3.1"
+QRA.version = "2.0.0"
 
 --------------------------------------------------
 -- Pre-initialize module tables
@@ -17,6 +17,8 @@ QRA.L = {}
 QRA.UI = {}
 QRA.Triggers = {}
 QRA.Assignments = {}
+QRA.Plans = {}
+QRA.Notes = {}
 QRA.Templates = {}
 QRA.Widgets = {}
 QRA.Notifications = {}
@@ -61,6 +63,22 @@ AF.SetAddonAccentColor(QRA.name, "softlime")
 ---@field hpThresholds? string comma separated list of hp thresholds
 ---@field assignments Assignment[]
 ---@field createdAt integer
+
+---@class PlanVersion
+---@field version number
+---@field triggers Trigger[]
+---@field createdAt integer
+---@field source? string
+
+---@class Plan
+---@field id string
+---@field name string
+---@field instanceName string
+---@field isPersonal boolean
+---@field versions PlanVersion[]
+---@field activeVersion number
+---@field createdAt integer
+---@field updatedAt integer
 
 ---@alias AlertType
 ---| 'TTS'
