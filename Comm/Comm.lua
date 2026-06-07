@@ -49,21 +49,6 @@ end
 
 ---@param data any
 ---@return boolean
-local function IsLegacyTriggerList(data)
-    if type(data) ~= "table" then
-        return false
-    end
-
-    if #data == 0 then
-        return false
-    end
-
-    local first = data[1]
-    return type(first) == "table" and first.id ~= nil and first.type ~= nil
-end
-
----@param data any
----@return boolean
 local function IsPlanPayload(data)
     return type(data) == "table"
         and data.type == "plan"
@@ -108,41 +93,6 @@ local function ImportPlanPayload(payload)
         QRA.Notes.ReplaceAll(payload.notes)
     end
 
-    if QRA.UI and QRA.UI.SetPlanSelection and importedPlan then
-        QRA.UI.SetPlanSelection(importedPlan.id, importedVersion)
-    end
-end
-
----@param incomingTriggers Trigger[]
-local function ImportLegacyTriggerList(incomingTriggers)
-    local selectedPlan = QRA.Plans.GetSelectedPlan()
-
-    if not selectedPlan or selectedPlan.isPersonal then
-        local generatedName = QRA.Plans.GetDefaultPlanName("Imported")
-        selectedPlan = QRA.Plans.Create(generatedName, QRA.L["All Instances"])
-    end
-
-    local baseVersion = QRA.Plans.GetSelectedVersion()
-    local existing = QRA.Plans.GetTriggersForVersion(selectedPlan.id, baseVersion)
-    local merged = CopyTriggersAndAssignments(existing)
-    local mergedIndex = {}
-
-    for i, trigger in ipairs(merged) do
-        mergedIndex[trigger.id] = i
-    end
-
-    for _, incoming in ipairs(incomingTriggers) do
-        local copied = QRA.DeepCopy(incoming)
-        local idx = mergedIndex[copied.id]
-        if idx then
-            merged[idx] = copied
-        else
-            table.insert(merged, copied)
-            mergedIndex[copied.id] = #merged
-        end
-    end
-
-    local importedPlan, importedVersion = QRA.Plans.ImportReplaceActiveVersion(selectedPlan.name, selectedPlan.instanceName, merged, "legacy-import")
     if QRA.UI and QRA.UI.SetPlanSelection and importedPlan then
         QRA.UI.SetPlanSelection(importedPlan.id, importedVersion)
     end
@@ -233,8 +183,6 @@ local function ImportData(input, isSerialized, isForAddonChannel)
         QRA.Debug("Comm: Deserialized Data", data)
         if IsPlanPayload(data) then
             ImportPlanPayload(data)
-        elseif IsLegacyTriggerList(data) then
-            ImportLegacyTriggerList(data)
         else
             QRA.Print("Comm: Unsupported import format")
             return

@@ -553,7 +553,7 @@ function QRA.UI.Dialogs.ShowNewPlanDialog(onConfirm)
     AF.SetPoint(personalCheck, "TOPLEFT", instanceMenu, "BOTTOMLEFT", 0, -18)
     AF.SetTooltip(personalCheck, "TOPLEFT", 0, 2, QRA.L["Create a new empty version on Personal plan"])
 
-    local newVersionCheck = AF.CreateCheckButton(form, QRA.L["New Version"])
+    local newVersionCheck = AF.CreateCheckButton(form, QRA.L["Clone"])
     AF.SetPoint(newVersionCheck, "TOPLEFT", personalCheck, "BOTTOMLEFT", 0, -8)
     AF.SetTooltip(newVersionCheck, "TOPLEFT", 0, 2, QRA.L["Clone active version of selected source plan"])
 

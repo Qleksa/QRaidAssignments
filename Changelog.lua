@@ -78,10 +78,12 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
-        version = "1.5.0",
+        version = "2.0.0",
         changes = {
-            "First prep for Siege",
-            "Added Plans feature to create and manage multiple sets of triggers and assignments for different strategies or boss mechanics",
+            "Siege support and removed ToT bosses",
+            "Added plans feature to create and manage multiple sets of triggers and assignments for different strategies or boss mechanics",
+            "Added notes feature to create and manage free-form notes that can be used for planning. Notes auto switch based on boss.",
+            "Both of these feature raid leader and personal plans/notes"
         }
     },
     {
