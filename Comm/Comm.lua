@@ -338,12 +338,23 @@ function QRA.Comm.SendNotesToRaid()
     end
 
     local notes = QRA.Notes and QRA.Notes.GetAllRaw and QRA.DeepCopy(QRA.Notes.GetAllRaw()) or {}
+
+    local notesToSend = {}
+    for encounterId, note in pairs(notes) do
+        if note.text and note.text ~= "" then
+            notesToSend[encounterId] = note
+        end
+    end
+    QRA.Debug(notesToSend)
+
     local payload = {
         type = "NOTES",
-        data = notes,
+        data = notesToSend,
         timestamp = time(),
         author = UnitName("player"),
     }
+
+    local serialized = QRA.Serialize(payload, true)
 
     QRA.SendCommMessage(COMM_PREFIX, payload, "BULK", function(_, sentBytes, totalBytes, didSend)
         QRA.Debug("Comm: Notes bundle sent", sentBytes, "of", totalBytes, "bytes")
