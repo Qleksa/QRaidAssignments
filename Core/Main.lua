@@ -199,6 +199,11 @@ end
 
 ---@param forcedBossData? BossData
 function QRA.CheckBossZone(forcedBossData)
+    local isInInstance, instanceType = IsInInstance()
+    if (not isInInstance or (instanceType ~= "raid")) then
+        return
+    end
+
     if not QRA.Settings.noteFrame or not QRA.Settings.noteFrame.enabled then
         return
     end
