@@ -82,7 +82,7 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
         "QRA_SettingsPanel",
         QRA.L["Settings"],
         300,
-        560
+        600
     )
     AF.SetPoint(settingsFrame, "CENTER", QRA.UIParent, 0, 0)
     settingsFrame:SetFrameStrata("DIALOG")
@@ -149,11 +149,11 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     AF.SetPoint(testScreenBtn, "TOPLEFT", testTTSBtn, "BOTTOMLEFT", 0, -8)
     testScreenBtn:SetOnClick(QRA.Notifications.TestScreen)
 
-    local testCountdownBtn = AF.CreateButton(content, QRA.L["Test Countdown"], "static", 110, 22)
+    local testCountdownBtn = AF.CreateButton(content, QRA.L["Test Countdown"], "static", 120, 22)
     AF.SetPoint(testCountdownBtn, "LEFT", testScreenBtn, "RIGHT", 8, 0)
     testCountdownBtn:SetOnClick(QRA.Notifications.TestCountdown)
 
-    local testMultipleCountdowns = AF.CreateButton(content, "Test Multiple Countdowns", "static", 170, 22)
+    local testMultipleCountdowns = AF.CreateButton(content, "Test Multiple Countdowns", "static", 190, 22)
     AF.SetPoint(testMultipleCountdowns, "TOPLEFT", testScreenBtn, "BOTTOMLEFT", 0, -8)
     testMultipleCountdowns:SetOnClick(QRA.Notifications.TestMultipleCountdowns)
 
@@ -189,35 +189,35 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     noteEnabledCheck:SetChecked(QRA.Notes and QRA.Notes.IsEnabled and QRA.Notes.IsEnabled() or false)
     settingsFrame.noteEnabledCheck = noteEnabledCheck
 
-    local noteConfigBtn = AF.CreateButton(content, QRA.L["Open Note Config"], "static", 120, 22)
-    AF.SetPoint(noteConfigBtn, "TOPLEFT", noteEnabledCheck, "BOTTOMLEFT", 0, -8)
+    local personalNoteEnabledCheck = AF.CreateCheckButton(content, QRA.L["Enable Personal Note"], function(checked)
+        if QRA.Notes and QRA.Notes.SetPersonalEnabled then
+            QRA.Notes.SetPersonalEnabled(checked)
+        end
+    end)
+    AF.SetPoint(personalNoteEnabledCheck, "TOPLEFT", noteEnabledCheck, "BOTTOMLEFT", 0, -8)
+    personalNoteEnabledCheck:SetChecked(QRA.Notes and QRA.Notes.IsPersonalEnabled and QRA.Notes.IsPersonalEnabled() or false)
+    settingsFrame.personalNoteEnabledCheck = personalNoteEnabledCheck
+    UpdatePersonalNoteCheckboxState()
+
+    local noteConfigBtn = AF.CreateButton(content, QRA.L["Open Note Config"], "static", 140, 22)
+    AF.SetPoint(noteConfigBtn, "TOPLEFT", personalNoteEnabledCheck, "BOTTOMLEFT", 0, -8)
     noteConfigBtn:SetOnClick(function()
         if QRA.Notes and QRA.Notes.ShowConfig then
             QRA.Notes.ShowConfig()
         end
     end)
 
-    local pushNotesBtn = AF.CreateButton(content, QRA.L["Push Notes to Raid"], "static", 120, 22)
-    AF.SetPoint(pushNotesBtn, "LEFT", noteConfigBtn, "RIGHT", 8, 0)
+    local pushNotesBtn = AF.CreateButton(content, QRA.L["Push Notes to Raid"], "static", 140, 22)
+    AF.SetPoint(pushNotesBtn, "TOPLEFT", noteConfigBtn, "BOTTOMLEFT", 0, -8)
     pushNotesBtn:SetOnClick(function()
         if QRA.Comm and QRA.Comm.SendNotesToRaid then
             QRA.Comm.SendNotesToRaid()
         end
     end)
 
-    local personalNoteEnabledCheck = AF.CreateCheckButton(content, QRA.L["Enable Personal Note"], function(checked)
-        if QRA.Notes and QRA.Notes.SetPersonalEnabled then
-            QRA.Notes.SetPersonalEnabled(checked)
-        end
-    end)
-    AF.SetPoint(personalNoteEnabledCheck, "TOPLEFT", noteConfigBtn, "BOTTOMLEFT", 0, -8)
-    personalNoteEnabledCheck:SetChecked(QRA.Notes and QRA.Notes.IsPersonalEnabled and QRA.Notes.IsPersonalEnabled() or false)
-    settingsFrame.personalNoteEnabledCheck = personalNoteEnabledCheck
-    UpdatePersonalNoteCheckboxState()
-
     -- Debug section
     local debugHeader = CreateSectionHeader(content, QRA.L["Debug"])
-    AF.SetPoint(debugHeader, "TOPLEFT", personalNoteEnabledCheck, "BOTTOMLEFT", 0, -20)
+    AF.SetPoint(debugHeader, "TOPLEFT", pushNotesBtn, "BOTTOMLEFT", -10, -20)
     AF.SetPoint(debugHeader, "TOPRIGHT", content, 0, 0)
 
     local debugCheck = AF.CreateCheckButton(content, QRA.L["Enable Debug Mode"], function(checked)

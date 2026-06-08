@@ -446,7 +446,7 @@ local function ShowConfigFrame(openPersonal)
     configFrame.personalNoteEnabledCheck = personalNoteEnabledCheck
     UpdatePersonalToggleState()
 
-    local unlockBtn = AF.CreateButton(content, QRA.L["Show Movers"], "static", 100, 22)
+    local unlockBtn = AF.CreateButton(content, QRA.L["Show Movers"], "static", 106, 22)
     AF.SetPoint(unlockBtn, "LEFT", personalNoteEnabledCheck, "RIGHT", 160, 0)
     unlockBtn:SetOnClick(function()
         AF.ShowMovers(MOVER_GROUP)
@@ -707,7 +707,7 @@ local function ShowConfigFrame(openPersonal)
         end
     end
 
-    local pushBtn = AF.CreateButton(content, QRA.L["Push Notes to Raid"], "softblue", 135, 24)
+    local pushBtn = AF.CreateButton(content, QRA.L["Push Notes to Raid"], "softblue", 142, 24)
     AF.SetPoint(pushBtn, "TOPLEFT", editor, "BOTTOMLEFT", 0, -8)
     pushBtn:SetOnClick(function()
         if QRA.Comm and QRA.Comm.SendNotesToRaid then
@@ -736,8 +736,7 @@ function QRA.Notes.ShowConfig(openPersonal)
 end
 
 function QRA.Notes.GetAllRaw()
-    QRA.DB.notes = QRA.DB.notes or {}
-    return QRA.DB.notes
+    return QRA.DB.notes or {}
 end
 
 ---@param incoming table
