@@ -13,6 +13,9 @@ QRA.Notes = QRA.Notes or {}
 
 local personalNoteFrame = nil
 local personalNoteText = nil
+local personalNoteScrollFrame = nil
+local personalNoteContentFrame = nil
+local personalNoteResizeButton = nil
 
 local MOVER_GROUP = "QRA Movers"
 
@@ -29,6 +32,9 @@ local function EnsurePersonalSettings()
     if settings.enabled == nil then
         settings.enabled = false
     end
+
+    settings.size = settings.size or { width = 460, height = 280 }
+    settings.locked = settings.locked or false
 
     return settings
 end
@@ -76,15 +82,27 @@ local function GetPersonalDisplayText()
     return raw
 end
 
+local function UpdatePersonalNoteContentHeight()
+    if not personalNoteContentFrame or not personalNoteText or not personalNoteScrollFrame then return end
+    local w = personalNoteScrollFrame:GetWidth()
+    personalNoteContentFrame:SetWidth(w)
+    personalNoteText:SetWidth(w)
+    local th = personalNoteText:GetStringHeight()
+    personalNoteContentFrame:SetHeight(math.max(th, personalNoteScrollFrame:GetHeight()))
+end
+
 local function ApplyPersonalNoteText()
     if not personalNoteText then return end
     personalNoteText:SetText(GetPersonalDisplayText())
+    if personalNoteScrollFrame then personalNoteScrollFrame:SetVerticalScroll(0) end
+    UpdatePersonalNoteContentHeight()
 end
 
 function QRA.Notes.ApplyPersonalNoteFont(fontName, fontSize, lineSpacing)
     if not personalNoteText then return end
     AF.SetFont(personalNoteText, fontName, fontSize, "none", true)
     personalNoteText:SetSpacing(lineSpacing)
+    UpdatePersonalNoteContentHeight()
 end
 
 local function EnsurePersonalNoteFrame()
@@ -93,9 +111,10 @@ local function EnsurePersonalNoteFrame()
     end
 
     local settings = EnsurePersonalSettings()
+    local sz = settings.size
 
     personalNoteFrame = CreateFrame("Frame", "QRA_PersonalNoteFrame", QRA.UIParent)
-    personalNoteFrame:SetSize(460, 280)
+    personalNoteFrame:SetSize(sz.width, sz.height)
     personalNoteFrame:SetFrameStrata("MEDIUM")
 
     personalNoteFrame:ClearAllPoints()
@@ -107,14 +126,38 @@ local function EnsurePersonalNoteFrame()
         settings.position.yOfs or 0
     )
 
-    personalNoteText = personalNoteFrame:CreateFontString(nil, "OVERLAY")
-    AF.SetPoint(personalNoteText, "TOPLEFT", personalNoteFrame, 0, 0)
-    AF.SetPoint(personalNoteText, "TOPRIGHT", personalNoteFrame, 0, 0)
-    AF.SetPoint(personalNoteText, "BOTTOMLEFT", personalNoteFrame, 0, 0)
-    AF.SetPoint(personalNoteText, "BOTTOMRIGHT", personalNoteFrame, 0, 0)
+    personalNoteScrollFrame = CreateFrame("ScrollFrame", nil, personalNoteFrame)
+    personalNoteScrollFrame:SetAllPoints(personalNoteFrame)
+
+    personalNoteContentFrame = CreateFrame("Frame")
+    personalNoteContentFrame:SetWidth(sz.width)
+    personalNoteContentFrame:SetHeight(sz.height)
+    personalNoteScrollFrame:SetScrollChild(personalNoteContentFrame)
+
+    personalNoteText = personalNoteContentFrame:CreateFontString(nil, "OVERLAY")
+    AF.SetPoint(personalNoteText, "TOPLEFT", personalNoteContentFrame, 0, 0)
+    AF.SetPoint(personalNoteText, "TOPRIGHT", personalNoteContentFrame, 0, 0)
     personalNoteText:SetJustifyH("LEFT")
     personalNoteText:SetJustifyV("TOP")
     personalNoteText:SetWordWrap(true)
+
+    personalNoteFrame:EnableMouseWheel(true)
+    personalNoteFrame:SetScript("OnMouseWheel", function(self, delta)
+        local cur = personalNoteScrollFrame:GetVerticalScroll()
+        local max = personalNoteScrollFrame:GetVerticalScrollRange()
+        personalNoteScrollFrame:SetVerticalScroll(math.max(0, math.min(max, cur - delta * 20)))
+    end)
+
+    if not settings.locked then
+        personalNoteResizeButton = AF.CreateResizeButton(personalNoteFrame, 200, 80)
+    end
+
+    personalNoteFrame:SetScript("OnSizeChanged", function(self, w, h)
+        local s = EnsurePersonalSettings()
+        s.size.width = w
+        s.size.height = h
+        UpdatePersonalNoteContentHeight()
+    end)
 
     local fontName, fontSize, lineSpacing = "Noto_AP", 14, 2
     if QRA.Notes.GetDisplayFontSettings then
@@ -173,6 +216,20 @@ function QRA.Notes.TogglePersonalEnabled()
     local enabled = not QRA.Notes.IsPersonalEnabled()
     QRA.Notes.SetPersonalEnabled(enabled)
     return enabled
+end
+
+function QRA.Notes.SetPersonalLocked(locked)
+    local settings = EnsurePersonalSettings()
+    settings.locked = locked == true
+
+    EnsurePersonalNoteFrame()
+    if locked and personalNoteResizeButton then
+        personalNoteResizeButton:Hide()
+    elseif not locked and personalNoteResizeButton then
+        personalNoteResizeButton:Show()
+    elseif not locked and not personalNoteResizeButton then
+        personalNoteResizeButton = AF.CreateResizeButton(personalNoteFrame, 200, 80)
+    end
 end
 
 local previousInitialize = QRA.Notes.Initialize

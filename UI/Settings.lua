@@ -82,7 +82,7 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
         "QRA_SettingsPanel",
         QRA.L["Settings"],
         300,
-        600
+        650
     )
     AF.SetPoint(settingsFrame, "CENTER", QRA.UIParent, 0, 0)
     settingsFrame:SetFrameStrata("DIALOG")
@@ -199,8 +199,23 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     settingsFrame.personalNoteEnabledCheck = personalNoteEnabledCheck
     UpdatePersonalNoteCheckboxState()
 
+    local lockFramesCheck = AF.CreateCheckButton(content, QRA.L["Lock Frames"], function(checked)
+        if QRA.Notes and QRA.Notes.SetLocked then
+            QRA.Notes.SetLocked(checked)
+        end
+    end)
+    AF.SetPoint(lockFramesCheck, "TOPLEFT", personalNoteEnabledCheck, "BOTTOMLEFT", 0, -8)
+    lockFramesCheck:SetChecked(QRA.Notes and QRA.Notes.IsLocked and QRA.Notes.IsLocked() or false)
+    settingsFrame.lockFramesCheck = lockFramesCheck
+
+    local showMoversNotesBtn = AF.CreateButton(content, QRA.L["Show Movers"], "static", 115, 26)
+    AF.SetPoint(showMoversNotesBtn, "TOPLEFT", lockFramesCheck, "BOTTOMLEFT", 0, -8)
+    showMoversNotesBtn:SetOnClick(function()
+        AF.ShowMovers("QRA Movers")
+    end)
+
     local noteConfigBtn = AF.CreateButton(content, QRA.L["Open Note Config"], "static", 140, 22)
-    AF.SetPoint(noteConfigBtn, "TOPLEFT", personalNoteEnabledCheck, "BOTTOMLEFT", 0, -8)
+    AF.SetPoint(noteConfigBtn, "TOPLEFT", showMoversNotesBtn, "BOTTOMLEFT", 0, -8)
     noteConfigBtn:SetOnClick(function()
         if QRA.Notes and QRA.Notes.ShowConfig then
             QRA.Notes.ShowConfig()

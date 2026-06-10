@@ -13,6 +13,9 @@ QRA.Notes = QRA.Notes or {}
 
 local noteFrame = nil
 local noteText = nil
+local noteScrollFrame = nil
+local noteContentFrame = nil
+local noteResizeButton = nil
 local configFrame = nil
 
 local currentEncounterId = nil
@@ -64,6 +67,9 @@ local function GetSettings()
     if type(settings.lastSelectedNote) ~= "table" then
         settings.lastSelectedNote = nil
     end
+
+    settings.size = settings.size or { width = 460, height = 280 }
+    settings.locked = settings.locked or false
 
     return settings
 end
@@ -135,6 +141,15 @@ local function GetCurrentDisplayText()
     return raw
 end
 
+local function UpdateNoteContentHeight()
+    if not noteContentFrame or not noteText or not noteScrollFrame then return end
+    local w = noteScrollFrame:GetWidth()
+    noteContentFrame:SetWidth(w)
+    noteText:SetWidth(w)
+    local th = noteText:GetStringHeight()
+    noteContentFrame:SetHeight(math.max(th, noteScrollFrame:GetHeight()))
+end
+
 local function ApplyNoteFont()
     if not noteText then return end
 
@@ -145,11 +160,15 @@ local function ApplyNoteFont()
     if QRA.Notes.ApplyPersonalNoteFont then
         QRA.Notes.ApplyPersonalNoteFont(settings.fontName, settings.fontSize, settings.lineSpacing)
     end
+
+    UpdateNoteContentHeight()
 end
 
 local function RefreshDisplayText()
     if not noteText then return end
     noteText:SetText(GetCurrentDisplayText())
+    if noteScrollFrame then noteScrollFrame:SetVerticalScroll(0) end
+    UpdateNoteContentHeight()
 end
 
 local function EnsureNoteFrame()
@@ -158,9 +177,10 @@ local function EnsureNoteFrame()
     end
 
     local settings = GetSettings()
+    local sz = settings.size
 
     noteFrame = CreateFrame("Frame", "QRA_NoteFrame", QRA.UIParent)
-    noteFrame:SetSize(460, 280)
+    noteFrame:SetSize(sz.width, sz.height)
     noteFrame:SetFrameStrata("MEDIUM")
 
     noteFrame:ClearAllPoints()
@@ -172,15 +192,39 @@ local function EnsureNoteFrame()
         settings.position.yOfs or 0
     )
 
-    noteText = noteFrame:CreateFontString(nil, "OVERLAY")
+    noteScrollFrame = CreateFrame("ScrollFrame", nil, noteFrame)
+    noteScrollFrame:SetAllPoints(noteFrame)
+
+    noteContentFrame = CreateFrame("Frame")
+    noteContentFrame:SetWidth(sz.width)
+    noteContentFrame:SetHeight(sz.height)
+    noteScrollFrame:SetScrollChild(noteContentFrame)
+
+    noteText = noteContentFrame:CreateFontString(nil, "OVERLAY")
     noteFrame.noteText = noteText
-    AF.SetPoint(noteText, "TOPLEFT", noteFrame, 0, 0)
-    AF.SetPoint(noteText, "TOPRIGHT", noteFrame, 0, 0)
-    AF.SetPoint(noteText, "BOTTOMLEFT", noteFrame, 0, 0)
-    AF.SetPoint(noteText, "BOTTOMRIGHT", noteFrame, 0, 0)
+    AF.SetPoint(noteText, "TOPLEFT", noteContentFrame, 0, 0)
+    AF.SetPoint(noteText, "TOPRIGHT", noteContentFrame, 0, 0)
     noteText:SetJustifyH("LEFT")
     noteText:SetJustifyV("TOP")
     noteText:SetWordWrap(true)
+
+    noteFrame:EnableMouseWheel(true)
+    noteFrame:SetScript("OnMouseWheel", function(self, delta)
+        local cur = noteScrollFrame:GetVerticalScroll()
+        local max = noteScrollFrame:GetVerticalScrollRange()
+        noteScrollFrame:SetVerticalScroll(math.max(0, math.min(max, cur - delta * 20)))
+    end)
+
+    if not settings.locked then
+        noteResizeButton = AF.CreateResizeButton(noteFrame, 200, 80)
+    end
+
+    noteFrame:SetScript("OnSizeChanged", function(self, w, h)
+        local s = GetSettings()
+        s.size.width = w
+        s.size.height = h
+        UpdateNoteContentHeight()
+    end)
 
     ApplyNoteFont()
     RefreshDisplayText()
@@ -279,9 +323,32 @@ function QRA.Notes.ToggleEnabled()
     return enabled
 end
 
----@return number|nil
-function QRA.Notes.GetCurrentEncounter()
-    return currentEncounterId
+function QRA.Notes.SetLocked(locked)
+    local settings = GetSettings()
+    settings.locked = locked == true
+
+    EnsureNoteFrame()
+    if locked and noteResizeButton then
+        noteResizeButton:Hide()
+    elseif not locked and noteResizeButton then
+        noteResizeButton:Show()
+    elseif not locked and not noteResizeButton then
+        noteResizeButton = AF.CreateResizeButton(noteFrame, 200, 80)
+    end
+
+    if QRA.Notes.SetPersonalLocked then
+        QRA.Notes.SetPersonalLocked(locked)
+    end
+end
+
+function QRA.Notes.LockNotes()
+    local locked = not GetSettings().locked
+    QRA.Notes.SetLocked(locked)
+    return locked
+end
+
+function QRA.Notes.IsLocked()
+    return GetSettings().locked == true
 end
 
 ---@return string|nil
@@ -412,6 +479,7 @@ local function ShowConfigFrame(openPersonal)
         return
     end
 
+    ---@class AF_HeaderedFrame
     configFrame = AF.CreateHeaderedFrame(
         QRA.UIParent,
         "QRA_NoteConfigFrame",
@@ -446,15 +514,24 @@ local function ShowConfigFrame(openPersonal)
     configFrame.personalNoteEnabledCheck = personalNoteEnabledCheck
     UpdatePersonalToggleState()
 
+    local lockFramesCheck = AF.CreateCheckButton(content, QRA.L["Lock Frames"], function(checked)
+        if QRA.Notes and QRA.Notes.SetLocked then
+            QRA.Notes.SetLocked(checked)
+        end
+    end)
+    AF.SetPoint(lockFramesCheck, "LEFT", personalNoteEnabledCheck, "RIGHT", 160, 0)
+    lockFramesCheck:SetChecked(GetSettings().locked)
+    configFrame.lockFramesCheck = lockFramesCheck
+
     local unlockBtn = AF.CreateButton(content, QRA.L["Show Movers"], "static", 106, 22)
-    AF.SetPoint(unlockBtn, "LEFT", personalNoteEnabledCheck, "RIGHT", 160, 0)
+    AF.SetPoint(unlockBtn, "TOPLEFT", noteEnabledCheck, "BOTTOMLEFT", 0, -8)
     unlockBtn:SetOnClick(function()
         AF.ShowMovers(MOVER_GROUP)
     end)
 
     local fontDropdown = AF.CreateDropdown(content, 250)
     fontDropdown:SetLabel(QRA.L["Note Font"])
-    AF.SetPoint(fontDropdown, "TOPLEFT", noteEnabledCheck, "BOTTOMLEFT", 0, -25)
+    AF.SetPoint(fontDropdown, "TOPLEFT", unlockBtn, "BOTTOMLEFT", 0, -25)
     fontDropdown:SetItems(AF.LSM_GetFontDropdownItems())
 
     local currentSettings = GetSettings()

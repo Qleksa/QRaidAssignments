@@ -280,6 +280,7 @@ SlashCmdList.QRAASSIGNMENTS = function(msg)
         QRA.Print("  /qra note - Toggle notes display")
         QRA.Print("  /qra note config - Open note config")
         QRA.Print("  /qra note push - Push notes to raid")
+        QRA.Print("  /qra note lock - Toggle note frame lock")
         QRA.Print("  /qra pnote - Toggle personal note display")
         QRA.Print("  /qra pnote config - Open note config")
     elseif msg == "hide" then
@@ -321,8 +322,13 @@ SlashCmdList.QRAASSIGNMENTS = function(msg)
             if QRA.Comm and QRA.Comm.SendNotesToRaid then
                 QRA.Comm.SendNotesToRaid()
             end
+        elseif sub == "lock" then
+            if QRA.Notes and QRA.Notes.LockNotes then
+                local locked = QRA.Notes.LockNotes()
+                QRA.Print(QRA.L["Note frames:"], locked and QRA.L["Locked"] or QRA.L["Unlocked"])
+            end
         else
-            QRA.Print("Unknown note command. Use /qra note, /qra note config, or /qra note push")
+            QRA.Print("Unknown note command. Use /qra note, /qra note config, /qra note push, or /qra note lock")
         end
     elseif msg:find("^pnote") then
         local sub = msg:match("^pnote%s+(.+)$")
