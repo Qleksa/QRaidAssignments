@@ -78,6 +78,12 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
+        version = "2.1.0",
+        changes = {
+            "Added resizing option for Notes"
+        }
+    },
+    {
         version = "2.0.0",
         changes = {
             "Siege support and removed ToT bosses",
