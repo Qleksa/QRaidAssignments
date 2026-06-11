@@ -78,6 +78,13 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
+        version = "2.1.2",
+        changes = {
+            "Using new Blizzards TTS API",
+            "Adjusted logging with better timestamp and removed some redundant logs"
+        }
+    },
+    {
         version = "2.1.0",
         changes = {
             "Added resizing option for Notes"
