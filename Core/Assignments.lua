@@ -503,25 +503,6 @@ function QRA.Assignments.ExecuteAlert(assignment, eventData)
     QRA.Notifications.Notify(assignment.alertType, message, assignment.soundFile)
 end
 
---------------------------------------------------
--- Persistence (No longer needed - assignments save with triggers)
---------------------------------------------------
-
---- SaveToDB is now a no-op since assignments are embedded in triggers
-function QRA.Assignments.SaveToDB()
-    -- Assignments are now saved as part of triggers
-    -- This function kept for backward compatibility
-    QRA.Debug("Assignments: SaveToDB called (no-op, embedded in triggers)")
-end
-
---- LoadFromDB is now a no-op since assignments load with triggers
-function QRA.Assignments.LoadFromDB()
-    -- Assignments are now loaded as part of triggers
-    -- This function kept for backward compatibility
-    QRA.Debug("Assignments: LoadFromDB called (no-op, embedded in triggers)")
-end
-
---------------------------------------------------
 -- Initialization
 --------------------------------------------------
 

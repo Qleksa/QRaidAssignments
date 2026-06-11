@@ -87,6 +87,7 @@ local function ImportPlanPayload(payload)
         incomingName = incomingName .. " (Shared)"
     end
 
+    QRA.Logger.Log("Comm: Received plan '" .. incomingName .. "' for instance '" .. instanceName)
     local importedPlan, importedVersion = QRA.Plans.ImportReplaceActiveVersion(incomingName, instanceName, payload.triggers or {}, "import")
 
     if payload.notes and QRA.Notes and QRA.Notes.ReplaceAll then
@@ -254,6 +255,7 @@ function QRA.Comm.HandleIncomingNotes(notesData, sender)
     end
 
     QRA.Debug("Comm: Notes bundle updated from", sender)
+    QRA.Logger.Log("Comm: Received notes from " .. sender)
 end
 
 ---@param noteData table

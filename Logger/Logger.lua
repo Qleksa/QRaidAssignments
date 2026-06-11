@@ -13,7 +13,7 @@ local Logger = QRA.Logger ---@class Logger
 local logs = {}
 
 function QRA.Logger.Log(message)
-    table.insert(logs, date() .. ': ' .. message)
+    table.insert(logs, date("%m/%d/%y %H:%M:%S") .. ': ' .. message)
 end
 
 function QRA.Logger.SaveLogs()

@@ -237,7 +237,6 @@ end
 QRA.UIParent:RegisterEvent("PLAYER_LOGOUT")
 function QRA.UIParent:PLAYER_LOGOUT()
     if QRA.Logger and QRA.Logger.SaveLogs then
-        QRA.Debug("Saving logs to DB")
         QRA.Logger.SaveLogs()
     end
     if QRA.Assignments and QRA.Assignments.SaveToDB then

@@ -872,7 +872,7 @@ function QRA.Triggers.Fire(trigger, eventData)
             local initialDelay, interval, repeatCount = ParseDelay(trigger.activateIn)
 
             QRA.Debug("Triggers: Delaying activation by", initialDelay, "seconds")
-            QRA.Logger.Log("  delayed by " .. initialDelay .. " seconds" .. (interval and (", then every " .. interval .. " seconds") or "") .. (repeatCount and (", for " .. repeatCount .. " times") or ""))
+            -- QRA.Logger.Log("  delayed by " .. initialDelay .. " seconds" .. (interval and (", then every " .. interval .. " seconds") or "") .. (repeatCount and (", for " .. repeatCount .. " times") or ""))
 
             QRA.DelayedInvoke(initialDelay, function()
                 QRA.Assignments.ExecuteForTrigger(trigger.id, eventData, currentCounter, trigger)
@@ -926,11 +926,11 @@ local function GetUnitDiedEventTriggers(destGUID)
     local npcId = GetNpcIdFromGuid(destGUID)
     if npcId then
         QRA.Debug("Extracted NPC ID:", npcId)
-        QRA.Logger.Log("UNIT_DIED detected for NPC ID: " .. npcId)
+        -- QRA.Logger.Log("UNIT_DIED detected for NPC ID: " .. npcId)
 
         if eventBucket[npcId] then
             QRA.Debug("Found NPC triggers for ID", npcId, ":", eventBucket[npcId])
-            QRA.Logger.Log("Found NPC-specific triggers for NPC ID: " .. npcId)
+            -- QRA.Logger.Log("Found NPC-specific triggers for NPC ID: " .. npcId)
             return eventBucket[npcId]
         end
     end
@@ -940,7 +940,7 @@ local function GetUnitDiedEventTriggers(destGUID)
         for bossNpcId in pairs(bossNpcIds) do
             if npcId == bossNpcId then
                 QRA.Debug("Found boss NPC triggers for ID", npcId, ":", eventBucket["boss"])
-                QRA.Logger.Log("Found boss-specific triggers for NPC ID: " .. npcId)
+                -- QRA.Logger.Log("Found boss-specific triggers for NPC ID: " .. npcId)
                 return eventBucket["boss"]
             end
         end
@@ -995,7 +995,7 @@ function QRA.Triggers.ProcessUnitSpellcast(unitId, spellId)
     if unitId ~= "boss1" and unitId ~= "boss2" and unitId ~= "boss3" and unitId ~= "boss4" then
         return
     end
-    QRA.Logger.Log("UNIT_SPELLCAST_SUCCEEDED detected for " .. unitId .. " Spell ID: " .. spellId)
+    -- QRA.Logger.Log("UNIT_SPELLCAST_SUCCEEDED detected for " .. unitId .. " Spell ID: " .. spellId)
     if not encounterActive then return end
 
     local eventBucket = triggerIndex[QRA.Triggers.Types.UNIT_SPELLCAST_SUCCEEDED.event]
@@ -1006,7 +1006,7 @@ function QRA.Triggers.ProcessUnitSpellcast(unitId, spellId)
 
     local spellTriggers = eventBucket[spellId]
     if not spellTriggers then
-        QRA.Logger.Log("No USS triggers found for Spell ID: " .. spellId)
+        -- QRA.Logger.Log("No USS triggers found for Spell ID: " .. spellId)
         return
     end
 
