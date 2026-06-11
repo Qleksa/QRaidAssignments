@@ -244,9 +244,8 @@ local function ProcessTTSQueue()
         C_VoiceChat.SpeakText(
             voiceId,
             entry.message,
-            Enum.VoiceTtsDestination.LocalPlayback,
-            1.0,  -- Speech rate
-            100   -- Volume
+            C_TTSSettings and C_TTSSettings.GetSpeechRate() or 1,
+            C_TTSSettings and C_TTSSettings.GetSpeechVolume() or 100
         )
 
         local wordCount = select(2, entry.message:gsub("%S+", ""))
@@ -264,7 +263,7 @@ end
 
 --- Speak a message using TTS (queued)
 ---@param message string The message to speak
----@param voice string|nil Optional voice identifier
+---@param voice integer|nil Optional voice identifier
 function QRA.Notifications.SpeakTTS(message, voice)
     if not config.ttsEnabled then return end
     if not message or message == "" then return end
