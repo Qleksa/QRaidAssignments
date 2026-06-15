@@ -165,6 +165,7 @@ L["Personal Note:"] = "Personal Note:"
 L["Personal Note Frame"] = "Personal Note Frame"
 L["Enable Personal Note"] = "Enable Personal Note"
 L["Notes are disabled."] = "Notes are disabled. Can't toggle personal note."
+L["Encounter Only"] = "Encounter Only"
 
 -- Trigger Types
 L["Spell Cast Success"] = "Spell Cast Success"
@@ -201,6 +202,7 @@ L["Test Countdown"] = "Test Countdown"
 L["Test Alert"] = "Test Alert"
 L["Debug"] = "Debug"
 L["Enable Debug Mode"] = "Enable Debug Mode"
+L["Reset Note Frame"] = "Reset Note Frame"
 
 --------------------------------------------------
 -- Hierarchical Tree View

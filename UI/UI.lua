@@ -50,10 +50,17 @@ local function CreateMainFrame()
     -- Apply combat protection
     AF.ApplyCombatProtectionToFrame(mainFrame)
 
+    local settingsBtn = AF.CreateIconButton(mainFrame, AF.GetIcon("Settings"), 24, 24, 2, "gray", "softlime", "TRILINEAR")
+    AF.SetPoint(settingsBtn, "TOPRIGHT", mainFrame, -5, -5)
+    AF.SetTooltip(settingsBtn, "ANCHOR_LEFT", 0, 0, QRA.L["Settings"])
+    settingsBtn:SetOnClick(function()
+        QRA.UI.Settings.ShowSettingsPanel(mainFrame)
+    end)
+
     -- Content area
     local content = CreateFrame("Frame", nil, mainFrame)
-    AF.SetPoint(content, "TOPLEFT", mainFrame, 10, -30)
-    AF.SetPoint(content, "BOTTOMRIGHT", mainFrame, -10, 10)
+    AF.SetPoint(content, "TOPLEFT", mainFrame, 10, -15)
+    AF.SetPoint(content, "BOTTOMRIGHT", mainFrame, -10, 5)
 
     --------------------------------------------------
     -- Top Bar
@@ -252,18 +259,10 @@ local function CreateMainFrame()
         end)
     end)
 
-    -- RIGHT GROUP: Test Mode and Settings
-    -- Settings button
-    local settingsBtn = AF.CreateButton(filterBar, "S", "static", 26, 26)
-    AF.SetPoint(settingsBtn, "RIGHT", filterBar, 0, 0)
-    AF.SetTooltip(settingsBtn, "ANCHOR_LEFT", 0, 0, QRA.L["Settings"])
-    settingsBtn:SetOnClick(function()
-        QRA.UI.Settings.ShowSettingsPanel(mainFrame)
-    end)
-
+    -- RIGHT GROUP
     -- Test Mode button
     local testModeBtn = AF.CreateButton(filterBar, "Test", "purple", 50, 26)
-    AF.SetPoint(testModeBtn, "RIGHT", settingsBtn, "LEFT", -5, 0)
+    AF.SetPoint(testModeBtn, "RIGHT", filterBar, 0, 0)
     AF.SetTooltip(testModeBtn, "ANCHOR_LEFT", 0, 0, QRA.L["Test Mode"], "Open DevMode test panel")
     testModeBtn:SetOnClick(function()
         if QRA.DevMode then
@@ -327,13 +326,13 @@ local function CreateMainFrame()
     -- Roster button
     local rosterBtn = AF.CreateButton(content, QRA.L["Roster"], "static", 80, 26)
     AF.SetPoint(rosterBtn, "LEFT", sendToRaidBtn, "RIGHT", 10, 0)
-    AF.SetTooltip(rosterBtn, "TOPLEFT", 0, 2, "Roster Manager", "Save current raid roster for planning", "assignments when not in raid")
+    AF.SetTooltip(rosterBtn, "TOPLEFT", 0, 2, "Roster Manager", "Save current raid roster for planning assignments when not in raid")
     rosterBtn:SetOnClick(function()
         QRA.AssignTargetMenu.ShowRosterManager(mainFrame)
     end)
 
     local newPlanBtn = AF.CreateButton(content, QRA.L["+ New Plan"], "softlime", 100, 26)
-    AF.SetPoint(newPlanBtn, "BOTTOMRIGHT", content, 0, 0)
+    AF.SetPoint(newPlanBtn, "BOTTOMRIGHT", content, 0, 8)
     newPlanBtn:SetOnClick(function()
         QRA.UI.Dialogs.ShowNewPlanDialog(function(planId, version)
             ApplyPlanSelection(planId, version)

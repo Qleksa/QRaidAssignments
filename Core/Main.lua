@@ -71,6 +71,7 @@ function QRA.UIParent:PLAYER_LOGIN()
                     fontName = "Noto_AP",
                     fontSize = 14,
                     lineSpacing = 2,
+                    encounterOnly = false,
                 },
                 personalNoteFrame = {
                     position = {
@@ -269,10 +270,8 @@ SlashCmdList.QRAASSIGNMENTS = function(msg)
     elseif msg == "help" then
         QRA.Print("Commands:")
         QRA.Print("  /qra - Toggle main window")
-        QRA.Print("  /qra show - Show main window")
-        QRA.Print("  /qra hide - Hide main window")
+        QRA.Print("  /qra config - Show settings window")
         QRA.Print("  /qra changelog - Show changelog window")
-        QRA.Print("  /qra test - Test notifications")
         QRA.Print("  /qra devmode - Toggle dev/test mode")
         QRA.Print("  /qra debug - Toggle debug mode")
         QRA.Print("  /qra logs - Toggle log viewer")
@@ -282,10 +281,8 @@ SlashCmdList.QRAASSIGNMENTS = function(msg)
         QRA.Print("  /qra note lock - Toggle note frame lock")
         QRA.Print("  /qra pnote - Toggle personal note display")
         QRA.Print("  /qra pnote config - Open note config")
-    elseif msg == "hide" then
-        QRA.UI.HideMainFrame()
-    elseif msg == "test" then
-        QRA.Notifications.TestCountdown()
+    elseif msg == "config" then
+        QRA.UI.Settings.ShowSettingsPanel()
     elseif msg == "devmode" or msg == "dev" or msg == "testmode" then
         if QRA.DevMode then
             if QRA.DevMode.IsActive() then

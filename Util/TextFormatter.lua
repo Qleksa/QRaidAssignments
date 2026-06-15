@@ -67,7 +67,7 @@ function QRA.TextFormatter.Format(text)
 
         local spellTexture = GetSpellTextureById(spellIdNum)
         if spellTexture then
-            return "|T" .. spellTexture .. ":16:16|t"
+            return "|T" .. spellTexture .. ":20:20|t"
         end
 
         return "{spell:" .. spellId .. "}"

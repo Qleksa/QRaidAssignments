@@ -39,9 +39,12 @@ end
 --------------------------------------------------
 
 function frame:ENCOUNTER_START(encounterId, encounterName, difficultyId, groupSize)
-    -- QRA.Debug("ENCOUNTER_START:", encounterId, encounterName, difficultyId, groupSize)
+    QRA.Debug("ENCOUNTER_START:", encounterId, encounterName, difficultyId, groupSize)
     if QRA.Triggers and QRA.Triggers.OnEncounterStart then
         QRA.Triggers.OnEncounterStart(encounterId, encounterName)
+    end
+    if QRA.Notes.IsEncounterOnlyEnabled and QRA.Notes.IsEncounterOnlyEnabled() then
+        QRA.Notes.ShowForEncounter(encounterId, encounterName)
     end
 end
 
@@ -54,6 +57,10 @@ function frame:ENCOUNTER_END(encounterId, encounterName, difficultyId, groupSize
     -- Cancel any pending countdowns
     if QRA.Assignments and QRA.Assignments.CancelAllCountdowns then
         QRA.Assignments.CancelAllCountdowns()
+    end
+
+    if QRA.Notes.IsEncounterOnlyEnabled and QRA.Notes.IsEncounterOnlyEnabled() then
+        QRA.Notes.Hide()
     end
 end
 

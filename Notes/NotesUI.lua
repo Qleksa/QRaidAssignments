@@ -70,6 +70,7 @@ local function GetSettings()
 
     settings.size = settings.size or { width = 460, height = 280 }
     settings.locked = settings.locked or false
+    settings.encounterOnly = settings.encounterOnly or false
 
     return settings
 end
@@ -240,6 +241,20 @@ local function EnsureNoteFrame()
     return noteFrame
 end
 
+---@return boolean
+function QRA.Notes.IsEncounterOnlyEnabled()
+    return GetSettings().encounterOnly
+end
+
+function QRA.Notes.SetEncounterOnly(enabled)
+    local settings = GetSettings()
+    settings.encounterOnly = enabled
+
+    if enabled then
+        QRA.Notes.Hide()
+    end
+end
+
 function QRA.Notes.ResetPosition()
     local defaultPoint = "CENTER"
     local defaultX = -300
@@ -279,7 +294,7 @@ end
 ---@param encounterId number
 ---@param bossName string|nil
 function QRA.Notes.ShowForEncounter(encounterId, bossName)
-    if not QRA.Notes.IsEnabled() then
+    if not QRA.Notes.IsEnabled() and not QRA.Notes.IsEncounterOnlyEnabled() then
         return
     end
 
@@ -530,6 +545,13 @@ local function ShowConfigFrame(openPersonal)
     AF.SetPoint(lockFramesCheck, "LEFT", personalNoteEnabledCheck, "RIGHT", 160, 0)
     lockFramesCheck:SetChecked(GetSettings().locked)
     configFrame.lockFramesCheck = lockFramesCheck
+
+    local encounterOnlyCheck = AF.CreateCheckButton(content, QRA.L["Encounter Only"], function(checked)
+        local settings = GetSettings()
+        settings.encounterOnly = checked
+    end)
+    AF.SetPoint(encounterOnlyCheck, "LEFT", lockFramesCheck, "RIGHT", 100, 0)
+    encounterOnlyCheck:SetChecked(GetSettings().encounterOnly)
 
     local unlockBtn = AF.CreateButton(content, QRA.L["Show Movers"], "static", 106, 22)
     AF.SetPoint(unlockBtn, "TOPLEFT", noteEnabledCheck, "BOTTOMLEFT", 0, -8)

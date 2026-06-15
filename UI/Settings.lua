@@ -57,15 +57,21 @@ local function CreateSectionHeader(parent, title, collapsible)
     return header
 end
 
+---@param parent? Frame optional parent frame
 function QRA.UI.Settings.ShowSettingsPanel(parent)
+    parent = parent or QRA.UIParent
+
     local function UpdatePersonalNoteCheckboxState()
         if not settingsFrame or not settingsFrame.personalNoteEnabledCheck then return end
+        if not settingsFrame or not settingsFrame.encounterOnlyCheck then return end
 
         local notesEnabled = QRA.Notes and QRA.Notes.IsEnabled and QRA.Notes.IsEnabled() or false
         local personalEnabled = QRA.Notes and QRA.Notes.IsPersonalEnabled and QRA.Notes.IsPersonalEnabled() or false
+        local encounterOnlyEnabled = QRA.Notes and QRA.Notes.IsEncounterOnlyEnabled and QRA.Notes.IsEncounterOnlyEnabled() or false
 
         settingsFrame.personalNoteEnabledCheck:SetChecked(personalEnabled)
         settingsFrame.personalNoteEnabledCheck:SetEnabled(notesEnabled)
+        settingsFrame.encounterOnlyCheck:SetChecked(encounterOnlyEnabled)
     end
 
     if settingsFrame then
@@ -78,13 +84,13 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     end
 
     settingsFrame = AF.CreateHeaderedFrame(
-        QRA.UIParent,
+        parent,
         "QRA_SettingsPanel",
         QRA.L["Settings"],
         300,
         650
     )
-    AF.SetPoint(settingsFrame, "CENTER", QRA.UIParent, 0, 0)
+    AF.SetPoint(settingsFrame, "CENTER", parent, 0, 0)
     settingsFrame:SetFrameStrata("DIALOG")
     settingsFrame:SetFrameLevel(parent:GetFrameLevel() + 10)
     table.insert(UISpecialFrames, settingsFrame:GetName())
@@ -207,6 +213,15 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     AF.SetPoint(lockFramesCheck, "TOPLEFT", personalNoteEnabledCheck, "BOTTOMLEFT", 0, -8)
     lockFramesCheck:SetChecked(QRA.Notes and QRA.Notes.IsLocked and QRA.Notes.IsLocked() or false)
     settingsFrame.lockFramesCheck = lockFramesCheck
+
+    local encounterOnlyCheck = AF.CreateCheckButton(content, QRA.L["Encounter Only"], function(checked)
+        if QRA.Notes and QRA.Notes.SetEncounterOnly then
+            QRA.Notes.SetEncounterOnly(checked)
+        end
+    end)
+    AF.SetPoint(encounterOnlyCheck, "LEFT", lockFramesCheck, "RIGHT", 100, 0)
+    encounterOnlyCheck:SetChecked(QRA.Notes and QRA.Notes.IsEncounterOnlyEnabled and QRA.Notes.IsEncounterOnlyEnabled() or false)
+    settingsFrame.encounterOnlyCheck = encounterOnlyCheck
 
     local showMoversNotesBtn = AF.CreateButton(content, QRA.L["Show Movers"], "static", 115, 22)
     AF.SetPoint(showMoversNotesBtn, "TOPLEFT", lockFramesCheck, "BOTTOMLEFT", 0, -8)
