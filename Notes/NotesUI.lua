@@ -240,6 +240,14 @@ local function EnsureNoteFrame()
     return noteFrame
 end
 
+function QRA.Notes.ResetPosition()
+    local defaultPoint = "CENTER"
+    local defaultX = -300
+    local defaultY = 0
+
+    UpdateNotePosition(defaultPoint, defaultX, defaultY)
+end
+
 ---@param encounterId number
 ---@param bossName string|nil
 function QRA.Notes.SetEncounter(encounterId, bossName)
