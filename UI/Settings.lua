@@ -162,13 +162,13 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     AF.SetPoint(moversHeader, "TOPLEFT", testScreenBtn, "BOTTOMLEFT", 0, -40)
     AF.SetPoint(moversHeader, "TOPRIGHT", content, 0, 0)
 
-    local showMoversBtn = AF.CreateButton(content, QRA.L["Show Movers"], "static", 115, 26)
+    local showMoversBtn = AF.CreateButton(content, QRA.L["Show Movers"], "static", 115, 22)
     AF.SetPoint(showMoversBtn, "TOPLEFT", moversHeader, "BOTTOMLEFT", 0, -10)
     showMoversBtn:SetOnClick(function()
         AF.ShowMovers("QRA Movers")
     end)
 
-    local hideMoversBtn = AF.CreateButton(content, QRA.L["Hide Movers"], "static", 100, 26)
+    local hideMoversBtn = AF.CreateButton(content, QRA.L["Hide Movers"], "static", 100, 22)
     AF.SetPoint(hideMoversBtn, "LEFT", showMoversBtn, "RIGHT", 8, 0)
     hideMoversBtn:SetOnClick(function()
         AF.HideMovers()
@@ -208,17 +208,20 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     lockFramesCheck:SetChecked(QRA.Notes and QRA.Notes.IsLocked and QRA.Notes.IsLocked() or false)
     settingsFrame.lockFramesCheck = lockFramesCheck
 
-    local showMoversNotesBtn = AF.CreateButton(content, QRA.L["Show Movers"], "static", 115, 26)
+    local showMoversNotesBtn = AF.CreateButton(content, QRA.L["Show Movers"], "static", 115, 22)
     AF.SetPoint(showMoversNotesBtn, "TOPLEFT", lockFramesCheck, "BOTTOMLEFT", 0, -8)
     showMoversNotesBtn:SetOnClick(function()
         AF.ShowMovers("QRA Movers")
     end)
 
-    local resetNoteFrameBtn = AF.CreateButton(content, QRA.L["Reset Note Frame"], "static", 130, 22)
+    local resetNoteFrameBtn = AF.CreateButton(content, QRA.L["Reset Note Frame"], "static", 140, 22)
     AF.SetPoint(resetNoteFrameBtn, "LEFT", showMoversNotesBtn, "RIGHT", 8, 0)
     resetNoteFrameBtn:SetOnClick(function()
         if QRA.Notes and QRA.Notes.ResetPosition then
             QRA.Notes.ResetPosition()
+        end
+        if QRA.Notes and QRA.Notes.ResetPersonalNotePosition then
+            QRA.Notes.ResetPersonalNotePosition()
         end
     end)
 

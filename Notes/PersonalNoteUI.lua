@@ -194,6 +194,20 @@ local function IsMasterNotesEnabled()
     return true
 end
 
+function QRA.Notes.ResetPersonalNotePosition()
+    local settings = EnsurePersonalSettings()
+    settings.position = {
+        point = "CENTER",
+        xOfs = 300,
+        yOfs = 0,
+    }
+
+    if personalNoteFrame then
+        personalNoteFrame:ClearAllPoints()
+        AF.SetPoint(personalNoteFrame, settings.position.point, QRA.UIParent, settings.position.xOfs, settings.position.yOfs)
+    end
+end
+
 function QRA.Notes.UpdatePersonalVisibility()
     EnsurePersonalNoteFrame()
 
