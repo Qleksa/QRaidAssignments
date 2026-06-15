@@ -470,11 +470,9 @@ local function ShowConfigFrame(openPersonal)
     local function UpdatePersonalToggleState()
         if not configFrame or not configFrame.personalNoteEnabledCheck then return end
 
-        local notesEnabled = QRA.Notes.IsEnabled()
         local personalEnabled = QRA.Notes.IsPersonalEnabled and QRA.Notes.IsPersonalEnabled() or false
 
         configFrame.personalNoteEnabledCheck:SetChecked(personalEnabled)
-        configFrame.personalNoteEnabledCheck:SetEnabled(notesEnabled)
     end
 
     if configFrame then
@@ -519,7 +517,7 @@ local function ShowConfigFrame(openPersonal)
     AF.SetPoint(content, "TOPLEFT", configFrame, 10, -10)
     AF.SetPoint(content, "BOTTOMRIGHT", configFrame, -10, 40)
 
-    local noteEnabledCheck = AF.CreateCheckButton(content, QRA.L["Enable Notes"], function(checked)
+    local noteEnabledCheck = AF.CreateCheckButton(content, QRA.L["Enable Note"], function(checked)
         QRA.Notes.SetEnabled(checked)
         UpdatePersonalToggleState()
     end)

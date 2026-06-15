@@ -69,8 +69,8 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
         local personalEnabled = QRA.Notes and QRA.Notes.IsPersonalEnabled and QRA.Notes.IsPersonalEnabled() or false
         local encounterOnlyEnabled = QRA.Notes and QRA.Notes.IsEncounterOnlyEnabled and QRA.Notes.IsEncounterOnlyEnabled() or false
 
+        settingsFrame.noteEnabledCheck:SetChecked(notesEnabled)
         settingsFrame.personalNoteEnabledCheck:SetChecked(personalEnabled)
-        settingsFrame.personalNoteEnabledCheck:SetEnabled(notesEnabled)
         settingsFrame.encounterOnlyCheck:SetChecked(encounterOnlyEnabled)
     end
 
@@ -185,7 +185,7 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
     AF.SetPoint(notesHeader, "TOPLEFT", showMoversBtn, "BOTTOMLEFT", 0, -20)
     AF.SetPoint(notesHeader, "TOPRIGHT", content, 0, 0)
 
-    local noteEnabledCheck = AF.CreateCheckButton(content, QRA.L["Enable Notes"], function(checked)
+    local noteEnabledCheck = AF.CreateCheckButton(content, QRA.L["Enable Note"], function(checked)
         if QRA.Notes and QRA.Notes.SetEnabled then
             QRA.Notes.SetEnabled(checked)
         end

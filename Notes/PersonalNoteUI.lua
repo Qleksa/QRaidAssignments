@@ -186,14 +186,6 @@ function QRA.Notes.IsPersonalEnabled()
     return EnsurePersonalSettings().enabled == true
 end
 
-local function IsMasterNotesEnabled()
-    if QRA.Notes and QRA.Notes.IsEnabled then
-        return QRA.Notes.IsEnabled()
-    end
-
-    return true
-end
-
 function QRA.Notes.ResetPersonalNotePosition()
     local settings = EnsurePersonalSettings()
     settings.position = {
@@ -211,7 +203,7 @@ end
 function QRA.Notes.UpdatePersonalVisibility()
     EnsurePersonalNoteFrame()
 
-    if QRA.Notes.IsPersonalEnabled() and IsMasterNotesEnabled() then
+    if QRA.Notes.IsPersonalEnabled() then
         personalNoteFrame:Show()
         ApplyPersonalNoteText()
     else
