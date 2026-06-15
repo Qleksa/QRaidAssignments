@@ -214,6 +214,14 @@ function QRA.UI.Settings.ShowSettingsPanel(parent)
         AF.ShowMovers("QRA Movers")
     end)
 
+    local resetNoteFrameBtn = AF.CreateButton(content, QRA.L["Reset Note Frame"], "static", 130, 22)
+    AF.SetPoint(resetNoteFrameBtn, "LEFT", showMoversNotesBtn, "RIGHT", 8, 0)
+    resetNoteFrameBtn:SetOnClick(function()
+        if QRA.Notes and QRA.Notes.ResetPosition then
+            QRA.Notes.ResetPosition()
+        end
+    end)
+
     local noteConfigBtn = AF.CreateButton(content, QRA.L["Open Note Config"], "static", 140, 22)
     AF.SetPoint(noteConfigBtn, "TOPLEFT", showMoversNotesBtn, "BOTTOMLEFT", 0, -8)
     noteConfigBtn:SetOnClick(function()
