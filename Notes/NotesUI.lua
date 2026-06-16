@@ -30,6 +30,8 @@ local RAID_ICON_INSERT_ORDER = {
 
 local PERSONAL_NOTE_KEY = "__personal_note__"
 
+local RAID_BACKGROUND_IMAGE_PATH = "Interface/AddOns/QRaidAssignments/Media/Images/note_raid.jpg"
+
 local CLASS_COLOR_ITEMS = {
     { key = "NONE", text = "-- Select Class --", value = "__none__" },
     { key = "DEATHKNIGHT", text = "Death Knight", value = "|cffc41f3b" },
@@ -69,6 +71,7 @@ local function GetSettings()
         settings.backgroundAlpha = 0.5
     end
     settings.backgroundAlpha = math.max(0, math.min(1, settings.backgroundAlpha))
+    settings.backgroundImageEnabled = settings.backgroundImageEnabled or false
 
     if type(settings.lastSelectedNote) ~= "table" then
         settings.lastSelectedNote = nil
@@ -77,7 +80,7 @@ local function GetSettings()
     settings.size = settings.size or { width = 460, height = 280 }
     settings.locked = settings.locked or false
     settings.encounterOnly = settings.encounterOnly or false
-
+    
     return settings
 end
 
@@ -173,8 +176,22 @@ end
 
 local function ApplyNoteBackgroundOpacity()
     if not noteBackground then return end
-    -- ponytail: black only for now; color picker is YAGNI
-    noteBackground:SetColorTexture(0, 0, 0, GetSettings().backgroundAlpha)
+
+    local settings = GetSettings()
+    if settings.backgroundImageEnabled then
+        noteBackground:SetAlpha(settings.backgroundAlpha)
+    else
+        -- ponytail: black only for now; color picker is YAGNI
+        noteBackground:SetColorTexture(0, 0, 0, settings.backgroundAlpha)
+    end
+end
+
+local function ApplyNoteBackgroundImage()
+    if not noteBackground then return end
+
+    if GetSettings().backgroundImageEnabled then
+        noteBackground:SetTexture(RAID_BACKGROUND_IMAGE_PATH)
+    end
 end
 
 local function RefreshDisplayText()
@@ -198,6 +215,7 @@ local function EnsureNoteFrame()
 
     noteBackground = noteFrame:CreateTexture(nil, "BACKGROUND")
     noteBackground:SetAllPoints(noteFrame)
+    ApplyNoteBackgroundImage()
     ApplyNoteBackgroundOpacity()
 
     noteFrame:ClearAllPoints()
@@ -410,6 +428,16 @@ function QRA.Notes.SetRaidBackgroundOpacity(alpha)
     ApplyNoteBackgroundOpacity()
 end
 
+function QRA.Notes.SetRaidBackgroundImage(enabled)
+    local settings = GetSettings()
+    settings.backgroundImageEnabled = enabled == true
+
+    if settings.backgroundImageEnabled then
+        ApplyNoteBackgroundImage()
+    end
+    ApplyNoteBackgroundOpacity()
+end
+
 ---@return table[]
 local function GetBossItems()
     local items = {
@@ -513,6 +541,12 @@ local function ShowConfigFrame(openPersonal)
         if configFrame.personalBackgroundOpacitySlider and QRA.Notes.GetPersonalBackgroundOpacity then
             configFrame.personalBackgroundOpacitySlider:SetValue((QRA.Notes.GetPersonalBackgroundOpacity() or 0.5) * 100)
         end
+        if configFrame.raidBackgroundImageCheck then
+            configFrame.raidBackgroundImageCheck:SetChecked(GetSettings().backgroundImageEnabled)
+        end
+        if configFrame.personalBackgroundImageCheck then
+            configFrame.personalBackgroundImageCheck:SetChecked(QRA.Notes.GetPersonalBackgroundImage())
+        end
 
         if configFrame.LoadEditorForEncounter then
             local encounterId, bossName, isPersonal = GetPreferredConfigTarget(openPersonal)
@@ -538,7 +572,7 @@ local function ShowConfigFrame(openPersonal)
         "QRA_NoteConfigFrame",
         QRA.L["Note Config"],
         560,
-        665,
+        720,
         "DIALOG",
         40
     )
@@ -642,9 +676,23 @@ local function ShowConfigFrame(openPersonal)
     end)
     configFrame.personalBackgroundOpacitySlider = personalBackgroundOpacitySlider
 
+    local raidBackgroundImageCheck = AF.CreateCheckButton(content, QRA.L["Raid Note Background Image"], function(checked)
+        QRA.Notes.SetRaidBackgroundImage(checked)
+    end)
+    AF.SetPoint(raidBackgroundImageCheck, "TOPLEFT", raidBackgroundOpacitySlider, "BOTTOMLEFT", 0, -25)
+    raidBackgroundImageCheck:SetChecked(currentSettings.backgroundImageEnabled)
+    configFrame.raidBackgroundImageCheck = raidBackgroundImageCheck
+
+    local personalBackgroundImageCheck = AF.CreateCheckButton(content, QRA.L["Personal Note Background Image"], function(checked)
+        QRA.Notes.SetPersonalBackgroundImage(checked)
+    end)
+    AF.SetPoint(personalBackgroundImageCheck, "TOPLEFT", personalBackgroundOpacitySlider, "BOTTOMLEFT", 0, -25)
+    personalBackgroundImageCheck:SetChecked(QRA.Notes.GetPersonalBackgroundImage())
+    configFrame.personalBackgroundImageCheck = personalBackgroundImageCheck
+
     local bossDropdown = AF.CreateCascadingMenuButton(content, 520)
     bossDropdown:SetLabel(QRA.L["Boss"])
-    AF.SetPoint(bossDropdown, "TOPLEFT", raidBackgroundOpacitySlider, "BOTTOMLEFT", 0, -25)
+    AF.SetPoint(bossDropdown, "TOPLEFT", raidBackgroundImageCheck, "BOTTOMLEFT", 0, -25)
     bossDropdown:SetItems(GetBossItems())
 
     local iconBar = CreateFrame("Frame", nil, content)

@@ -20,6 +20,8 @@ local personalNoteResizeButton = nil
 
 local MOVER_GROUP = "QRA Movers"
 
+local PERSONAL_BACKGROUND_IMAGE_PATH = "Interface/AddOns/QRaidAssignments/Media/Images/note_personal.jpg"
+
 local function EnsurePersonalSettings()
     QRA.Settings.personalNoteFrame = QRA.Settings.personalNoteFrame or {}
     local settings = QRA.Settings.personalNoteFrame
@@ -41,6 +43,7 @@ local function EnsurePersonalSettings()
         settings.backgroundAlpha = 0.5
     end
     settings.backgroundAlpha = math.max(0, math.min(1, settings.backgroundAlpha))
+    settings.backgroundImageEnabled = settings.backgroundImageEnabled or false
 
     return settings
 end
@@ -113,8 +116,14 @@ end
 
 local function ApplyPersonalBackgroundOpacity()
     if not personalNoteBackground then return end
-    -- ponytail: black only for now; keep it dead simple
-    personalNoteBackground:SetColorTexture(0, 0, 0, EnsurePersonalSettings().backgroundAlpha)
+
+    local settings = EnsurePersonalSettings()
+    if settings.backgroundImageEnabled then
+        personalNoteBackground:SetAlpha(settings.backgroundAlpha)
+    else
+        -- ponytail: black only for now; keep it dead simple
+        personalNoteBackground:SetColorTexture(0, 0, 0, settings.backgroundAlpha)
+    end
 end
 
 function QRA.Notes.GetPersonalBackgroundOpacity()
@@ -124,6 +133,27 @@ end
 function QRA.Notes.SetPersonalBackgroundOpacity(alpha)
     local settings = EnsurePersonalSettings()
     settings.backgroundAlpha = math.max(0, math.min(1, tonumber(alpha) or 0.5))
+    ApplyPersonalBackgroundOpacity()
+end
+
+local function ApplyPersonalBackgroundImage()
+    if not personalNoteBackground then return end
+    if EnsurePersonalSettings().backgroundImageEnabled then
+        personalNoteBackground:SetTexture(PERSONAL_BACKGROUND_IMAGE_PATH)
+    end
+end
+
+function QRA.Notes.GetPersonalBackgroundImage()
+    return EnsurePersonalSettings().backgroundImageEnabled
+end
+
+function QRA.Notes.SetPersonalBackgroundImage(enabled)
+    local settings = EnsurePersonalSettings()
+    settings.backgroundImageEnabled = enabled == true
+
+    if settings.backgroundImageEnabled then
+        ApplyPersonalBackgroundImage()
+    end
     ApplyPersonalBackgroundOpacity()
 end
 
@@ -141,6 +171,7 @@ local function EnsurePersonalNoteFrame()
 
     personalNoteBackground = personalNoteFrame:CreateTexture(nil, "BACKGROUND")
     personalNoteBackground:SetAllPoints(personalNoteFrame)
+    ApplyPersonalBackgroundImage()
     ApplyPersonalBackgroundOpacity()
 
     personalNoteFrame:ClearAllPoints()
