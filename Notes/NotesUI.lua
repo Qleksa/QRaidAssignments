@@ -12,6 +12,7 @@ local AF = _G.AbstractFramework
 QRA.Notes = QRA.Notes or {}
 
 local noteFrame = nil
+local noteBackground = nil
 local noteText = nil
 local noteScrollFrame = nil
 local noteContentFrame = nil
@@ -63,6 +64,11 @@ local function GetSettings()
     settings.fontSize = math.max(8, math.min(30, settings.fontSize))
     settings.lineSpacing = tonumber(settings.lineSpacing) or 2
     settings.lineSpacing = math.max(0, math.min(20, settings.lineSpacing))
+    settings.backgroundAlpha = tonumber(settings.backgroundAlpha)
+    if settings.backgroundAlpha == nil then
+        settings.backgroundAlpha = 0.5
+    end
+    settings.backgroundAlpha = math.max(0, math.min(1, settings.backgroundAlpha))
 
     if type(settings.lastSelectedNote) ~= "table" then
         settings.lastSelectedNote = nil
@@ -165,6 +171,12 @@ local function ApplyNoteFont()
     UpdateNoteContentHeight()
 end
 
+local function ApplyNoteBackgroundOpacity()
+    if not noteBackground then return end
+    -- ponytail: black only for now; color picker is YAGNI
+    noteBackground:SetColorTexture(0, 0, 0, GetSettings().backgroundAlpha)
+end
+
 local function RefreshDisplayText()
     if not noteText then return end
     noteText:SetText(GetCurrentDisplayText())
@@ -183,6 +195,10 @@ local function EnsureNoteFrame()
     noteFrame = CreateFrame("Frame", "QRA_NoteFrame", QRA.UIParent)
     noteFrame:SetSize(sz.width, sz.height)
     noteFrame:SetFrameStrata("MEDIUM")
+
+    noteBackground = noteFrame:CreateTexture(nil, "BACKGROUND")
+    noteBackground:SetAllPoints(noteFrame)
+    ApplyNoteBackgroundOpacity()
 
     noteFrame:ClearAllPoints()
     AF.SetPoint(
@@ -384,6 +400,16 @@ function QRA.Notes.GetDisplayFontSettings()
     return settings.fontName, settings.fontSize, settings.lineSpacing
 end
 
+function QRA.Notes.GetRaidBackgroundOpacity()
+    return GetSettings().backgroundAlpha
+end
+
+function QRA.Notes.SetRaidBackgroundOpacity(alpha)
+    local settings = GetSettings()
+    settings.backgroundAlpha = math.max(0, math.min(1, tonumber(alpha) or 0.5))
+    ApplyNoteBackgroundOpacity()
+end
+
 ---@return table[]
 local function GetBossItems()
     local items = {
@@ -481,6 +507,12 @@ local function ShowConfigFrame(openPersonal)
         configFrame.fontDropdown:SetSelectedValue(GetSettings().fontName)
         configFrame.fontSizeSlider:SetValue(GetSettings().fontSize)
         configFrame.lineSpacingSlider:SetValue(GetSettings().lineSpacing)
+        if configFrame.raidBackgroundOpacitySlider then
+            configFrame.raidBackgroundOpacitySlider:SetValue((GetSettings().backgroundAlpha or 0.5) * 100)
+        end
+        if configFrame.personalBackgroundOpacitySlider and QRA.Notes.GetPersonalBackgroundOpacity then
+            configFrame.personalBackgroundOpacitySlider:SetValue((QRA.Notes.GetPersonalBackgroundOpacity() or 0.5) * 100)
+        end
 
         if configFrame.LoadEditorForEncounter then
             local encounterId, bossName, isPersonal = GetPreferredConfigTarget(openPersonal)
@@ -588,9 +620,31 @@ local function ShowConfigFrame(openPersonal)
     end)
     configFrame.lineSpacingSlider = lineSpacingSlider
 
+    local raidBackgroundOpacitySlider = AF.CreateSlider(content, QRA.L["Raid Note Background Opacity"], 250, 0, 100, 1)
+    AF.SetPoint(raidBackgroundOpacitySlider, "TOPLEFT", lineSpacingSlider, "BOTTOMLEFT", 0, -32)
+    raidBackgroundOpacitySlider:SetValue((currentSettings.backgroundAlpha or 0.5) * 100)
+    raidBackgroundOpacitySlider:SetAfterValueChanged(function(value)
+        QRA.Notes.SetRaidBackgroundOpacity(value / 100)
+    end)
+    configFrame.raidBackgroundOpacitySlider = raidBackgroundOpacitySlider
+
+    local personalBackgroundOpacitySlider = AF.CreateSlider(content, QRA.L["Personal Note Background Opacity"], 250, 0, 100, 1)
+    AF.SetPoint(personalBackgroundOpacitySlider, "LEFT", raidBackgroundOpacitySlider, "RIGHT", 18, 0)
+    if QRA.Notes.GetPersonalBackgroundOpacity then
+        personalBackgroundOpacitySlider:SetValue((QRA.Notes.GetPersonalBackgroundOpacity() or 0.5) * 100)
+    else
+        personalBackgroundOpacitySlider:SetValue(50)
+    end
+    personalBackgroundOpacitySlider:SetAfterValueChanged(function(value)
+        if QRA.Notes.SetPersonalBackgroundOpacity then
+            QRA.Notes.SetPersonalBackgroundOpacity(value / 100)
+        end
+    end)
+    configFrame.personalBackgroundOpacitySlider = personalBackgroundOpacitySlider
+
     local bossDropdown = AF.CreateCascadingMenuButton(content, 520)
     bossDropdown:SetLabel(QRA.L["Boss"])
-    AF.SetPoint(bossDropdown, "TOPLEFT", lineSpacingSlider, "BOTTOMLEFT", 0, -25)
+    AF.SetPoint(bossDropdown, "TOPLEFT", raidBackgroundOpacitySlider, "BOTTOMLEFT", 0, -25)
     bossDropdown:SetItems(GetBossItems())
 
     local iconBar = CreateFrame("Frame", nil, content)

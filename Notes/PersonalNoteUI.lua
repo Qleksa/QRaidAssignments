@@ -12,6 +12,7 @@ local AF = _G.AbstractFramework
 QRA.Notes = QRA.Notes or {}
 
 local personalNoteFrame = nil
+local personalNoteBackground = nil
 local personalNoteText = nil
 local personalNoteScrollFrame = nil
 local personalNoteContentFrame = nil
@@ -35,6 +36,11 @@ local function EnsurePersonalSettings()
 
     settings.size = settings.size or { width = 460, height = 280 }
     settings.locked = settings.locked or false
+    settings.backgroundAlpha = tonumber(settings.backgroundAlpha)
+    if settings.backgroundAlpha == nil then
+        settings.backgroundAlpha = 0.5
+    end
+    settings.backgroundAlpha = math.max(0, math.min(1, settings.backgroundAlpha))
 
     return settings
 end
@@ -105,6 +111,22 @@ function QRA.Notes.ApplyPersonalNoteFont(fontName, fontSize, lineSpacing)
     UpdatePersonalNoteContentHeight()
 end
 
+local function ApplyPersonalBackgroundOpacity()
+    if not personalNoteBackground then return end
+    -- ponytail: black only for now; keep it dead simple
+    personalNoteBackground:SetColorTexture(0, 0, 0, EnsurePersonalSettings().backgroundAlpha)
+end
+
+function QRA.Notes.GetPersonalBackgroundOpacity()
+    return EnsurePersonalSettings().backgroundAlpha
+end
+
+function QRA.Notes.SetPersonalBackgroundOpacity(alpha)
+    local settings = EnsurePersonalSettings()
+    settings.backgroundAlpha = math.max(0, math.min(1, tonumber(alpha) or 0.5))
+    ApplyPersonalBackgroundOpacity()
+end
+
 local function EnsurePersonalNoteFrame()
     if personalNoteFrame then
         return personalNoteFrame
@@ -116,6 +138,10 @@ local function EnsurePersonalNoteFrame()
     personalNoteFrame = CreateFrame("Frame", "QRA_PersonalNoteFrame", QRA.UIParent)
     personalNoteFrame:SetSize(sz.width, sz.height)
     personalNoteFrame:SetFrameStrata("MEDIUM")
+
+    personalNoteBackground = personalNoteFrame:CreateTexture(nil, "BACKGROUND")
+    personalNoteBackground:SetAllPoints(personalNoteFrame)
+    ApplyPersonalBackgroundOpacity()
 
     personalNoteFrame:ClearAllPoints()
     AF.SetPoint(
