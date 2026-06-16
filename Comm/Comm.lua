@@ -358,7 +358,7 @@ function QRA.Comm.SendNotesToRaid()
 
     local serialized = QRA.Serialize(payload, true)
 
-    QRA.SendCommMessage(COMM_PREFIX, payload, "BULK", function(_, sentBytes, totalBytes, didSend)
+    QRA.SendCommMessage(COMM_PREFIX, serialized, "BULK", function(_, sentBytes, totalBytes, didSend)
         QRA.Debug("Comm: Notes bundle sent", sentBytes, "of", totalBytes, "bytes")
         if didSend and sentBytes == totalBytes then
             QRA.Print(QRA.L["Notes successfully sent to raid."])
