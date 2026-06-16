@@ -78,6 +78,12 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
+        version = "2.4.0",
+        changes = {
+            "Added background to notes with opacity sliders"
+        }
+    },
+    {
         version = "2.3.2",
         changes = {
             "Decoupled note from personal note"
