@@ -8,7 +8,7 @@ local QRA = select(2, ...)
 QRA = QRA or {}
 
 QRA.name = "QRaidAssignments"
-QRA.version = "2.4.1"
+QRA.version = "2.5.0"
 
 --------------------------------------------------
 -- Pre-initialize module tables

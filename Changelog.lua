@@ -78,6 +78,14 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
+        version = "2.5.0",
+        changes = {
+            "Added support for image background for notes",
+            "Added support for custom boss event handling",
+            "Added support for multiple player names in assignments"
+        }
+    },
+    {
         version = "2.4.0",
         changes = {
             "Added background to notes with opacity sliders"
