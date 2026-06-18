@@ -113,6 +113,11 @@ QRA.Triggers.Types = {
         name = "Unit HP %",
         abbreviation = "UHP",
     },
+    BOSS_EMOTE = {
+        event = "BOSS_EMOTE",
+        name = "Boss Emote",
+        abbreviation = "BEM",
+    },
 }
 
 local function GetTriggerTypeAbbreviation(triggerType)
@@ -967,7 +972,7 @@ function QRA.Triggers.ProcessCombatLogEvent(...)
     if not eventBucket then return end
 
     local spellId, spellName
-    if subevent:find("SPELL") or subevent:find("RANGE") then
+    if subevent:find("SPELL") then
         spellId = select(12, ...)
     end
 
@@ -1038,6 +1043,9 @@ function frame:PLAYER_REGEN_ENABLED()
         -- Sometimes encounter end event can be missed, if we leave combat but we are in encounter we probably should reset everything
         encounterActive = false
         QRA.Triggers.UnregisterAll()
+        if QRA.BossEventModules and QRA.BossEventModules.UnregisterBossEvents then
+            QRA.BossEventModules.UnregisterBossEvents()
+        end
     end
 end
 
@@ -1059,6 +1067,9 @@ function QRA.Triggers.OnEncounterStart(encounterId, encounterName)
     GetBossNpcIds(encounterId)
     ResetOccurrenceCounts()
     StartTimerTriggers()
+    if QRA.BossEventModules and QRA.BossEventModules.RegisterBossEvents then
+        QRA.BossEventModules.RegisterBossEvents(encounterId)
+    end
 
     QRA.Logger.Log("---- New Encounter ----")
     QRA.Logger.Log("Encounter started: " .. encounterName .. " (ID: " .. encounterId .. ")")
@@ -1069,6 +1080,9 @@ end
 ---@param encounterName string The encounter name
 ---@param success boolean Whether the encounter was successful
 function QRA.Triggers.OnEncounterEnd(encounterId, encounterName, success)
+    if QRA.BossEventModules and QRA.BossEventModules.UnregisterBossEvents then
+        QRA.BossEventModules.UnregisterBossEvents()
+    end
     frame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     frame:UnregisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     frame:UnregisterEvent("UNIT_HEALTH")
@@ -1132,6 +1146,24 @@ local function CreateDefaultBossTriggers()
                             bossName = bossData.name,
                             encounterId = bossData.encounterId,
                         }, trigger), false)
+                        QRA.Triggers.SaveTrigger(newTrigger)
+                    end
+                end
+            end
+            local events = bossData.events
+            if events then
+                for _, eventDef in ipairs(events) do
+                    local triggerId = bossData.name .. "_BOSS_EMOTE_" .. eventDef.name
+                    local existingTrigger = QRA.Triggers.Get(triggerId)
+                    if not existingTrigger then
+                        local newTrigger = QRA.Triggers.Create("BOSS_EMOTE", QRA.TableMerge({
+                            id = triggerId,
+                            default = true,
+                            bossName = bossData.name,
+                            encounterId = bossData.encounterId,
+                            name = eventDef.name,
+                            counterFormula = eventDef.counterFormula or "1",
+                        }, eventDef), false)
                         QRA.Triggers.SaveTrigger(newTrigger)
                     end
                 end

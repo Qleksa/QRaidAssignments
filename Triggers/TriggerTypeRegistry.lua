@@ -704,6 +704,82 @@ local function RegisterUnitDiedType()
 end
 
 --------------------------------------------------
+-- Register BOSS_EMOTE Type
+--------------------------------------------------
+
+local function RegisterBossEmoteType()
+    QRA.Triggers.TypeRegistry:RegisterType(QRA.Triggers.Types.BOSS_EMOTE.event, {
+        GetIndexKey = function()
+            return nil
+        end,
+
+        ApplyConfig = function(trigger, config)
+            trigger.filter = config.filter
+            trigger.bossEventName = config.bossEventName or config.event
+            trigger.activateIn = config.activateIn
+        end,
+
+        Validate = function()
+            return true
+        end,
+
+        GenerateName = function(config)
+            return config.name or "Boss Emote"
+        end,
+
+        ShouldIndex = function()
+            return false
+        end,
+
+        GetRequiredFields = function()
+            return {}
+        end,
+
+        SupportsActivateIn = function()
+            return true
+        end,
+
+        SupportsCustomName = function()
+            return true
+        end,
+
+        GetUIFields = function()
+            return {
+                { name = "name",    type = "text",    label = "Name",    required = false, configKey = "name" },
+                { name = "counter", type = "counter", label = "Counter", required = false, configKey = "counterFormula" },
+            }
+        end,
+
+        GetConfigFromUI = function(inputs)
+            local config = {}
+            if inputs.name then
+                local name = strtrim(inputs.name:GetText())
+                if name ~= "" then config.name = name end
+            end
+            return config
+        end,
+
+        FireTestEvent = function(trigger, context)
+            if not context.IsEncounterActive() then
+                return false
+            end
+            if QRA.Assignments and QRA.Assignments.ExecuteForTrigger then
+                QRA.Assignments.ExecuteForTrigger(trigger.id, { text = "Test emote" }, 1, trigger)
+            end
+            context.LogEvent("BOSS_EMOTE", { triggerId = trigger.id })
+            return true
+        end,
+
+        GenerateTestConfig = function()
+            return {
+                name = "Test Emote",
+                counterFormula = "1",
+            }
+        end,
+    })
+end
+
+--------------------------------------------------
 -- Initialize Registry
 -- Called after Triggers.Types is defined
 --------------------------------------------------
@@ -713,6 +789,7 @@ function QRA.Triggers.TypeRegistry.Initialize()
     RegisterTimerType()
     RegisterUnitHealthType()
     RegisterUnitDiedType()
+    RegisterBossEmoteType()
 
     QRA.Debug("TriggerTypeRegistry: Initialized with", #QRA.Triggers.TypeRegistry:GetAllTypes(), "types")
 end

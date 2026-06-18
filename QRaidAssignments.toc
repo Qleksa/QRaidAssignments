@@ -31,6 +31,8 @@ Locales/enUS.lua
 Data/Bosses.lua
 Data/Cooldowns.lua
 
+Core/BossEvents.lua
+
 Triggers/TriggerTypeRegistry.lua
 Triggers/Triggers.lua
 

@@ -23,6 +23,7 @@ QRA.Templates = {}
 QRA.Widgets = {}
 QRA.Notifications = {}
 QRA.Changelog = {}
+QRA.BossEventModules = {}
 
 --------------------------------------------------
 -- APIs (from AbstractFramework)

@@ -71,6 +71,12 @@ EventFirer.EventTypes = {
         requiresTarget = true,
         useFakeBossPanel = true,  -- Indicates this type uses the Fake Boss panel
     },
+    BOSS_EMOTE = {
+        name = "Boss Emote",
+        requiresSpell = false,
+        requiresSource = false,
+        requiresTarget = false,
+    },
 }
 
 --------------------------------------------------
@@ -503,4 +509,44 @@ function EventFirer.FireTrigger(trigger)
 
     QRA.Debug("EventFirer: No registry handler for trigger type", trigger.type)
     return false
+end
+
+--------------------------------------------------
+-- Custom Event Firing
+--------------------------------------------------
+
+--- Fire an arbitrary WoW event through the trigger frame's OnEvent dispatcher.
+--- This simulates a real event, including BossEvents filter handling.
+---@param eventName string WoW event name (e.g., "CHAT_MSG_RAID_BOSS_EMOTE")
+---@param ... any Event arguments
+---@return boolean success
+function EventFirer.FireCustomEvent(eventName, ...)
+    if not FakeEncounter.IsActive() then
+        QRA.Print(QRA.L["DevMode: Start an encounter first"])
+        return false
+    end
+
+    local frame = QRA.Triggers.frame
+    if not frame then
+        QRA.Debug("EventFirer: No trigger frame available")
+        return false
+    end
+
+    -- Fire through the frame's OnEvent dispatcher, which routes to frame[event](...)
+    if frame[eventName] then
+        frame[eventName](frame, ...)
+    end
+
+    QRA.DevMode.EventHistory.AddEvent(eventName, { args = { ... } })
+    QRA.Debug("EventFirer: Fired custom event", eventName)
+
+    return true
+end
+
+--- Fire a CHAT_MSG_RAID_BOSS_EMOTE event with the given text.
+--- Tests the full BossEvents pipeline: filter match -> trigger lookup -> Fire() -> assignments.
+---@param text string The emote text (e.g., "Immerseus begins to split! spell:143020")
+---@return boolean success
+function EventFirer.FireBossEmote(text)
+    return EventFirer.FireCustomEvent("CHAT_MSG_RAID_BOSS_EMOTE", text)
 end

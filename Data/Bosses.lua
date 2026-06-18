@@ -11,6 +11,12 @@ local QRA = select(2, ...)
 ---@field name string Name of the trigger
 ---@field type string Type of trigger
 
+---@class BossEventDef
+---@field name string Unique name for this event (used for trigger ID generation)
+---@field event string WoW event name (e.g., "CHAT_MSG_RAID_BOSS_EMOTE")
+---@field filter? string|function Lua pattern matched against event arg1 (string) or filter function (function)
+---@field counterFormula? string Counter formula for the auto-created trigger (default "1")
+
 ---@class BossData
 ---@field name string Boss name
 ---@field abbreviation? string Optional abbreviation for the boss
@@ -18,6 +24,7 @@ local QRA = select(2, ...)
 ---@field npcIds? number[] NPC ID of the boss(es)
 ---@field zoneName string Zone name where the boss is located
 ---@field triggers? BossTrigger[] Optional triggers for the boss encounter
+---@field events? BossEventDef[] Optional boss-specific event handlers
 
 ---@class InstanceData
 ---@field instanceId number instance ID
@@ -161,6 +168,14 @@ QRA.Bosses = {
                     encounterId = 1602,
                     zoneName = "Pools of Power",
                     npcIds = { 71543 },
+                    events = {
+                        {
+                            name = "Split",
+                            event = "CHAT_MSG_RAID_BOSS_EMOTE",
+                            filter = "spell:143020",
+                            counterFormula = "*",
+                        }
+                    },
                 },
                 {
                     name = "Fallen Protectors",

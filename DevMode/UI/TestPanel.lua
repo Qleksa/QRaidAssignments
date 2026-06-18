@@ -90,6 +90,8 @@ local function CreateTestTriggerRow(parent, trigger, onFire)
         detailText = "NPC: " .. trigger.targetGuid
     elseif trigger.hpThresholds then
         detailText = "HP: " .. trigger.hpThresholds .. "%"
+    elseif trigger.name then
+        detailText = trigger.name
     else
         detailText = QRA.L["Unknown"]
     end
