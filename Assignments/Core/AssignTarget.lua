@@ -21,6 +21,7 @@ QRA.AssignTarget.Types = {
     CLASS = "CLASS",       -- Any spec of a class (e.g., WARR)
     SPEC = "SPEC",         -- Specific spec (e.g., HPAL)
     PLAYER = "PLAYER",     -- Specific player by name
+    LIST = "LIST",         -- Comma-separated list of player names
 }
 
 --------------------------------------------------
@@ -44,6 +45,19 @@ function QRA.AssignTarget.Parse(targetStr)
         return {
             type = QRA.AssignTarget.Types.ALL,
             value = "ALL",
+            index = nil,
+        }
+    end
+
+    -- Check for comma-separated player list
+    if str:find(",") then
+        local names = {}
+        for name in str:gmatch("[^,]+") do
+            table.insert(names, strtrim(name))
+        end
+        return {
+            type = QRA.AssignTarget.Types.LIST,
+            value = names,
             index = nil,
         }
     end
@@ -123,6 +137,10 @@ end
 function QRA.AssignTarget.ToString(targetInfo)
     if not targetInfo then return "" end
 
+    if targetInfo.type == QRA.AssignTarget.Types.LIST then
+        return table.concat(targetInfo.value, ", ")
+    end
+
     if targetInfo.index then
         return targetInfo.value .. targetInfo.index
     end
@@ -189,6 +207,11 @@ function QRA.AssignTarget.Resolve(targetStr, roster)
             players = QRA.RaidRoster.GetPlayersBySpec(targetInfo.value, roster)
         end
 
+    elseif targetInfo.type == QRA.AssignTarget.Types.LIST then
+        for _, name in ipairs(targetInfo.value) do
+            table.insert(players, { name = name })
+        end
+
     elseif targetInfo.type == QRA.AssignTarget.Types.PLAYER then
         -- Specific player by name
         local player = QRA.RaidRoster.GetPlayerByName(targetInfo.value, roster)
@@ -252,6 +275,8 @@ function QRA.AssignTarget.GetDisplayText(targetStr, showResolved)
     -- Add type-specific formatting
     if targetInfo.type == QRA.AssignTarget.Types.ALL then
         displayText = "All"
+    elseif targetInfo.type == QRA.AssignTarget.Types.LIST then
+        displayText = table.concat(targetInfo.value, ", ")
     elseif targetInfo.type == QRA.AssignTarget.Types.ROLE then
         local roleData = QRA.ClassSpecs.Roles[targetInfo.value]
         if roleData then
@@ -374,6 +399,7 @@ function QRA.AssignTarget.GetTips()
         "|cffffd100Basic:|r",
         "  |cff00ff00ALL|r = Everyone in raid",
         "  |cff00ff00Playername|r = Specific player",
+        "  |cff00ff00Player1, Player2|r = Multiple specific players",
         " ",
         "|cffffd100Roles:|r",
         "  |cff00ff00TANK|r = All tanks",
