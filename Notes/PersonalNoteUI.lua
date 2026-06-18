@@ -19,6 +19,7 @@ local personalNoteContentFrame = nil
 local personalNoteResizeButton = nil
 
 local MOVER_GROUP = "QRA Movers"
+local IMAGE_BASE_PATH = "Interface\\AddOns\\QRaidAssignments\\Media\\Images\\"
 
 local function EnsurePersonalSettings()
     QRA.Settings.personalNoteFrame = QRA.Settings.personalNoteFrame or {}
@@ -41,6 +42,10 @@ local function EnsurePersonalSettings()
         settings.backgroundAlpha = 0.5
     end
     settings.backgroundAlpha = math.max(0, math.min(1, settings.backgroundAlpha))
+    if settings.useImageBackground == nil then
+        settings.useImageBackground = false
+    end
+    settings.backgroundImageName = tostring(settings.backgroundImageName or "")
 
     return settings
 end
@@ -113,8 +118,22 @@ end
 
 local function ApplyPersonalBackgroundOpacity()
     if not personalNoteBackground then return end
-    -- ponytail: black only for now; keep it dead simple
-    personalNoteBackground:SetColorTexture(0, 0, 0, EnsurePersonalSettings().backgroundAlpha)
+    local settings = EnsurePersonalSettings()
+
+    personalNoteBackground:SetTexture(nil)
+    if settings.useImageBackground then
+        local imageName = strtrim(settings.backgroundImageName or "")
+        if imageName ~= "" then
+            local imagePath = IMAGE_BASE_PATH .. imageName
+            personalNoteBackground:SetTexture(imagePath)
+            if personalNoteBackground:GetTexture() then
+                personalNoteBackground:SetVertexColor(1, 1, 1, settings.backgroundAlpha)
+                return
+            end
+        end
+    end
+
+    personalNoteBackground:SetColorTexture(0, 0, 0, settings.backgroundAlpha)
 end
 
 function QRA.Notes.GetPersonalBackgroundOpacity()
@@ -124,6 +143,24 @@ end
 function QRA.Notes.SetPersonalBackgroundOpacity(alpha)
     local settings = EnsurePersonalSettings()
     settings.backgroundAlpha = math.max(0, math.min(1, tonumber(alpha) or 0.5))
+    ApplyPersonalBackgroundOpacity()
+end
+
+function QRA.Notes.IsPersonalImageBackgroundEnabled()
+    return EnsurePersonalSettings().useImageBackground == true
+end
+
+function QRA.Notes.SetPersonalImageBackgroundEnabled(enabled)
+    EnsurePersonalSettings().useImageBackground = enabled == true
+    ApplyPersonalBackgroundOpacity()
+end
+
+function QRA.Notes.GetPersonalBackgroundImageName()
+    return EnsurePersonalSettings().backgroundImageName or ""
+end
+
+function QRA.Notes.SetPersonalBackgroundImageName(name)
+    EnsurePersonalSettings().backgroundImageName = strtrim(tostring(name or ""))
     ApplyPersonalBackgroundOpacity()
 end
 
