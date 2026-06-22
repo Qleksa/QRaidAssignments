@@ -78,6 +78,12 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
+        version = "2.6.0",
+        changes = {
+            "Added more DK spells (Vamp Blood, Mass grip, Symbiosis, EWR)"
+        }
+    },
+    {
         version = "2.5.0",
         changes = {
             "Added support for image background for notes",

@@ -75,9 +75,13 @@ QRA.Cooldowns = {
         {
             class = "Death Knight",
             spells = {
-                { name = "Anti-Magic Zone",    id = 51052, icon = 237510 },
-                { name = "Anti-Magic Shell",   id = 48707, icon = 136120 },
-                { name = "Icebound Fortitude", id = 48792, icon = 237525 },
+                { name = "Anti-Magic Zone",     id = 51052,  icon = 237510 },
+                { name = "Anti-Magic Shell",    id = 48707,  icon = 136120 },
+                { name = "Vampiric Blood",      id = 55233,  icon = 136168 },
+                { name = "Gorefiend's Grasp",   id = 108199, icon = 538767 },
+                { name = "Might of Ursoc",      id = 113072, icon = 572036 },
+                { name = "Icebound Fortitude",  id = 48792,  icon = 237525 },
+                { name = 'Empower Rune Weapon', id = 47568,  icon = 135372 },
             }
         },
         {
