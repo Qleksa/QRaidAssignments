@@ -263,7 +263,7 @@ local function CreateTriggerRow(parent, trigger, indentLevel, onToggle, onEdit, 
     if hasAssignments then
         collapseBtn = CreateFrame("Button", nil, row)
         collapseBtn:SetSize(12, 12)
-        AF.SetPoint(collapseBtn, "LEFT", indent + 8, 0)
+        AF.SetPoint(collapseBtn, "LEFT", indent, 0)
         local collapseIcon = collapseBtn:CreateFontString(nil, "ARTWORK")
         collapseIcon:SetFont(STANDARD_TEXT_FONT, 8, "OUTLINE")
         collapseIcon:SetPoint("CENTER")
@@ -278,7 +278,7 @@ local function CreateTriggerRow(parent, trigger, indentLevel, onToggle, onEdit, 
     end
 
     -- Enabled checkbox
-    local startOffset = hasAssignments and (indent + 22) or (indent + 12)
+    local startOffset = indent + 12
     local enableCheck = AF.CreateCheckButton(row, nil, function(checked)
         trigger.enabled = checked
         QRA.Triggers.UpdateTrigger(trigger)
