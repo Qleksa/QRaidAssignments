@@ -78,6 +78,12 @@ end
 -- Format: Each entry is { version = "X.Y.Z", changes = { "item1", "item2", ... } }
 local CHANGELOG_DATA = {
     {
+        version = "2.6.1",
+        changes = {
+            "Fixed Sha of Pride and Iron Juggernaut zone names, notes should switch correctly now"
+        }
+    },
+    {
         version = "2.6.0",
         changes = {
             "Added more DK spells (Vamp Blood, Mass grip, Symbiosis, EWR)"

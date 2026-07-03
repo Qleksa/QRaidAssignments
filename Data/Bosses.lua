@@ -199,7 +199,7 @@ QRA.Bosses = {
                 {
                     name = "Sha of Pride",
                     encounterId = 1604,
-                    zoneName = "Vault of Y'shaarj",
+                    zoneName = "Vault of Y'Shaarj",
                     npcIds = { 71734 },
                 },
                 {
@@ -213,7 +213,7 @@ QRA.Bosses = {
                 {
                     name = "Iron Juggernaut",
                     encounterId = 1600,
-                    zoneName = "Gates of Orgrimmar",
+                    zoneName = "Before the Gates",
                     npcIds = { 71466 },
                 },
                 {
